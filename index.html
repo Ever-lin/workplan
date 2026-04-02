@@ -1,0 +1,756 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>认知觉醒 · 工作计划</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;500;600&family=Noto+Sans+SC:wght@300;400;500&family=JetBrains+Mono:wght@400;500&display=swap');
+  :root {
+    --ink:#1a1a1a;--ink-light:#4a4a4a;--ink-muted:#8a8a8a;
+    --paper:#faf8f3;--paper-warm:#f5f0e8;--paper-line:#e8e2d4;
+    --accent:#8b3a3a;--accent-light:#c97070;--accent-pale:#f2e8e8;
+    --blue-ink:#2c4a7c;--blue-light:#e8eef8;
+    --green-ink:#2a5c3f;--green-light:#e8f2ec;
+    --amber:#8b6914;--amber-light:#fdf3d8;
+    --border:#d0c8b8;--shadow:rgba(80,60,30,0.08);
+    --serif:'Noto Serif SC','SimSun',serif;
+    --sans:'Noto Sans SC','PingFang SC',sans-serif;
+    --mono:'JetBrains Mono',monospace;
+    --t:0.2s ease;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:var(--sans);background:var(--paper);color:var(--ink);min-height:100vh;font-size:14px;line-height:1.6}
+
+  /* HEADER */
+  .hdr{background:var(--ink);color:var(--paper);padding:0 24px;display:flex;align-items:center;justify-content:space-between;height:52px;position:sticky;top:0;z-index:100;border-bottom:2px solid var(--accent)}
+  .hdr-title{font-family:var(--serif);font-size:18px;font-weight:600;letter-spacing:2px}
+  .hdr-title span{color:var(--accent-light)}
+  .nav{display:flex;gap:4px}
+  .nb{background:none;border:1px solid transparent;color:var(--paper);font-family:var(--sans);font-size:13px;padding:5px 14px;cursor:pointer;border-radius:2px;transition:var(--t)}
+  .nb:hover{background:rgba(255,255,255,0.1)}
+  .nb.active{background:var(--accent);border-color:var(--accent)}
+  .hdr-acts{display:flex;gap:8px;align-items:center}
+  .exp-btn{background:none;border:1px solid rgba(255,255,255,0.3);color:var(--paper);font-family:var(--sans);font-size:12px;padding:5px 12px;cursor:pointer;border-radius:2px;transition:var(--t)}
+  .exp-btn:hover{background:rgba(255,255,255,0.1)}
+
+  /* LAYOUT */
+  .app{max-width:1300px;margin:0 auto;padding:20px}
+
+  /* DATE NAV */
+  .dnav{display:flex;align-items:center;gap:14px;margin-bottom:14px;padding:10px 16px;background:white;border:1px solid var(--border);border-radius:2px}
+  .dnb{background:none;border:1px solid var(--border);color:var(--ink);font-size:16px;width:32px;height:32px;cursor:pointer;border-radius:2px;display:flex;align-items:center;justify-content:center;transition:var(--t)}
+  .dnb:hover{background:var(--paper-warm)}
+  .dd{flex:1;text-align:center}
+  .dm{font-family:var(--serif);font-size:20px;font-weight:600}
+  .ds{font-size:12px;color:var(--ink-muted);letter-spacing:1px}
+  .tb{background:var(--accent);border:none;color:white;font-size:12px;padding:5px 12px;cursor:pointer;border-radius:2px;font-family:var(--sans)}
+  input[type="date"]{border:1px solid var(--border);background:var(--paper-warm);color:var(--ink);font-family:var(--sans);font-size:13px;padding:4px 8px;border-radius:2px;cursor:pointer}
+
+  /* STATS */
+  .sbar{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:14px}
+  .sc{background:white;border:1px solid var(--border);padding:10px 16px;border-radius:2px;text-align:center}
+  .sv{font-family:var(--mono);font-size:22px;font-weight:500;line-height:1;margin-bottom:3px}
+  .sl{font-size:11px;color:var(--ink-muted);letter-spacing:0.5px}
+  .sc.a .sv{color:var(--accent)}
+  .sc.b .sv{color:var(--blue-ink)}
+  .sc.g .sv{color:var(--green-ink)}
+
+  /* MAIN CARD */
+  .pgrid{display:grid;grid-template-columns:1fr 1fr;background:white;border:1.5px solid var(--border);border-radius:2px;overflow:hidden;box-shadow:0 2px 12px var(--shadow);position:relative}
+  .pgrid::after{content:'';position:absolute;top:0;bottom:0;left:50%;width:1px;background:repeating-linear-gradient(to bottom,var(--border) 0,var(--border) 4px,transparent 4px,transparent 8px);z-index:10;pointer-events:none}
+  .pl{padding:18px 14px 18px 18px;border-right:1px solid var(--border);display:flex;flex-direction:column;gap:14px;background:var(--paper)}
+  .pr{padding:18px 18px 18px 14px;display:flex;flex-direction:column;gap:14px;background:white}
+  .ptitle{font-family:var(--serif);font-size:12px;font-weight:600;color:var(--ink-muted);letter-spacing:2px;padding-bottom:7px;border-bottom:1px solid var(--paper-line);margin-bottom:2px}
+
+  /* COMBO TIME INPUTS */
+  .tfields{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+  .tfield label{display:block;font-size:11px;color:var(--ink-muted);margin-bottom:3px;letter-spacing:0.5px}
+  .combo{position:relative}
+  .combo input{width:100%;border:1px solid var(--border);background:white;color:var(--ink);font-family:var(--mono);font-size:13px;padding:6px 24px 6px 8px;border-radius:2px}
+  .combo input:focus{outline:none;border-color:var(--accent)}
+  .combo::after{content:'▾';position:absolute;right:7px;top:50%;transform:translateY(-50%);font-size:10px;color:var(--ink-muted);pointer-events:none}
+
+  /* TIMELINE */
+  .twrap{display:flex}
+  .tax{display:flex;flex-direction:column;width:44px;flex-shrink:0;padding-right:8px;position:relative}
+  .tax::after{content:'';position:absolute;right:0;top:0;bottom:0;width:1.5px;background:var(--accent);opacity:0.4}
+  .tslot{height:50px;display:flex;align-items:flex-start;padding-top:2px}
+  .tlbl{font-family:var(--mono);font-size:10px;color:var(--ink-muted);white-space:nowrap;position:relative}
+  .tlbl::after{content:'';position:absolute;right:-12px;top:5px;width:8px;height:1px;background:var(--accent);opacity:0.4}
+  .tevs{flex:1;display:flex;flex-direction:column}
+  .tblk{height:50px;display:flex;flex-direction:column;justify-content:center;padding:3px 6px;border-bottom:1px dashed var(--paper-line);transition:background var(--t);position:relative;min-height:50px}
+  .tblk:hover{background:var(--paper-warm)}
+  .tblk.he{background:var(--amber-light)}
+  .tblk.he::before{content:'';position:absolute;left:0;top:4px;bottom:4px;width:3px;background:var(--amber);border-radius:2px}
+  .tblk input{border:none;background:transparent;font-family:var(--sans);font-size:12px;color:var(--ink);width:100%;padding:0}
+  .tblk input:focus{outline:none}
+  .tblk input::placeholder{color:var(--ink-muted);font-size:10px}
+
+  /* TODO CARDS */
+  .tlist{display:flex;flex-direction:column;gap:8px}
+  .tcard{border:1px solid var(--border);border-radius:2px;background:white;transition:all var(--t);overflow:hidden}
+  .tcard.done{background:var(--green-light);border-color:#b8d8c0}
+  .tcard.done .ttxt{text-decoration:line-through;color:var(--ink-muted)}
+  .ttop{display:flex;align-items:flex-start;gap:7px;padding:8px 10px 6px}
+  .tpri{width:20px;height:20px;border-radius:50%;background:var(--accent);color:white;font-size:10px;font-family:var(--mono);display:flex;align-items:center;justify-content:center;flex-shrink:0;font-weight:500;cursor:pointer;margin-top:1px;user-select:none}
+  .tpri.p2{background:var(--blue-ink)}
+  .tpri.p3{background:var(--ink-muted)}
+  .tchk{width:16px;height:16px;border:1.5px solid var(--border);border-radius:2px;cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center;background:white;transition:all var(--t);margin-top:2px;font-size:10px}
+  .tchk.ck{background:var(--green-ink);border-color:var(--green-ink);color:white}
+  .tbody{flex:1;display:flex;flex-direction:column;gap:3px}
+  .ttxt{font-size:13px;color:var(--ink);border:none;background:transparent;width:100%;font-family:var(--sans);resize:none;min-height:18px;line-height:1.4}
+  .ttxt:focus{outline:none}
+  .tpt{font-family:var(--mono);font-size:10px;color:var(--ink-muted);border:none;background:transparent;width:130px}
+  .tpt:focus{outline:none}
+  .tacts{display:flex;gap:3px;opacity:0;transition:opacity var(--t);flex-shrink:0}
+  .tcard:hover .tacts{opacity:1}
+  .ib{background:none;border:none;cursor:pointer;color:var(--ink-muted);padding:2px 3px;font-size:12px;transition:color var(--t)}
+  .ib:hover{color:var(--accent)}
+  .etoggle{font-size:10px;color:var(--ink-muted);cursor:pointer;padding:2px 7px;border:1px solid var(--paper-line);border-radius:2px;background:none;font-family:var(--sans);transition:all var(--t)}
+  .etoggle:hover{border-color:var(--accent);color:var(--accent)}
+
+  /* EXEC SECTION — inline in todo card */
+  .esec{border-top:1px dashed var(--paper-line);padding:8px 10px;background:rgba(255,255,255,0.55)}
+  .erow{display:flex;align-items:center;gap:8px;margin-bottom:6px;flex-wrap:wrap}
+  .elbl{font-size:10px;color:var(--ink-muted);white-space:nowrap;min-width:40px}
+  .estat{font-size:11px;padding:2px 10px;border-radius:10px;cursor:pointer;border:1px solid transparent;font-family:var(--sans);white-space:nowrap;user-select:none}
+  .estat.pending{background:var(--paper-warm);color:var(--ink-muted);border-color:var(--border)}
+  .estat.done{background:#c8e6d0;color:var(--green-ink);border-color:#b0d4bc}
+  .estat.partial{background:#fde8c0;color:var(--amber);border-color:#f0d090}
+  .estat.failed{background:var(--accent-pale);color:var(--accent);border-color:#e0b8b8}
+  .etimes{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:6px}
+  .etf{display:flex;flex-direction:column;gap:2px}
+  .etl{font-size:9px;color:var(--ink-muted)}
+  .eti{font-family:var(--mono);font-size:11px;color:var(--ink);border:1px solid var(--border);background:white;padding:3px 5px;border-radius:2px;width:100%}
+  .eti:focus{outline:none;border-color:var(--accent)}
+  .enote{font-size:12px;color:var(--ink);border:1px solid var(--border);background:white;padding:5px 7px;border-radius:2px;width:100%;resize:none;font-family:var(--sans);min-height:34px;line-height:1.5}
+  .enote:focus{outline:none;border-color:var(--accent)}
+
+  /* ADD BUTTON */
+  .addbtn{background:none;border:1px dashed var(--border);color:var(--ink-muted);font-family:var(--sans);font-size:12px;padding:6px 16px;cursor:pointer;border-radius:2px;transition:all var(--t);width:100%}
+  .addbtn:hover{border-color:var(--accent);color:var(--accent);background:var(--accent-pale)}
+
+  /* RIGHT SUMMARY */
+  .sumlist{display:flex;flex-direction:column;gap:5px;flex:1}
+  .sumi{border:1px solid var(--border);border-radius:2px;padding:8px 11px;background:white;display:flex;gap:9px;align-items:flex-start;cursor:pointer;transition:all var(--t)}
+  .sumi:hover{border-color:var(--ink-muted)}
+  .sumi.done{border-left:3px solid var(--green-ink);background:var(--green-light)}
+  .sumi.partial{border-left:3px solid var(--amber);background:var(--amber-light)}
+  .sumi.failed{border-left:3px solid var(--accent);background:var(--accent-pale)}
+  .sidx{font-family:var(--mono);font-size:10px;color:var(--ink-muted);min-width:18px;padding-top:2px}
+  .sbody{flex:1;min-width:0}
+  .stxt{font-size:12px;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .smeta{display:flex;gap:7px;margin-top:3px;flex-wrap:wrap;align-items:center}
+  .sstat{font-size:10px;padding:1px 7px;border-radius:8px}
+  .sstat.pending{background:var(--paper-warm);color:var(--ink-muted)}
+  .sstat.done{background:#c8e6d0;color:var(--green-ink)}
+  .sstat.partial{background:#fde8c0;color:var(--amber)}
+  .sstat.failed{background:var(--accent-pale);color:var(--accent)}
+  .stime{font-family:var(--mono);font-size:10px;color:var(--ink-muted)}
+  .snote{font-size:10px;color:var(--ink-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:200px}
+
+  /* REFLECTION */
+  .refbox{border:1px solid #b8c8e8;border-radius:2px;padding:10px 12px;background:var(--blue-light)}
+  .reftitle{font-family:var(--serif);font-size:11px;color:var(--blue-ink);margin-bottom:6px;letter-spacing:1px}
+  .refta{width:100%;border:none;background:transparent;color:var(--ink);font-family:var(--serif);font-size:12px;resize:none;line-height:1.8;min-height:68px}
+  .refta:focus{outline:none}
+
+  /* VIEWS */
+  .vw{display:none}.vw.active{display:block}
+
+  /* MONTHLY */
+  .mgrid{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;margin-top:14px}
+  .mhdr{text-align:center;font-size:11px;color:var(--ink-muted);padding:4px 0;letter-spacing:1px}
+  .mc{min-height:74px;border:1px solid var(--border);border-radius:2px;padding:4px;background:white;cursor:pointer;transition:all var(--t)}
+  .mc:hover{border-color:var(--accent);background:var(--accent-pale)}
+  .mc.td{border:2px solid var(--accent)}
+  .mc.om{background:var(--paper);opacity:0.45;pointer-events:none}
+  .mcd{font-family:var(--mono);font-size:12px;color:var(--ink-muted);margin-bottom:3px}
+  .mc.td .mcd{color:var(--accent);font-weight:500}
+  .mdots{display:flex;gap:2px;flex-wrap:wrap}
+  .mdot{width:6px;height:6px;border-radius:50%;background:var(--accent-light)}
+  .mdot.dn{background:var(--green-ink)}
+  .mcomp{font-size:10px;color:var(--ink-muted);margin-top:3px;font-family:var(--mono)}
+
+  /* YEARLY */
+  .ygrid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-top:14px}
+  .ymc{background:white;border:1px solid var(--border);border-radius:2px;padding:12px;cursor:pointer;transition:all var(--t)}
+  .ymc:hover{border-color:var(--accent)}
+  .ymn{font-family:var(--serif);font-size:14px;color:var(--ink);margin-bottom:7px;border-bottom:1px solid var(--paper-line);padding-bottom:5px}
+  .ymst{font-size:12px;color:var(--ink-muted);line-height:2}
+  .pb{height:4px;background:var(--paper-line);border-radius:2px;margin-top:4px;overflow:hidden}
+  .pf{height:100%;background:var(--green-ink);border-radius:2px;transition:width .3s ease}
+
+  /* EXPORT PANEL */
+  .expp{position:fixed;top:0;right:0;bottom:0;width:330px;background:white;border-left:2px solid var(--border);z-index:200;padding:24px;overflow-y:auto;transform:translateX(100%);transition:transform .3s ease;box-shadow:-4px 0 24px var(--shadow)}
+  .expp.open{transform:translateX(0)}
+  .expt{font-family:var(--serif);font-size:17px;color:var(--ink);margin-bottom:18px;padding-bottom:10px;border-bottom:1px solid var(--border)}
+  .exps{margin-bottom:16px}
+  .expsl{font-size:11px;color:var(--ink-muted);letter-spacing:1px;margin-bottom:8px}
+  .expo{display:flex;align-items:center;gap:10px;padding:9px 12px;border:1px solid var(--border);border-radius:2px;cursor:pointer;margin-bottom:5px;transition:all var(--t)}
+  .expo:hover{border-color:var(--accent);background:var(--accent-pale)}
+  .expoi{font-size:15px;width:22px;text-align:center}
+  .expon{font-size:13px;font-weight:500;color:var(--ink)}
+  .expod{font-size:11px;color:var(--ink-muted)}
+  .expclose{position:absolute;top:16px;right:16px;background:none;border:none;font-size:20px;cursor:pointer;color:var(--ink-muted)}
+  select{border:1px solid var(--border);background:var(--paper);color:var(--ink);font-family:var(--sans);font-size:13px;padding:6px 10px;border-radius:2px;width:100%;margin-bottom:8px}
+  select:focus{outline:none;border-color:var(--accent)}
+
+  /* SAVE */
+  .saved{position:fixed;bottom:20px;right:20px;background:var(--green-ink);color:white;font-size:12px;padding:5px 12px;border-radius:2px;opacity:0;transition:opacity .3s ease;pointer-events:none;font-family:var(--sans)}
+  .saved.show{opacity:1}
+
+  ::-webkit-scrollbar{width:5px;height:5px}
+  ::-webkit-scrollbar-track{background:transparent}
+  ::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
+  ::-webkit-scrollbar-thumb:hover{background:var(--ink-muted)}
+
+  @media(max-width:768px){
+    .pgrid{grid-template-columns:1fr}.pgrid::after{display:none}
+    .sbar{grid-template-columns:repeat(2,1fr)}
+    .ygrid{grid-template-columns:repeat(2,1fr)}
+    .expp{width:100%}.nav{display:none}
+    .etimes{grid-template-columns:repeat(2,1fr)}
+  }
+</style>
+</head>
+<body>
+
+<!-- Datalists -->
+<datalist id="dl-h">
+  <option value="0.5h"><option value="1h"><option value="1.5h"><option value="2h">
+  <option value="2.5h"><option value="3h"><option value="3.5h"><option value="4h">
+  <option value="4.5h"><option value="5h"><option value="5.5h"><option value="6h">
+  <option value="6.5h"><option value="7h"><option value="7.5h"><option value="8h">
+  <option value="8.5h"><option value="9h"><option value="9.5h"><option value="10h">
+</datalist>
+<datalist id="dl-t">
+  <option value="06:00"><option value="06:30"><option value="07:00"><option value="07:30">
+  <option value="08:00"><option value="08:30"><option value="09:00"><option value="09:30">
+  <option value="10:00"><option value="10:30"><option value="11:00"><option value="11:30">
+  <option value="12:00"><option value="12:30"><option value="13:00"><option value="13:30">
+  <option value="14:00"><option value="14:30"><option value="15:00"><option value="15:30">
+  <option value="16:00"><option value="16:30"><option value="17:00"><option value="17:30">
+  <option value="18:00"><option value="18:30"><option value="19:00"><option value="19:30">
+  <option value="20:00"><option value="20:30"><option value="21:00"><option value="21:30">
+  <option value="22:00"><option value="22:30"><option value="23:00"><option value="23:30">
+</datalist>
+
+<header class="hdr">
+  <div class="hdr-title">认知觉醒 <span>·</span> 工作计划</div>
+  <nav class="nav">
+    <button class="nb active" onclick="switchView('daily',this)">每日</button>
+    <button class="nb" onclick="switchView('monthly',this)">每月</button>
+    <button class="nb" onclick="switchView('yearly',this)">每年</button>
+  </nav>
+  <div class="hdr-acts">
+    <button class="exp-btn" onclick="toggleExport()">导出 ↓</button>
+  </div>
+</header>
+
+<!-- DAILY -->
+<div id="view-daily" class="vw active">
+  <div class="app">
+    <div class="dnav">
+      <button class="dnb" onclick="changeDay(-1)">‹</button>
+      <div class="dd"><div class="dm" id="dm"></div><div class="ds" id="ds"></div></div>
+      <input type="date" id="dpick" onchange="selectDate(this.value)">
+      <button class="tb" onclick="goToday()">今天</button>
+      <button class="dnb" onclick="changeDay(1)">›</button>
+    </div>
+
+    <div class="sbar">
+      <div class="sc a"><div class="sv" id="s-tot">0</div><div class="sl">待办事项</div></div>
+      <div class="sc b"><div class="sv" id="s-plan">—</div><div class="sl">计划工作时间</div></div>
+      <div class="sc g"><div class="sv" id="s-act">—</div><div class="sl">实际工作时间</div></div>
+      <div class="sc"><div class="sv" id="s-rate">0%</div><div class="sl">完成率</div></div>
+    </div>
+
+    <div class="pgrid">
+      <!-- LEFT -->
+      <div class="pl">
+        <div class="ptitle">计划区 · 左</div>
+
+        <div>
+          <div style="font-size:11px;color:var(--ink-muted);margin-bottom:7px;letter-spacing:.5px">工作时间规划</div>
+          <div class="tfields">
+            <div class="tfield">
+              <label>计划工作时间</label>
+              <div class="combo"><input list="dl-h" id="plan-study" placeholder="下拉或直接输入，如 4h" oninput="saveDayData();updateStats()"></div>
+            </div>
+            <div class="tfield">
+              <label>可用工作时间</label>
+              <div class="combo"><input list="dl-h" id="plan-avail" placeholder="下拉或直接输入，如 6h" oninput="saveDayData()"></div>
+            </div>
+          </div>
+        </div>
+
+        <div>
+          <div style="font-size:11px;color:var(--ink-muted);margin-bottom:7px;letter-spacing:.5px">时间轴 · 点击格子填写安排</div>
+          <div class="twrap">
+            <div class="tax" id="tax"></div>
+            <div class="tevs" id="tevs"></div>
+          </div>
+        </div>
+
+        <div>
+          <div class="ptitle" style="display:flex;align-items:center;justify-content:space-between">
+            <span>待办事项 · 按权重排序</span>
+            <span style="font-size:10px;color:var(--ink-muted);font-weight:400;letter-spacing:0;text-transform:none">点序号切换优先级</span>
+          </div>
+          <div class="tlist" id="tlist"></div>
+          <div style="margin-top:6px"><button class="addbtn" onclick="addTodo()">＋ 添加待办事项</button></div>
+        </div>
+      </div>
+
+      <!-- RIGHT -->
+      <div class="pr">
+        <div class="ptitle">实施区 · 右</div>
+
+        <div>
+          <div style="font-size:11px;color:var(--ink-muted);margin-bottom:7px;letter-spacing:.5px">实际完成情况</div>
+          <div class="tfields">
+            <div class="tfield">
+              <label>实际工作时间</label>
+              <div class="combo"><input list="dl-h" id="act-study" placeholder="下拉或直接输入，如 3.5h" oninput="saveDayData();updateStats()"></div>
+            </div>
+            <div class="tfield">
+              <label>深度专注时间</label>
+              <div class="combo"><input list="dl-h" id="act-deep" placeholder="下拉或直接输入，如 2h" oninput="saveDayData()"></div>
+            </div>
+          </div>
+        </div>
+
+        <div style="flex:1;display:flex;flex-direction:column;min-height:0">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:7px">
+            <div class="ptitle" style="border:none;padding:0;margin:0">执行汇总</div>
+            <span style="font-size:10px;color:var(--ink-muted)">点击条目可定位左侧待办</span>
+          </div>
+          <div class="sumlist" id="sumlist">
+            <div style="font-size:12px;color:var(--ink-muted);padding:24px 0;text-align:center;line-height:2">在左侧添加待办事项后<br>执行汇总将实时同步到这里</div>
+          </div>
+        </div>
+
+        <div class="refbox">
+          <div class="reftitle">· 今日复盘</div>
+          <textarea class="refta" id="reflection" placeholder="今天做到了什么？有什么收获？明天需要改进什么？" oninput="saveDayData()"></textarea>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- MONTHLY -->
+<div id="view-monthly" class="vw">
+  <div class="app">
+    <div class="dnav">
+      <button class="dnb" onclick="changeMonth(-1)">‹</button>
+      <div class="dd"><div class="dm" id="m-main"></div><div class="ds">点击日期跳转当日计划</div></div>
+      <button class="tb" onclick="currentMonth=new Date().getMonth();currentYear=new Date().getFullYear();renderMonthly()">本月</button>
+      <button class="dnb" onclick="changeMonth(1)">›</button>
+    </div>
+    <div class="sbar">
+      <div class="sc a"><div class="sv" id="m-days">0</div><div class="sl">记录天数</div></div>
+      <div class="sc b"><div class="sv" id="m-todos">0</div><div class="sl">本月待办</div></div>
+      <div class="sc g"><div class="sv" id="m-done">0</div><div class="sl">已完成</div></div>
+      <div class="sc"><div class="sv" id="m-rate">0%</div><div class="sl">完成率</div></div>
+    </div>
+    <div class="mgrid" id="mgrid"></div>
+  </div>
+</div>
+
+<!-- YEARLY -->
+<div id="view-yearly" class="vw">
+  <div class="app">
+    <div class="dnav">
+      <button class="dnb" onclick="changeYear(-1)">‹</button>
+      <div class="dd"><div class="dm" id="y-main"></div><div class="ds">年度工作总览</div></div>
+      <button class="tb" onclick="currentYear=new Date().getFullYear();renderYearly()">今年</button>
+      <button class="dnb" onclick="changeYear(1)">›</button>
+    </div>
+    <div class="sbar">
+      <div class="sc a"><div class="sv" id="y-days">0</div><div class="sl">记录天数</div></div>
+      <div class="sc b"><div class="sv" id="y-todos">0</div><div class="sl">年度待办</div></div>
+      <div class="sc g"><div class="sv" id="y-done">0</div><div class="sl">已完成</div></div>
+      <div class="sc"><div class="sv" id="y-rate">0%</div><div class="sl">完成率</div></div>
+    </div>
+    <div class="ygrid" id="ygrid"></div>
+  </div>
+</div>
+
+<!-- EXPORT -->
+<div class="expp" id="expp">
+  <button class="expclose" onclick="toggleExport()">×</button>
+  <div class="expt">导出数据</div>
+  <div class="exps">
+    <div class="expsl">选择范围</div>
+    <select id="exp-type">
+      <option value="day">当日数据</option>
+      <option value="month">本月数据</option>
+      <option value="year">本年数据</option>
+      <option value="all">全部数据</option>
+    </select>
+  </div>
+  <div class="exps">
+    <div class="expsl">格式</div>
+    <div class="expo" onclick="doExport('json')"><div class="expoi">{ }</div><div><div class="expon">JSON</div><div class="expod">完整备份，可导入恢复</div></div></div>
+    <div class="expo" onclick="doExport('csv')"><div class="expoi">≡</div><div><div class="expon">CSV</div><div class="expod">适合 Excel / 数据分析</div></div></div>
+    <div class="expo" onclick="doExport('txt')"><div class="expoi">≣</div><div><div class="expon">文本</div><div class="expod">可读的工作日志</div></div></div>
+    <div class="expo" onclick="doExport('print')"><div class="expoi">⬜</div><div><div class="expon">打印 A5</div><div class="expod">对折随身携带</div></div></div>
+  </div>
+  <div class="exps">
+    <div class="expsl">导入</div>
+    <div class="expo" onclick="document.getElementById('impfile').click()"><div class="expoi">↑</div><div><div class="expon">导入 JSON</div><div class="expod">从备份恢复数据</div></div></div>
+    <input type="file" id="impfile" accept=".json" style="display:none" onchange="handleImport(event)">
+  </div>
+</div>
+
+<div class="saved" id="saved">已保存</div>
+
+<script>
+const HOURS=['06:00','07:00','08:00','09:00','10:00','11:00','12:00','13:00','14:00','15:00','16:00','17:00','18:00','19:00','20:00','21:00','22:00','23:00'];
+const WD=['日','一','二','三','四','五','六'];
+const MCN=['一月','二月','三月','四月','五月','六月','七月','八月','九月','十月','十一月','十二月'];
+const SCYCLE=['pending','done','partial','failed'];
+const SL={pending:'待执行',done:'已完成',partial:'部分完成',failed:'未完成'};
+
+let currentDate=new Date(), currentMonth=currentDate.getMonth(), currentYear=currentDate.getFullYear(), saveT=null;
+
+function fmt(d){return`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`}
+function gkey(d){return'plan_'+fmt(d)}
+function load(d){try{const r=localStorage.getItem(gkey(d));return r?JSON.parse(r):null}catch{return null}}
+function saveDayData(){localStorage.setItem(gkey(currentDate),JSON.stringify(gather()));showSaved()}
+function gather(){
+  const todos=[];
+  document.querySelectorAll('.tcard').forEach((c,i)=>{
+    const esec=c.querySelector('.esec');
+    todos.push({
+      id:c.dataset.id,text:c.querySelector('.ttxt')?.value||'',planTime:c.querySelector('.tpt')?.value||'',
+      priority:parseInt(c.dataset.priority)||i+1,done:c.classList.contains('done'),
+      execStatus:c.querySelector('.estat')?.dataset.status||'pending',
+      planStart:c.querySelector('.eps')?.value||'',planEnd:c.querySelector('.epe')?.value||'',
+      actualStart:c.querySelector('.eas')?.value||'',actualEnd:c.querySelector('.eae')?.value||'',
+      note:c.querySelector('.enote')?.value||'',
+      execOpen:esec?esec.style.display!=='none':true
+    });
+  });
+  const timeline={};
+  document.querySelectorAll('.tblk').forEach(el=>{const v=el.querySelector('input')?.value||'';if(v)timeline[el.dataset.hour]=v});
+  return{
+    date:fmt(currentDate),
+    planStudy:document.getElementById('plan-study')?.value||'',
+    planAvail:document.getElementById('plan-avail')?.value||'',
+    actStudy:document.getElementById('act-study')?.value||'',
+    actDeep:document.getElementById('act-deep')?.value||'',
+    reflection:document.getElementById('reflection')?.value||'',
+    todos,timeline
+  };
+}
+function showSaved(){clearTimeout(saveT);const e=document.getElementById('saved');e.classList.add('show');saveT=setTimeout(()=>e.classList.remove('show'),1400)}
+
+function switchView(v,btn){
+  document.querySelectorAll('.vw').forEach(e=>e.classList.remove('active'));
+  document.querySelectorAll('.nb').forEach(e=>e.classList.remove('active'));
+  document.getElementById('view-'+v).classList.add('active');
+  if(btn)btn.classList.add('active');
+  if(v==='daily')renderDaily();
+  else if(v==='monthly'){currentMonth=currentDate.getMonth();currentYear=currentDate.getFullYear();renderMonthly()}
+  else renderYearly();
+}
+
+function renderDaily(){
+  updateDD();renderTL();
+  const d=load(currentDate)||{};
+  document.getElementById('plan-study').value=d.planStudy||'';
+  document.getElementById('plan-avail').value=d.planAvail||'';
+  document.getElementById('act-study').value=d.actStudy||'';
+  document.getElementById('act-deep').value=d.actDeep||'';
+  document.getElementById('reflection').value=d.reflection||'';
+  if(d.timeline){document.querySelectorAll('.tblk').forEach(el=>{const v=d.timeline[el.dataset.hour]||'';el.querySelector('input').value=v;el.classList.toggle('he',v.length>0)})}
+  const list=document.getElementById('tlist');list.innerHTML='';
+  (d.todos||[]).forEach(t=>buildCard(t));
+  updateStats();renderSum();
+}
+
+function updateDD(){
+  const d=currentDate;
+  const dp=document.getElementById('dpick');if(dp)dp.value=fmt(d);
+  document.getElementById('dm').textContent=`${d.getFullYear()} 年 ${d.getMonth()+1} 月 ${d.getDate()} 日`;
+  document.getElementById('ds').textContent=`星期${WD[d.getDay()]}${fmt(d)===fmt(new Date())?' · 今天':''}`;
+}
+
+function renderTL(){
+  const ax=document.getElementById('tax'),ev=document.getElementById('tevs');
+  ax.innerHTML='';ev.innerHTML='';
+  HOURS.forEach(h=>{
+    const s=document.createElement('div');s.className='tslot';s.innerHTML=`<span class="tlbl">${h}</span>`;ax.appendChild(s);
+    const b=document.createElement('div');b.className='tblk';b.dataset.hour=h;
+    const inp=document.createElement('input');inp.type='text';inp.setAttribute('list','dl-t');inp.placeholder=`${h} 安排…`;
+    inp.addEventListener('input',()=>{b.classList.toggle('he',inp.value.length>0);saveDayData()});
+    b.appendChild(inp);ev.appendChild(b);
+  });
+}
+
+function addTodo(pre){buildCard(pre);updateStats();renderSum()}
+
+function buildCard(pre){
+  const list=document.getElementById('tlist');
+  const id=pre?.id||('t_'+Date.now()+'_'+Math.random().toString(36).slice(2,6));
+  const priority=pre?.priority||(list.children.length+1);
+  const status=pre?.execStatus||'pending';
+  const execOpen=pre?.execOpen!==false;
+  const c=document.createElement('div');
+  c.className='tcard'+(pre?.done?' done':'');
+  c.dataset.id=id;c.dataset.priority=priority;
+  const pc=priority===1?'':(priority===2?' p2':' p3');
+  c.innerHTML=`
+<div class="ttop">
+  <div class="tpri${pc}" onclick="cyclePri(this)" title="点击切换优先级">${priority}</div>
+  <div class="tchk ${pre?.done?'ck':''}" onclick="toggleDone(this)">${pre?.done?'✓':''}</div>
+  <div class="tbody">
+    <textarea class="ttxt" rows="1" placeholder="待办事项内容…" oninput="ar(this);saveDayData();renderSum()">${pre?.text||''}</textarea>
+    <input class="tpt" list="dl-t" type="text" placeholder="计划完成时间，如 14:00" value="${pre?.planTime||''}" oninput="saveDayData();renderSum()">
+  </div>
+  <div class="tacts">
+    <button class="ib" onclick="moveTd(this,-1)" title="上移">↑</button>
+    <button class="ib" onclick="moveTd(this,1)" title="下移">↓</button>
+    <button class="etoggle" onclick="toggleExec(this)">执行记录 ${execOpen?'▴':'▾'}</button>
+    <button class="ib" onclick="removeTd(this)" title="删除">×</button>
+  </div>
+</div>
+<div class="esec" style="${execOpen?'':'display:none'}">
+  <div class="erow">
+    <span class="elbl">执行状态</span>
+    <span class="estat ${status}" data-status="${status}" onclick="cycleStatus(this)">${SL[status]}</span>
+  </div>
+  <div class="etimes">
+    <div class="etf"><div class="etl">计划开始</div><input class="eti eps" list="dl-t" type="text" placeholder="09:00" value="${pre?.planStart||''}" oninput="saveDayData();renderSum()"></div>
+    <div class="etf"><div class="etl">计划结束</div><input class="eti epe" list="dl-t" type="text" placeholder="10:00" value="${pre?.planEnd||''}" oninput="saveDayData();renderSum()"></div>
+    <div class="etf"><div class="etl">实际开始</div><input class="eti eas" list="dl-t" type="text" placeholder="09:15" value="${pre?.actualStart||''}" oninput="saveDayData();renderSum()"></div>
+    <div class="etf"><div class="etl">实际结束</div><input class="eti eae" list="dl-t" type="text" placeholder="10:30" value="${pre?.actualEnd||''}" oninput="saveDayData();renderSum()"></div>
+  </div>
+  <textarea class="enote" placeholder="备注：遇到什么问题？如何解决？" oninput="saveDayData();renderSum()">${pre?.note||''}</textarea>
+</div>`;
+  list.appendChild(c);
+  ar(c.querySelector('.ttxt'));
+}
+
+function toggleExec(btn){
+  const esec=btn.closest('.tcard').querySelector('.esec');
+  const open=esec.style.display==='none';
+  esec.style.display=open?'':'none';
+  btn.textContent='执行记录 '+(open?'▴':'▾');
+  saveDayData();
+}
+function cycleStatus(el){
+  const cur=el.dataset.status;
+  const next=SCYCLE[(SCYCLE.indexOf(cur)+1)%SCYCLE.length];
+  el.dataset.status=next;el.className='estat '+next;el.textContent=SL[next];
+  const c=el.closest('.tcard');
+  if(next==='done'){c.classList.add('done');const chk=c.querySelector('.tchk');chk.classList.add('ck');chk.textContent='✓'}
+  else if(cur==='done'){c.classList.remove('done');const chk=c.querySelector('.tchk');chk.classList.remove('ck');chk.textContent=''}
+  saveDayData();updateStats();renderSum();
+}
+function toggleDone(chk){
+  const c=chk.closest('.tcard');
+  const done=!c.classList.contains('done');
+  c.classList.toggle('done',done);chk.classList.toggle('ck',done);chk.textContent=done?'✓':'';
+  const st=c.querySelector('.estat');
+  if(st){const ns=done?'done':'pending';st.dataset.status=ns;st.className='estat '+ns;st.textContent=SL[ns]}
+  saveDayData();updateStats();renderSum();
+}
+function cyclePri(el){
+  const c=el.closest('.tcard');let p=parseInt(c.dataset.priority)||1;p=p>=3?1:p+1;
+  c.dataset.priority=p;el.textContent=p;el.className='tpri'+(p===1?'':(p===2?' p2':' p3'));saveDayData();
+}
+function moveTd(btn,dir){
+  const c=btn.closest('.tcard'),list=c.parentElement,items=[...list.children],idx=items.indexOf(c),tgt=items[idx+dir];
+  if(!tgt)return;dir===-1?list.insertBefore(c,tgt):list.insertBefore(tgt,c);
+  reindex();saveDayData();renderSum();
+}
+function removeTd(btn){btn.closest('.tcard').remove();reindex();saveDayData();updateStats();renderSum()}
+function reindex(){
+  document.querySelectorAll('.tcard').forEach((c,i)=>{
+    c.dataset.priority=i+1;const b=c.querySelector('.tpri');
+    b.textContent=i+1;b.className='tpri'+(i===0?'':(i===1?' p2':' p3'));
+  });
+}
+function updateStats(){
+  const cs=document.querySelectorAll('.tcard'),dn=document.querySelectorAll('.tcard.done');
+  document.getElementById('s-tot').textContent=cs.length;
+  document.getElementById('s-plan').textContent=document.getElementById('plan-study')?.value||'—';
+  document.getElementById('s-act').textContent=document.getElementById('act-study')?.value||'—';
+  document.getElementById('s-rate').textContent=cs.length?Math.round(dn.length/cs.length*100)+'%':'0%';
+}
+function renderSum(){
+  const list=document.getElementById('sumlist');
+  const cards=document.querySelectorAll('.tcard');
+  if(!cards.length){list.innerHTML='<div style="font-size:12px;color:var(--ink-muted);padding:24px 0;text-align:center;line-height:2">在左侧添加待办事项后<br>执行汇总将实时同步到这里</div>';return}
+  list.innerHTML='';
+  cards.forEach((c,i)=>{
+    const txt=c.querySelector('.ttxt')?.value||'';
+    const status=c.querySelector('.estat')?.dataset.status||'pending';
+    const ps=c.querySelector('.eps')?.value||'',pe=c.querySelector('.epe')?.value||'';
+    const as=c.querySelector('.eas')?.value||'',ae=c.querySelector('.eae')?.value||'';
+    const note=c.querySelector('.enote')?.value||'';
+    const tp=ps&&pe?`计划 ${ps}–${pe}`:ps?`计划 ${ps}`:'';
+    const ta=as&&ae?`实际 ${as}–${ae}`:as?`实际 ${as}`:'';
+    const item=document.createElement('div');
+    item.className='sumi '+status;
+    item.innerHTML=`
+<div class="sidx">#${i+1}</div>
+<div class="sbody">
+  <div class="stxt">${txt||'(未填写)'}</div>
+  <div class="smeta">
+    <span class="sstat ${status}">${SL[status]}</span>
+    ${tp?`<span class="stime">${tp}</span>`:''}
+    ${ta?`<span class="stime">${ta}</span>`:''}
+  </div>
+  ${note?`<div class="snote">${note}</div>`:''}
+</div>`;
+    item.onclick=()=>{c.scrollIntoView({behavior:'smooth',block:'center'});c.style.outline='2px solid var(--accent)';setTimeout(()=>c.style.outline='',1500)};
+    list.appendChild(item);
+  });
+}
+function ar(el){el.style.height='auto';el.style.height=el.scrollHeight+'px'}
+
+function changeDay(d){currentDate=new Date(currentDate.getTime()+d*86400000);renderDaily()}
+function goToday(){currentDate=new Date();renderDaily()}
+function selectDate(v){currentDate=new Date(v+'T12:00:00');renderDaily()}
+function changeMonth(d){currentMonth+=d;if(currentMonth>11){currentMonth=0;currentYear++}if(currentMonth<0){currentMonth=11;currentYear--}renderMonthly()}
+function changeYear(d){currentYear+=d;renderYearly()}
+
+function renderMonthly(){
+  const y=currentYear,m=currentMonth;
+  document.getElementById('m-main').textContent=`${y} 年 ${MCN[m]}`;
+  const first=new Date(y,m,1),sd=first.getDay(),dim=new Date(y,m+1,0).getDate();
+  let tt=0,td=0,rd=0;
+  const g=document.getElementById('mgrid');g.innerHTML='';
+  WD.forEach(d=>{const h=document.createElement('div');h.className='mhdr';h.textContent=d;g.appendChild(h)});
+  const ts=fmt(new Date());
+  for(let i=0;i<sd;i++){const c=document.createElement('div');c.className='mc om';const pv=new Date(y,m,-(sd-i-1));c.innerHTML=`<div class="mcd">${pv.getDate()}</div>`;g.appendChild(c)}
+  for(let d=1;d<=dim;d++){
+    const date=new Date(y,m,d),ds=fmt(date),data=load(date);
+    const c=document.createElement('div');c.className='mc'+(ds===ts?' td':'');
+    c.onclick=()=>{currentDate=date;document.querySelectorAll('.nb')[0].click()};
+    let dots='',comp='';
+    if(data){rd++;const todos=data.todos||[];const dn=todos.filter(t=>t.done).length;tt+=todos.length;td+=dn;const r=todos.length?Math.round(dn/todos.length*100):0;todos.forEach(t=>{dots+=`<div class="mdot ${t.done?'dn':''}"></div>`});comp=todos.length?`${r}%`:''}
+    c.innerHTML=`<div class="mcd">${d}</div><div class="mdots">${dots}</div>${comp?`<div class="mcomp">${comp}</div>`:''}`;
+    g.appendChild(c);
+  }
+  const r=tt?Math.round(td/tt*100):0;
+  document.getElementById('m-days').textContent=rd;document.getElementById('m-todos').textContent=tt;
+  document.getElementById('m-done').textContent=td;document.getElementById('m-rate').textContent=r+'%';
+}
+
+function renderYearly(){
+  document.getElementById('y-main').textContent=currentYear+' 年';
+  const c=document.getElementById('ygrid');c.innerHTML='';
+  let yt=0,yd=0,ydy=0;
+  for(let m=0;m<12;m++){
+    const dim=new Date(currentYear,m+1,0).getDate();let mt=0,md=0,mdy=0;
+    for(let d=1;d<=dim;d++){const data=load(new Date(currentYear,m,d));if(data&&(data.todos?.length||data.reflection)){mdy++;const todos=data.todos||[];mt+=todos.length;md+=todos.filter(t=>t.done).length}}
+    yt+=mt;yd+=md;ydy+=mdy;
+    const r=mt?Math.round(md/mt*100):0;
+    const card=document.createElement('div');card.className='ymc';
+    card.onclick=()=>{currentMonth=m;document.querySelectorAll('.nb')[1].click()};
+    card.innerHTML=`<div class="ymn">${MCN[m]}</div><div class="ymst"><div style="display:flex;justify-content:space-between"><span>记录</span><span>${mdy} 天</span></div><div style="display:flex;justify-content:space-between"><span>待办</span><span>${mt} 项</span></div><div style="display:flex;justify-content:space-between"><span>完成</span><span>${md} 项</span></div></div><div class="pb"><div class="pf" style="width:${r}%"></div></div><div style="font-size:10px;color:var(--ink-muted);text-align:right;margin-top:2px;font-family:var(--mono)">${r}%</div>`;
+    c.appendChild(card);
+  }
+  const yr=yt?Math.round(yd/yt*100):0;
+  document.getElementById('y-days').textContent=ydy;document.getElementById('y-todos').textContent=yt;
+  document.getElementById('y-done').textContent=yd;document.getElementById('y-rate').textContent=yr+'%';
+}
+
+function toggleExport(){document.getElementById('expp').classList.toggle('open')}
+
+function getExpData(){
+  const type=document.getElementById('exp-type').value;let keys=[];
+  if(type==='day'){keys=[gkey(currentDate)]}
+  else if(type==='month'){const y=currentDate.getFullYear(),m=currentDate.getMonth(),dim=new Date(y,m+1,0).getDate();for(let d=1;d<=dim;d++)keys.push(gkey(new Date(y,m,d)))}
+  else if(type==='year'){const y=currentDate.getFullYear();for(let m=0;m<12;m++){const dim=new Date(y,m+1,0).getDate();for(let d=1;d<=dim;d++)keys.push(gkey(new Date(y,m,d)))}}
+  else{keys=Object.keys(localStorage).filter(k=>k.startsWith('plan_'))}
+  return keys.map(k=>{const r=localStorage.getItem(k);return r?JSON.parse(r):null}).filter(Boolean);
+}
+
+function doExport(fmt2){
+  const all=getExpData();if(!all.length){alert('所选范围暂无数据');return}
+  if(fmt2==='json'){dl('plan_'+fmt(new Date())+'.json',JSON.stringify(all,null,2),'application/json')}
+  else if(fmt2==='csv'){
+    const rows=[['日期','序号','优先级','待办','完成','状态','计划开始','计划结束','实际开始','实际结束','备注','复盘']];
+    all.forEach(d=>(d.todos||[]).forEach((t,i)=>rows.push([d.date,i+1,t.priority||i+1,t.text,t.done?'是':'否',SL[t.execStatus||'pending'],t.planStart||'',t.planEnd||'',t.actualStart||'',t.actualEnd||'',t.note||'',d.reflection||''])));
+    dl('plan_'+fmt(new Date())+'.csv','\uFEFF'+rows.map(r=>r.map(c=>`"${String(c).replace(/"/g,'""')}"`).join(',')).join('\n'),'text/csv');
+  }else if(fmt2==='txt'){
+    let txt='认知觉醒 · 工作计划导出\n导出时间：'+new Date().toLocaleString('zh-CN')+'\n\n';
+    all.forEach(d=>{
+      txt+=`═══ ${d.date} ═══\n计划工作：${d.planStudy||'—'}  可用：${d.planAvail||'—'}\n实际工作：${d.actStudy||'—'}  深度专注：${d.actDeep||'—'}\n\n【待办事项】\n`;
+      (d.todos||[]).forEach((t,i)=>{txt+=`  ${i+1}. [${t.done?'✓':' '}] ${t.text}${t.planTime?'  ('+t.planTime+')':''}\n     状态：${SL[t.execStatus||'pending']}`;if(t.planStart)txt+=`  计划：${t.planStart}–${t.planEnd||'?'}`;if(t.actualStart)txt+=`  实际：${t.actualStart}–${t.actualEnd||'?'}`;txt+='\n';if(t.note)txt+=`     备注：${t.note}\n`});
+      if(d.reflection)txt+='\n【今日复盘】\n'+d.reflection+'\n';txt+='\n';
+    });
+    dl('plan_'+fmt(new Date())+'.txt',txt,'text/plain');
+  }else{printDay(all[0])}
+}
+
+function printDay(data){
+  if(!data)return;
+  const w=window.open('','_blank');
+  w.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>工作计划·${data.date}</title>
+<style>@import url('https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;600&family=Noto+Sans+SC:wght@400&display=swap');
+@page{size:A5 landscape;margin:7mm}*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Noto Sans SC',sans-serif;font-size:9px;color:#1a1a1a}
+.w{display:grid;grid-template-columns:1fr 1fr;height:100%;border:.5px solid #888}
+.col{padding:7px 9px}.cl{border-right:1px dashed #aaa;background:#faf8f3}
+h1{font-family:'Noto Serif SC';font-size:13px;color:#8b3a3a;margin-bottom:4px}
+h1.r{color:#2c4a7c}h2{font-family:'Noto Serif SC';font-size:9px;color:#4a4a4a;margin:5px 0 3px;border-bottom:.5px solid #ccc;padding-bottom:2px;letter-spacing:1px}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:5px;margin-bottom:6px}
+.f{border:.5px solid #ccc;padding:3px 5px}.fl{font-size:7px;color:#888}.fv{font-size:10px;font-weight:500}
+.tl{display:flex}.tax{width:32px;flex-shrink:0}.th{height:21px;font-size:7.5px;color:#888;border-bottom:.5px dotted #ddd;padding-top:1px}
+.tev{flex:1}.te{height:21px;border-bottom:.5px dotted #ddd;padding:1px 3px;font-size:8px}
+.ti{display:flex;gap:3px;padding:2px 0;border-bottom:.5px dotted #e0ddd5;align-items:flex-start}
+.tn{width:13px;height:13px;border-radius:50%;background:#8b3a3a;color:white;font-size:7px;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px}
+.ai{padding:3px 5px;border:.5px solid #ddd;margin-bottom:3px}
+.ag{display:grid;grid-template-columns:repeat(4,1fr);gap:2px;margin:2px 0}
+.af{font-size:7px}.al{color:#888}.av{border-bottom:.5px solid #ddd;min-height:10px;padding:1px 0}
+.ref{border:.5px solid #b8c8e8;padding:5px;background:#e8eef8;margin-top:5px}
+</style></head><body>
+<div class="w">
+<div class="col cl">
+<h1>认知觉醒 · 工作计划</h1>
+<div style="font-size:8px;color:#888;margin-bottom:5px">${data.date} &nbsp;·&nbsp; 计划区</div>
+<div class="g2">
+<div class="f"><div class="fl">计划工作时间</div><div class="fv">${data.planStudy||'　'}</div></div>
+<div class="f"><div class="fl">可用工作时间</div><div class="fv">${data.planAvail||'　'}</div></div>
+</div>
+<h2>时间轴</h2>
+<div class="tl"><div class="tax">${HOURS.map(h=>`<div class="th">${h}</div>`).join('')}</div><div class="tev">${HOURS.map(h=>`<div class="te">${data.timeline?.[h]||''}</div>`).join('')}</div></div>
+<h2>待办事项</h2>
+${(data.todos||[]).map((t,i)=>`<div class="ti"><div class="tn">${i+1}</div><div style="flex:1;font-size:8.5px">${t.text}<span style="float:right;color:#888;font-size:7px">${t.planTime||''}</span></div></div>`).join('')}
+</div>
+<div class="col">
+<h1 class="r">实施区</h1>
+<div style="font-size:8px;color:#888;margin-bottom:5px">${data.date} &nbsp;·&nbsp; 执行记录</div>
+<div class="g2">
+<div class="f"><div class="fl">实际工作时间</div><div class="fv">${data.actStudy||'　'}</div></div>
+<div class="f"><div class="fl">深度专注时间</div><div class="fv">${data.actDeep||'　'}</div></div>
+</div>
+<h2>执行记录</h2>
+${(data.todos||[]).map((t,i)=>{const sm={pending:'○待执行',done:'✓已完成',partial:'△部分完成',failed:'✗未完成'};return`<div class="ai"><div style="display:flex;gap:4px;margin-bottom:2px;font-size:8px"><strong>#${i+1}</strong>&nbsp;${sm[t.execStatus||'pending']}&nbsp;<span style="flex:1;overflow:hidden;text-overflow:ellipsis">${t.text}</span></div><div class="ag"><div class="af"><div class="al">计划开始</div><div class="av">${t.planStart||''}</div></div><div class="af"><div class="al">计划结束</div><div class="av">${t.planEnd||''}</div></div><div class="af"><div class="al">实际开始</div><div class="av">${t.actualStart||''}</div></div><div class="af"><div class="al">实际结束</div><div class="av">${t.actualEnd||''}</div></div></div>${t.note?`<div style="font-size:7px;color:#555">备注：${t.note}</div>`:''}</div>`}).join('')}
+<div class="ref"><div style="font-size:8px;color:#2c4a7c;margin-bottom:3px">今日复盘</div><div style="font-size:8px;line-height:1.7;white-space:pre-wrap">${data.reflection||''}</div></div>
+</div></div></body></html>`);
+  w.document.close();setTimeout(()=>w.print(),600);
+}
+
+function dl(name,content,type){const b=new Blob([content],{type});const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download=name;a.click();URL.revokeObjectURL(a.href)}
+
+function handleImport(e){
+  const file=e.target.files[0];if(!file)return;
+  const r=new FileReader();
+  r.onload=ev=>{try{const arr=JSON.parse(ev.target.result);(Array.isArray(arr)?arr:[arr]).forEach(d=>{if(d.date)localStorage.setItem('plan_'+d.date,JSON.stringify(d))});alert(`导入成功！共恢复 ${Array.isArray(arr)?arr.length:1} 天的数据。`);renderDaily()}catch{alert('文件格式有误，请确认是从本系统导出的 JSON 文件。')}};
+  r.readAsText(file);e.target.value='';
+}
+
+renderDaily();
+</script>
+</body>
+</html>
