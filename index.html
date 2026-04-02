@@ -591,6 +591,10 @@ function renderDaily(){
 
   document.getElementById('reflection').value=d.reflection||'';
 
+  const tlist=document.getElementById('tlist');tlist.innerHTML='';
+  (d.todos||[]).forEach(t=>buildCard(t));
+
+  // Restore manually-typed timeline entries from saved data
   if(d.timeline){
     document.querySelectorAll('.tblk').forEach(el=>{
       const entry=d.timeline[el.dataset.hour];
@@ -600,16 +604,14 @@ function renderDaily(){
       }
     });
   }
-
-  const tlist=document.getElementById('tlist');tlist.innerHTML='';
-  (d.todos||[]).forEach(t=>buildCard(t));
+  // Then fill any remaining empty slots from todos and sync done state
+  syncTimelineFromTodos();
 
   const ol=document.getElementById('otask-list');ol.innerHTML='';
   (d.otasks||[]).forEach(o=>addOtask(o));
 
   updateStats();
   renderRightTimeline();
-  syncTimelineFromTodos();
   alignTopSections();
 }
 
@@ -671,9 +673,9 @@ function syncTimelineFromTodos(){
     const blk=document.querySelector(`.tblk[data-hour="${hour}"]`);
     if(!blk)return;
     const ti=blk.querySelector('.tblk-txt');
-    // Only fill the block if it's empty
+    // Fill block if empty
     if(!ti.value){ti.value=txt;blk.classList.add('has-plan');}
-    // Only sync done state if this block's text matches this todo's text
+    // Sync done state: match by text content
     const isDone=c.classList.contains('done');
     if(isDone && ti.value===txt){
       blk.classList.add('is-done');
@@ -786,7 +788,7 @@ function buildCard(pre){
 
   c.innerHTML=`
 <div class="ttop">
-  <div class="tpri${pc}" onclick="cyclePri(this)" title="点击切换优先级">${priority}</div>
+  <div class="tpri${pc}">${priority}</div>
   <div class="tchk ${pre?.done?'ck':''}" title="请在执行区点击已完成来勾选">${pre?.done?'✓':''}</div>
   <div class="tbody">
     <textarea class="ttxt" rows="1" placeholder="待办事项…" oninput="ar(this);saveDayData();renderRightTimeline();syncTimelineFromTodos();alignTopSections()">${pre?.text||''}</textarea>
