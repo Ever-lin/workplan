@@ -68,15 +68,17 @@ body{font-family:var(--ss);background:var(--paper);color:var(--ink);min-height:1
 .combo input:focus{outline:none;border-color:var(--ac)}
 .combo::after{content:'▾';position:absolute;right:6px;top:50%;transform:translateY(-50%);font-size:10px;color:var(--ink-m);pointer-events:none}
 
-/* ── LEFT TIMELINE (plan) ── */
-.twrap{display:flex;overflow-y:auto;max-height:520px}
+/* ── Divider line separating top area from timelines ── */
+/* Both dividers sit at the same absolute top, achieved via JS equalizing top-section heights */
+.panel-divider{height:1px;background:var(--bdr);flex-shrink:0}
+.twrap{display:flex;overflow-y:auto;flex:1}
 .tax{display:flex;flex-direction:column;width:40px;flex-shrink:0;padding-right:7px;position:relative}
 .tax::after{content:'';position:absolute;right:0;top:0;bottom:0;width:1.5px;background:var(--ac);opacity:.35}
 .tslot{height:48px;display:flex;align-items:flex-start;padding-top:2px}
 .tlbl{font-family:var(--mo);font-size:9.5px;color:var(--ink-m);white-space:nowrap;position:relative}
 .tlbl::after{content:'';position:absolute;right:-11px;top:5px;width:7px;height:1px;background:var(--ac);opacity:.35}
 .tevs{flex:1;display:flex;flex-direction:column}
-/* each time block: two-row - plan row + done checkbox */
+/* each time block */
 .tblk{height:48px;display:flex;align-items:center;gap:5px;padding:2px 6px;border-bottom:1px dashed var(--paper-l);position:relative;transition:background var(--t)}
 .tblk:hover{background:var(--paper-w)}
 .tblk.has-plan{background:var(--am-l)}
@@ -87,26 +89,27 @@ body{font-family:var(--ss);background:var(--paper);color:var(--ink);min-height:1
 .tblk-txt:focus{outline:none}
 .tblk-txt::placeholder{color:var(--ink-m);font-size:10px}
 .tblk-txt.struck{text-decoration:line-through;color:var(--ink-m)}
-.tblk-chk{width:15px;height:15px;border:1.5px solid var(--bdr);border-radius:2px;cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center;background:white;transition:all var(--t);font-size:9px}
-.tblk-chk.ck{background:var(--gr);border-color:var(--gr);color:white}
 
-/* ── RIGHT TIMELINE (execution dual-bar) ── */
-.rtl-wrap{overflow-y:auto;max-height:520px}
-.rtl{display:flex;position:relative}
+/* ── RIGHT TIMELINE (execution - same style as left) ── */
+.rtl-wrap{overflow-y:auto;max-height:none;flex:1}
+.rtl{display:flex;position:relative;height:100%}
 .rtl-axis{display:flex;flex-direction:column;width:40px;flex-shrink:0;padding-right:7px;position:relative}
 .rtl-axis::after{content:'';position:absolute;right:0;top:0;bottom:0;width:1.5px;background:var(--bl);opacity:.35}
 .rtl-slot{height:48px;display:flex;align-items:flex-start;padding-top:2px}
 .rtl-lbl{font-family:var(--mo);font-size:9.5px;color:var(--ink-m);white-space:nowrap;position:relative}
 .rtl-lbl::after{content:'';position:absolute;right:-11px;top:5px;width:7px;height:1px;background:var(--bl);opacity:.35}
 .rtl-bars{flex:1;display:flex;flex-direction:column}
-.rtl-row{height:48px;border-bottom:1px dashed var(--paper-l);position:relative;display:flex;flex-direction:column;justify-content:center;padding:2px 6px;gap:2px}
-/* plan bar (blue) */
-.bar-plan{height:8px;border-radius:2px;background:var(--bl);opacity:.45;position:relative;min-width:3px;transition:width .3s ease}
-/* actual bar (green/red) */
-.bar-actual{height:8px;border-radius:2px;background:var(--gr);opacity:.7;position:relative;min-width:3px;transition:width .3s ease}
-.bar-actual.over{background:var(--ac);opacity:.7}
-.bar-label{font-size:9px;color:var(--ink-m);font-family:var(--mo);line-height:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.bar-empty{font-size:9px;color:var(--ink-m);opacity:.4;padding:0 0;line-height:48px;font-family:var(--mo)}
+/* right timeline row — same height as left .tblk */
+.rtl-row{height:48px;border-bottom:1px dashed var(--paper-l);position:relative;display:flex;align-items:center;padding:2px 6px;gap:5px}
+/* has actual time: same warm blue tint as left's has-plan */
+.rtl-row.has-actual{background:var(--bl-l)}
+.rtl-row.has-actual::before{content:'';position:absolute;left:0;top:4px;bottom:4px;width:3px;background:var(--bl);opacity:.5;border-radius:2px}
+/* deviation: red accent same as left's is-done red variant */
+.rtl-row.has-deviation::before{background:var(--ac) !important}
+.rtl-txt{font-family:var(--ss);font-size:11.5px;color:var(--ink);flex:1;min-width:0;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+.rtl-txt.done-txt{text-decoration:line-through;color:var(--ink-m)}
+.rtl-dev{font-family:var(--mo);font-size:9.5px;color:var(--ac);white-space:nowrap;flex-shrink:0;font-weight:500}
+.bar-empty{font-size:9px;color:var(--ink-m);opacity:.4;font-family:var(--mo);line-height:48px}
 .rtl-legend{display:flex;gap:12px;align-items:center;padding:6px 0 2px;font-size:10px;color:var(--ink-m)}
 .leg-dot{width:10px;height:8px;border-radius:2px;display:inline-block;margin-right:3px}
 
@@ -296,102 +299,75 @@ body{font-family:var(--ss);background:var(--paper);color:var(--ink);min-height:1
     <button class="dnb" onclick="changeDay(1)">›</button>
   </div>
 
-  <div class="sbar">
-    <div class="sc a"><div class="sv" id="s-tot">0</div><div class="sl">待办事项</div></div>
-    <div class="sc b"><div class="sv" id="s-plan">—</div><div class="sl">计划工作时间</div></div>
-    <div class="sc g"><div class="sv" id="s-act">—</div><div class="sl">实际工作时间</div></div>
-    <div class="sc"><div class="sv" id="s-rate">0%</div><div class="sl">完成率</div></div>
-  </div>
-
   <div class="pgrid">
-    <!-- LEFT PANEL -->
-    <div class="pl">
+    <!-- LEFT PANEL: 待办事项（顶部） + 横线 + 计划时间轴 -->
+    <div class="pl" style="display:flex;flex-direction:column;padding:0">
 
-      <!-- ① TODO LIST — top -->
-      <div>
+      <!-- 顶部：待办事项 -->
+      <div id="left-top" style="padding:14px 14px 10px 16px">
         <div class="ptitle" style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
           <span>待办事项 · 按权重排序</span>
-          <span style="font-size:9px;font-weight:400;letter-spacing:0;text-transform:none;color:var(--ink-m)">序号点击切换优先级</span>
+          <span style="font-size:9px;font-weight:400;letter-spacing:0;color:var(--ink-m)">序号点击切换优先级</span>
         </div>
         <div class="tlist" id="tlist"></div>
-        <div style="margin-top:6px;display:flex;gap:6px">
-          <button class="addbtn" onclick="addTodo()" style="flex:1">＋ 添加待办事项</button>
+        <div style="margin-top:6px">
+          <button class="addbtn" onclick="addTodo()">＋ 添加待办事项</button>
         </div>
       </div>
 
-      <!-- ② TIME PLAN -->
-      <div>
-        <div class="ptitle" style="margin-bottom:8px">计划区 · 工作时间规划</div>
-        <div class="tfields" style="margin-bottom:8px">
-          <div class="tfield">
-            <label>计划工作时间</label>
-            <div class="combo"><input list="dl-h" id="plan-study" placeholder="如 4h" oninput="saveDayData();updateStats()"></div>
-          </div>
-          <div class="tfield">
-            <label>可用工作时间</label>
-            <div class="combo"><input list="dl-h" id="plan-avail" placeholder="如 6h" oninput="saveDayData()"></div>
-          </div>
-        </div>
-        <div style="font-size:10px;color:var(--ink-m);margin-bottom:5px">时间轴 · 填写各时段安排（完成后勾选）</div>
-        <div class="twrap">
+      <!-- 横线分隔（与右侧同高，由JS对齐） -->
+      <div class="panel-divider" id="panel-divider-l"></div>
+
+      <!-- 下部：计划时间轴 -->
+      <div style="flex:1;display:flex;flex-direction:column;padding:10px 14px 14px 16px">
+        <div style="font-size:10px;color:var(--ink-m);margin-bottom:5px;letter-spacing:.4px">计划区 · 时间轴</div>
+        <div class="twrap" style="flex:1">
           <div class="tax" id="tax"></div>
           <div class="tevs" id="tevs"></div>
         </div>
       </div>
 
-      <!-- ③ OTHER TASKS -->
-      <div>
-        <div class="ptitle" style="margin-bottom:7px">其他工作安排 · 不计时，完成打勾</div>
+    </div>
+
+    <!-- RIGHT PANEL: 其他工作安排（顶部） + 横线 + 执行时间轴 + 复盘 -->
+    <div class="pr" style="display:flex;flex-direction:column;padding:0">
+
+      <!-- 顶部：其他工作安排 -->
+      <div id="right-top" style="padding:14px 16px 10px 14px">
+        <div class="ptitle" style="margin-bottom:8px">其他工作安排 · 完成打勾</div>
         <div class="otask-list" id="otask-list"></div>
         <div style="margin-top:5px">
           <button class="addbtn" onclick="addOtask()">＋ 添加其他安排</button>
         </div>
       </div>
 
-    </div>
+      <!-- 横线分隔（与左侧同高，由JS对齐） -->
+      <div class="panel-divider" id="panel-divider-r"></div>
 
-    <!-- RIGHT PANEL -->
-    <div class="pr">
-      <div class="ptitle">实施区 · 右</div>
-
-      <!-- Actual time -->
-      <div>
-        <div style="font-size:10px;color:var(--ink-m);margin-bottom:6px">实际完成情况</div>
-        <div class="tfields">
-          <div class="tfield">
-            <label>实际工作时间</label>
-            <div class="combo"><input list="dl-h" id="act-study" placeholder="如 3.5h" oninput="saveDayData();updateStats()"></div>
-          </div>
-          <div class="tfield">
-            <label>深度专注时间</label>
-            <div class="combo"><input list="dl-h" id="act-deep" placeholder="如 2h" oninput="saveDayData()"></div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Right timeline: plan vs actual bars -->
-      <div style="flex:1;display:flex;flex-direction:column;min-height:0">
+      <!-- 下部：执行时间轴 + 复盘 -->
+      <div style="flex:1;display:flex;flex-direction:column;padding:10px 16px 14px 14px">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
-          <div style="font-size:10px;color:var(--ink-m)">执行时间对比轴</div>
+          <div style="font-size:10px;color:var(--ink-m);letter-spacing:.4px">实施区 · 执行时间轴</div>
           <div class="rtl-legend">
-            <span><span class="leg-dot" style="background:var(--bl);opacity:.5"></span>计划</span>
-            <span><span class="leg-dot" style="background:var(--gr);opacity:.7"></span>实际</span>
-            <span><span class="leg-dot" style="background:var(--ac);opacity:.7"></span>超时</span>
+            <span><span class="leg-dot" style="background:var(--bl);opacity:.5"></span>实际</span>
+            <span><span class="leg-dot" style="background:var(--ac);opacity:.8"></span>偏差</span>
           </div>
         </div>
-        <div class="rtl-wrap" id="rtl-wrap">
+        <div style="font-size:10px;color:var(--ink-m);margin-bottom:5px">填写待办执行区的实际时间后自动生成</div>
+        <div class="rtl-wrap" style="flex:1">
           <div class="rtl">
             <div class="rtl-axis" id="rtl-axis"></div>
             <div class="rtl-bars" id="rtl-bars"></div>
           </div>
         </div>
+
+        <!-- 复盘 -->
+        <div class="refbox" style="margin-top:12px">
+          <div class="reftitle">· 今日复盘</div>
+          <textarea class="refta" id="reflection" placeholder="今天做到了什么？有什么收获？明天需要改进什么？" oninput="saveDayData()"></textarea>
+        </div>
       </div>
 
-      <!-- Reflection -->
-      <div class="refbox">
-        <div class="reftitle">· 今日复盘</div>
-        <textarea class="refta" id="reflection" placeholder="今天做到了什么？有什么收获？明天需要改进什么？" oninput="saveDayData()"></textarea>
-      </div>
     </div>
   </div>
 
@@ -551,8 +527,7 @@ function gather(){
   const timeline={};
   document.querySelectorAll('.tblk').forEach(el=>{
     const v=el.querySelector('.tblk-txt')?.value||'';
-    const ck=el.querySelector('.tblk-chk')?.classList.contains('ck');
-    if(v)timeline[el.dataset.hour]={text:v,done:ck||false};
+    if(v)timeline[el.dataset.hour]={text:v,done:el.classList.contains('is-done')};
   });
   const otasks=[];
   document.querySelectorAll('.otask').forEach(el=>{
@@ -561,10 +536,6 @@ function gather(){
   });
   return{
     date:fmt(currentDate),
-    planStudy:document.getElementById('plan-study')?.value||'',
-    planAvail:document.getElementById('plan-avail')?.value||'',
-    actStudy:document.getElementById('act-study')?.value||'',
-    actDeep:document.getElementById('act-deep')?.value||'',
     reflection:document.getElementById('reflection')?.value||'',
     todos,timeline,otasks
   };
@@ -622,10 +593,6 @@ function renderDaily(){
   // inject repeating todos from templates
   injectRepeatTodos(d);
 
-  document.getElementById('plan-study').value=d.planStudy||'';
-  document.getElementById('plan-avail').value=d.planAvail||'';
-  document.getElementById('act-study').value=d.actStudy||'';
-  document.getElementById('act-deep').value=d.actDeep||'';
   document.getElementById('reflection').value=d.reflection||'';
 
   if(d.timeline){
@@ -633,8 +600,6 @@ function renderDaily(){
       const entry=d.timeline[el.dataset.hour];
       if(entry){
         el.querySelector('.tblk-txt').value=entry.text||entry;
-        const isDone=typeof entry==='object'&&entry.done;
-        if(isDone){el.querySelector('.tblk-chk').classList.add('ck');el.classList.add('is-done');el.querySelector('.tblk-txt').classList.add('struck')}
         el.classList.add('has-plan');
       }
     });
@@ -649,6 +614,7 @@ function renderDaily(){
   updateStats();
   renderRightTimeline();
   syncTimelineFromTodos();
+  alignTopSections();
 }
 
 function injectRepeatTodos(dayData){
@@ -687,34 +653,35 @@ function renderTL(){
   HOURS.forEach(h=>{
     const s=document.createElement('div');s.className='tslot';s.innerHTML=`<span class="tlbl">${h}</span>`;ax.appendChild(s);
     const b=document.createElement('div');b.className='tblk';b.dataset.hour=h;
-    // text input (no datalist - plain text)
     const inp=document.createElement('input');inp.type='text';inp.className='tblk-txt';inp.placeholder=`${h} 的安排…`;
-    // done checkbox
-    const chk=document.createElement('div');chk.className='tblk-chk';chk.title='标记完成';
-    chk.onclick=()=>{
-      chk.classList.toggle('ck');
-      inp.classList.toggle('struck',chk.classList.contains('ck'));
-      b.classList.toggle('is-done',chk.classList.contains('ck'));
-      saveDayData();
-    };
     inp.addEventListener('input',()=>{b.classList.toggle('has-plan',inp.value.length>0);saveDayData()});
-    b.appendChild(inp);b.appendChild(chk);
+    b.appendChild(inp);
     ev.appendChild(b);
   });
 }
 
-// sync time blocks from todo plan times
+// sync time blocks from todo plan times and completion state
 function syncTimelineFromTodos(){
-  // only mark blocks that correspond to todo plan times (non-destructive)
+  // reset all is-done first
+  document.querySelectorAll('.tblk').forEach(b=>{
+    b.classList.remove('is-done');
+    b.querySelector('.tblk-txt')?.classList.remove('struck');
+  });
   document.querySelectorAll('.tcard').forEach(c=>{
     const ps=c.querySelector('.eps')?.value||'';
     const txt=c.querySelector('.ttxt')?.value||'';
     if(!ps||!txt)return;
-    const hour=ps.split(':')[0]+':00';
+    const hour=ps.split(':')[0].padStart(2,'0')+':00';
     const blk=document.querySelector(`.tblk[data-hour="${hour}"]`);
     if(!blk)return;
     const ti=blk.querySelector('.tblk-txt');
     if(!ti.value){ti.value=txt;blk.classList.add('has-plan');}
+    // sync done state from todo
+    const isDone=c.classList.contains('done');
+    if(isDone){
+      blk.classList.add('is-done');
+      ti.classList.add('struck');
+    }
   });
 }
 
@@ -725,47 +692,58 @@ function renderRightTimeline(){
   ax.innerHTML='';bars.innerHTML='';
 
   const todos=[];
-  document.querySelectorAll('.tcard').forEach((c,i)=>{
+  document.querySelectorAll('.tcard').forEach(c=>{
     todos.push({
       text:c.querySelector('.ttxt')?.value||'',
       ps:c.querySelector('.eps')?.value||'',pe:c.querySelector('.epe')?.value||'',
       as:c.querySelector('.eas')?.value||'',ae:c.querySelector('.eae')?.value||'',
-      status:c.querySelector('.estat')?.dataset.status||'pending'
+      status:c.querySelector('.estat')?.dataset.status||'pending',
+      done:c.classList.contains('done')
     });
   });
 
   HOURS.forEach(h=>{
     const s=document.createElement('div');s.className='rtl-slot';s.innerHTML=`<span class="rtl-lbl">${h}</span>`;ax.appendChild(s);
     const row=document.createElement('div');row.className='rtl-row';
-
-    // find todos whose plan or actual touches this hour
     const hNum=parseInt(h);
-    const relevant=todos.filter(t=>{
-      const psH=t.ps?parseInt(t.ps):null;
-      const asH=t.as?parseInt(t.as):null;
-      return psH===hNum||asH===hNum;
-    });
+
+    // only show todos that have actual time starting this hour
+    const relevant=todos.filter(t=>t.as&&parseInt(t.as)===hNum);
 
     if(relevant.length===0){
       const empty=document.createElement('div');empty.className='bar-empty';empty.textContent='·';row.appendChild(empty);
     } else {
       relevant.forEach(t=>{
-        // label
-        const lbl=document.createElement('div');lbl.className='bar-label';lbl.textContent=t.text||'(未命名)';row.appendChild(lbl);
-        // plan bar
-        if(t.ps&&t.pe){
-          const psMin=timeToMin(t.ps),peMin=timeToMin(t.pe);
-          const dur=Math.max(peMin-psMin,0);
-          const maxW=100; // percent of 1hr = 60min
-          const w=Math.min(Math.round(dur/60*100),maxW);
-          const pb=document.createElement('div');pb.className='bar-plan';pb.style.width=w+'%';pb.title=`计划 ${t.ps}–${t.pe}`;row.appendChild(pb);
-        }
-        // actual bar
+        // task name (same style as left tblk-txt)
+        const txt=document.createElement('span');
+        txt.className='rtl-txt'+(t.done?' done-txt':'');
+        txt.textContent=t.text||'(未命名)';
+        row.appendChild(txt);
+
+        // deviation label: compare actual duration vs plan duration
         if(t.as&&t.ae){
-          const asMin=timeToMin(t.as),aeMin=timeToMin(t.ae);
-          const dur=Math.max(aeMin-asMin,0);
-          const w=Math.min(Math.round(dur/60*100),120);
-          const ab=document.createElement('div');ab.className='bar-actual'+(w>100?' over':'');ab.style.width=Math.min(w,100)+'%';ab.title=`实际 ${t.as}–${t.ae}`;row.appendChild(ab);
+          const actualDur=timeToMin(t.ae)-timeToMin(t.as);
+          if(t.ps&&t.pe){
+            const planDur=timeToMin(t.pe)-timeToMin(t.ps);
+            const diff=actualDur-planDur;
+            if(Math.abs(diff)>=5){// only mark if diff ≥5min
+              const dev=document.createElement('span');dev.className='rtl-dev';
+              dev.textContent=(diff>0?'+':'')+diff+'分';
+              dev.title=`计划${planDur}分 → 实际${actualDur}分`;
+              row.appendChild(dev);
+              row.classList.add('has-actual','has-deviation');
+            } else {
+              row.classList.add('has-actual');
+            }
+          } else {
+            // no plan time, just show actual
+            row.classList.add('has-actual');
+          }
+          // show actual time range as small annotation
+          const tm=document.createElement('span');
+          tm.style.cssText='font-family:var(--mo);font-size:9px;color:var(--ink-m);white-space:nowrap;flex-shrink:0';
+          tm.textContent=t.as+'–'+t.ae;
+          row.insertBefore(tm,row.querySelector('.rtl-dev')||null);
         }
       });
     }
@@ -775,8 +753,24 @@ function renderRightTimeline(){
 
 function timeToMin(s){if(!s)return 0;const[h,m]=s.split(':').map(Number);return h*60+(m||0)}
 
+// ── ALIGN DIVIDERS: make both top sections the same height so timelines start at same Y ──
+function alignTopSections(){
+  const lt=document.getElementById('left-top');
+  const rt=document.getElementById('right-top');
+  if(!lt||!rt)return;
+  // reset first
+  lt.style.minHeight='';rt.style.minHeight='';
+  requestAnimationFrame(()=>{
+    const lh=lt.getBoundingClientRect().height;
+    const rh=rt.getBoundingClientRect().height;
+    const max=Math.max(lh,rh);
+    lt.style.minHeight=max+'px';
+    rt.style.minHeight=max+'px';
+  });
+}
+
 // ── TODO CARDS ──
-function addTodo(pre){buildCard(pre);updateStats();renderRightTimeline();syncTimelineFromTodos()}
+function addTodo(pre){buildCard(pre);updateStats();renderRightTimeline();syncTimelineFromTodos();alignTopSections()}
 
 function buildCard(pre){
   const list=document.getElementById('tlist');
@@ -798,7 +792,7 @@ function buildCard(pre){
   <div class="tpri${pc}" onclick="cyclePri(this)" title="点击切换优先级">${priority}</div>
   <div class="tchk ${pre?.done?'ck':''}" onclick="toggleDone(this)">${pre?.done?'✓':''}</div>
   <div class="tbody">
-    <textarea class="ttxt" rows="1" placeholder="待办事项…" oninput="ar(this);saveDayData();renderRightTimeline();syncTimelineFromTodos()">${pre?.text||''}</textarea>
+    <textarea class="ttxt" rows="1" placeholder="待办事项…" oninput="ar(this);saveDayData();renderRightTimeline();syncTimelineFromTodos();alignTopSections()">${pre?.text||''}</textarea>
     <div class="tmeta">
       ${pre?.planStart?`<span class="ttime">${pre.planStart}${pre.planEnd?'–'+pre.planEnd:''}</span>`:''}
       ${repeatLabel?`<span class="trepeat">${repeatLabel}</span>`:''}
@@ -818,8 +812,8 @@ function buildCard(pre){
     <span class="estat ${status}" data-status="${status}" onclick="cycleStatus(this)">${SL[status]}</span>
   </div>
   <div class="etimes">
-    <div class="etf"><div class="etl">计划开始</div><input class="eti eps" list="dl-t" type="text" placeholder="09:00" value="${pre?.planStart||''}" oninput="onPlanTimeChange(this);saveDayData();renderRightTimeline()"></div>
-    <div class="etf"><div class="etl">计划结束</div><input class="eti epe" list="dl-t" type="text" placeholder="10:00" value="${pre?.planEnd||''}" oninput="saveDayData();renderRightTimeline()"></div>
+    <div class="etf"><div class="etl">计划开始</div><input class="eti eps" list="dl-t" type="text" placeholder="09:00" value="${pre?.planStart||''}" oninput="onPlanTimeChange(this);saveDayData();renderRightTimeline();alignTopSections()"></div>
+    <div class="etf"><div class="etl">计划结束</div><input class="eti epe" list="dl-t" type="text" placeholder="10:00" value="${pre?.planEnd||''}" oninput="saveDayData();renderRightTimeline();alignTopSections()"></div>
     <div class="etf"><div class="etl">实际开始</div><input class="eti eas" list="dl-t" type="text" placeholder="09:15" value="${pre?.actualStart||''}" oninput="saveDayData();renderRightTimeline()"></div>
     <div class="etf"><div class="etl">实际结束</div><input class="eti eae" list="dl-t" type="text" placeholder="10:30" value="${pre?.actualEnd||''}" oninput="saveDayData();renderRightTimeline()"></div>
   </div>
@@ -864,14 +858,14 @@ function cycleStatus(el){
   const c=el.closest('.tcard');
   if(next==='done'){c.classList.add('done');const chk=c.querySelector('.tchk');chk.classList.add('ck');chk.textContent='✓'}
   else if(cur==='done'){c.classList.remove('done');const chk=c.querySelector('.tchk');chk.classList.remove('ck');chk.textContent=''}
-  saveDayData();updateStats();
+  saveDayData();updateStats();syncTimelineFromTodos();alignTopSections();
 }
 function toggleDone(chk){
   const c=chk.closest('.tcard');const done=!c.classList.contains('done');
   c.classList.toggle('done',done);chk.classList.toggle('ck',done);chk.textContent=done?'✓':'';
   const st=c.querySelector('.estat');
   if(st){const ns=done?'done':'pending';st.dataset.status=ns;st.className='estat '+ns;st.textContent=SL[ns]}
-  saveDayData();updateStats();
+  saveDayData();updateStats();syncTimelineFromTodos();alignTopSections();
 }
 function cyclePri(el){
   const c=el.closest('.tcard');let p=parseInt(c.dataset.priority)||1;p=p>=3?1:p+1;
@@ -880,9 +874,9 @@ function cyclePri(el){
 function moveTd(btn,dir){
   const c=btn.closest('.tcard'),list=c.parentElement,items=[...list.children],idx=items.indexOf(c),tgt=items[idx+dir];
   if(!tgt)return;dir===-1?list.insertBefore(c,tgt):list.insertBefore(tgt,c);
-  reindex();saveDayData();
+  reindex();saveDayData();alignTopSections();
 }
-function removeTd(btn){btn.closest('.tcard').remove();reindex();saveDayData();updateStats();renderRightTimeline()}
+function removeTd(btn){btn.closest('.tcard').remove();reindex();saveDayData();updateStats();renderRightTimeline();alignTopSections()}
 function reindex(){
   document.querySelectorAll('.tcard').forEach((c,i)=>{
     c.dataset.priority=i+1;const b=c.querySelector('.tpri');
@@ -891,10 +885,9 @@ function reindex(){
 }
 function updateStats(){
   const cs=document.querySelectorAll('.tcard'),dn=document.querySelectorAll('.tcard.done');
-  document.getElementById('s-tot').textContent=cs.length;
-  document.getElementById('s-plan').textContent=document.getElementById('plan-study')?.value||'—';
-  document.getElementById('s-act').textContent=document.getElementById('act-study')?.value||'—';
-  document.getElementById('s-rate').textContent=cs.length?Math.round(dn.length/cs.length*100)+'%':'0%';
+  const tot=document.getElementById('s-tot');const rate=document.getElementById('s-rate');
+  if(tot)tot.textContent=cs.length;
+  if(rate)rate.textContent=cs.length?Math.round(dn.length/cs.length*100)+'%':'0%';
 }
 function ar(el){el.style.height='auto';el.style.height=el.scrollHeight+'px'}
 
