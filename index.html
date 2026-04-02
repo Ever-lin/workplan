@@ -121,7 +121,7 @@ body{font-family:var(--ss);background:var(--paper);color:var(--ink);min-height:1
 .ttop{display:flex;align-items:flex-start;gap:6px;padding:7px 9px 5px}
 .tpri{width:19px;height:19px;border-radius:50%;background:var(--ac);color:white;font-size:9px;font-family:var(--mo);display:flex;align-items:center;justify-content:center;flex-shrink:0;cursor:pointer;margin-top:1px;user-select:none;font-weight:500}
 .tpri.p2{background:var(--bl)}.tpri.p3{background:var(--ink-m)}
-.tchk{width:15px;height:15px;border:1.5px solid var(--bdr);border-radius:2px;cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center;background:white;transition:all var(--t);margin-top:2px;font-size:9px}
+.tchk{width:15px;height:15px;border:1.5px solid var(--bdr);border-radius:2px;flex-shrink:0;display:flex;align-items:center;justify-content:center;background:white;transition:all var(--t);margin-top:2px;font-size:9px;cursor:default}
 .tchk.ck{background:var(--gr);border-color:var(--gr);color:white}
 .tbody{flex:1;display:flex;flex-direction:column;gap:2px;min-width:0}
 .ttxt{font-size:12px;color:var(--ink);border:none;background:transparent;width:100%;font-family:var(--ss);resize:none;min-height:17px;line-height:1.4}
@@ -305,10 +305,7 @@ body{font-family:var(--ss);background:var(--paper);color:var(--ink);min-height:1
 
       <!-- 顶部：待办事项 -->
       <div id="left-top" style="padding:14px 14px 10px 16px">
-        <div class="ptitle" style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
-          <span>待办事项 · 按权重排序</span>
-          <span style="font-size:9px;font-weight:400;letter-spacing:0;color:var(--ink-m)">序号点击切换优先级</span>
-        </div>
+        <div class="ptitle" style="margin-bottom:8px">待办事项</div>
         <div class="tlist" id="tlist"></div>
         <div style="margin-top:6px">
           <button class="addbtn" onclick="addTodo()">＋ 添加待办事项</button>
@@ -334,7 +331,7 @@ body{font-family:var(--ss);background:var(--paper);color:var(--ink);min-height:1
 
       <!-- 顶部：其他工作安排 -->
       <div id="right-top" style="padding:14px 16px 10px 14px">
-        <div class="ptitle" style="margin-bottom:8px">其他工作安排 · 完成打勾</div>
+        <div class="ptitle" style="margin-bottom:8px">其他工作安排</div>
         <div class="otask-list" id="otask-list"></div>
         <div style="margin-top:5px">
           <button class="addbtn" onclick="addOtask()">＋ 添加其他安排</button>
@@ -353,7 +350,6 @@ body{font-family:var(--ss);background:var(--paper);color:var(--ink);min-height:1
             <span><span class="leg-dot" style="background:var(--ac);opacity:.8"></span>偏差</span>
           </div>
         </div>
-        <div style="font-size:10px;color:var(--ink-m);margin-bottom:5px">填写待办执行区的实际时间后自动生成</div>
         <div class="rtl-wrap" style="flex:1">
           <div class="rtl">
             <div class="rtl-axis" id="rtl-axis"></div>
@@ -675,10 +671,11 @@ function syncTimelineFromTodos(){
     const blk=document.querySelector(`.tblk[data-hour="${hour}"]`);
     if(!blk)return;
     const ti=blk.querySelector('.tblk-txt');
+    // Only fill the block if it's empty
     if(!ti.value){ti.value=txt;blk.classList.add('has-plan');}
-    // sync done state from todo
+    // Only sync done state if this block's text matches this todo's text
     const isDone=c.classList.contains('done');
-    if(isDone){
+    if(isDone && ti.value===txt){
       blk.classList.add('is-done');
       ti.classList.add('struck');
     }
@@ -790,7 +787,7 @@ function buildCard(pre){
   c.innerHTML=`
 <div class="ttop">
   <div class="tpri${pc}" onclick="cyclePri(this)" title="点击切换优先级">${priority}</div>
-  <div class="tchk ${pre?.done?'ck':''}" onclick="toggleDone(this)">${pre?.done?'✓':''}</div>
+  <div class="tchk ${pre?.done?'ck':''}" title="请在执行区点击已完成来勾选">${pre?.done?'✓':''}</div>
   <div class="tbody">
     <textarea class="ttxt" rows="1" placeholder="待办事项…" oninput="ar(this);saveDayData();renderRightTimeline();syncTimelineFromTodos();alignTopSections()">${pre?.text||''}</textarea>
     <div class="tmeta">
