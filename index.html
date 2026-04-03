@@ -625,12 +625,11 @@ function renderTL(){
 
   // sync time blocks from todo plan times and completion state
 function syncTimelineFromTodos(){
-  // reset all is-done first, remove note lines, clear todo-synced blocks
+  // reset: clear todo-synced blocks, remove sub-lines, reset done state
   document.querySelectorAll('.tblk').forEach(b=>{
     b.classList.remove('is-done');
     b.querySelector('.tblk-txt')?.classList.remove('struck');
-    b.querySelectorAll('.tblk-note,.tblk-extra').forEach(n=>n.remove());
-    // Clear todo-synced entries (not manually typed)
+    b.querySelectorAll('.tblk-note,.tblk-extra,.tblk-timespan').forEach(n=>n.remove());
     if(b.dataset.todoSynced){
       const ti=b.querySelector('.tblk-txt');
       if(ti){ti.value=''}
@@ -640,6 +639,7 @@ function syncTimelineFromTodos(){
   });
   document.querySelectorAll('.tcard').forEach(c=>{
     const ps=c.querySelector('.eps')?.value||'';
+    const pe=c.querySelector('.epe')?.value||'';
     const txt=c.querySelector('.ttxt')?.value||'';
     if(!ps||!txt)return;
     const hour=ps.split(':')[0].padStart(2,'0')+':00';
@@ -648,30 +648,31 @@ function syncTimelineFromTodos(){
     const ti=blk.querySelector('.tblk-txt');
     const isDone=c.classList.contains('done');
     const note=c.querySelector('.enote')?.value||'';
-    // Fill block if empty (mark as todo-synced so gather() can skip it)
+    const timeLabel=ps+(pe?'–'+pe:'');
+
     if(!ti.value){
+      // Empty slot — fill with this todo
       ti.value=txt;blk.classList.add('has-plan');blk.dataset.todoSynced='1';
       if(isDone){blk.classList.add('is-done');ti.classList.add('struck');}
+      // Show plan time span below the text
+      const span=document.createElement('div');span.className='tblk-note tblk-timespan';
+      span.style.cssText='color:var(--bl);opacity:.8;font-family:var(--mo)';
+      span.textContent=timeLabel;
+      blk.appendChild(span);
       if(note){
-        let noteEl=blk.querySelector('.tblk-note');
-        if(!noteEl){noteEl=document.createElement('div');noteEl.className='tblk-note';blk.appendChild(noteEl)}
-        noteEl.textContent='↳ '+note;
-      }
-    } else if(ti.value!==txt){
-      // Another todo at same hour — append as extra sub-line
-      const extra=document.createElement('div');
-      extra.className='tblk-note tblk-extra';
-      extra.style.cssText='color:var(--bl);font-size:9.5px;padding-left:2px;border-top:1px dotted var(--paper-l);margin-top:2px;padding-top:2px';
-      extra.textContent=(isDone?'✓ ':'○ ')+(ps.includes(':')&&ps.split(':')[1]!=='00'?ps+' ':'')+txt;
-      blk.appendChild(extra);
-      blk.classList.add('has-plan');
-    } else {
-      // Same text already in block (manually typed or synced)
-      if(isDone){blk.classList.add('is-done');ti.classList.add('struck');}
-      if(note&&!blk.querySelector('.tblk-note')){
         const noteEl=document.createElement('div');noteEl.className='tblk-note';blk.appendChild(noteEl);
         noteEl.textContent='↳ '+note;
       }
+    } else {
+      // Slot occupied — append this todo as an extra sub-line (no ○ prefix)
+      const extra=document.createElement('div');
+      extra.className='tblk-note tblk-extra';
+      extra.style.cssText='color:var(--bl);font-size:9.5px;padding-left:2px;border-top:1px dotted var(--paper-l);margin-top:2px;padding-top:2px';
+      extra.textContent=(isDone?'✓ ':'')+timeLabel+' '+txt;
+      blk.appendChild(extra);
+      blk.classList.add('has-plan');
+      // Sync done on primary if texts match
+      if(ti.value===txt&&isDone){blk.classList.add('is-done');ti.classList.add('struck');}
     }
   });
 }
@@ -702,17 +703,17 @@ function renderRightTimeline(){
   });
 
   // Helper: parse hour from time string like "9:30" or "09:30" -> 9
-  function parseHour(s){if(!s)return-1;return parseInt(s.split(':')[0]);}
+  function parseHour(s){if(!s)return-1;return parseInt(s.split(':')[0],10);}
 
   HOURS.forEach(h=>{
     const s=document.createElement('div');s.className='rtl-slot';s.innerHTML=`<span class="rtl-lbl">${h}</span>`;ax.appendChild(s);
     const row=document.createElement('div');row.className='rtl-row';
-    const hNum=parseInt(h);
+    const hNum=parseInt(h,10);
 
-    // Match by actual-start hour; fall back to plan-start hour if no actual time
+    // Match by actual-start hour if available, otherwise by plan-start hour
     const relevant=todos.filter(t=>{
-      if(t.as)return parseHour(t.as)===hNum;
-      return false; // only show in right timeline if there's an actual time
+      const anchor=t.as||t.ps; // actual start takes priority, fall back to plan start
+      return anchor&&parseHour(anchor)===hNum;
     });
 
     if(relevant.length===0){
@@ -736,7 +737,9 @@ function renderRightTimeline(){
           txt.className='rtl-txt'+(t.done?' done-txt':'');
           txt.textContent=t.text||'(未命名)';
           mainRow.appendChild(txt);
+
           if(t.as){
+            // Has actual time — show comparison
             const actualDur=timeToMin(t.ae)-timeToMin(t.as);
             if(t.ps&&t.pe){
               const planDur=timeToMin(t.pe)-timeToMin(t.ps);
@@ -750,15 +753,23 @@ function renderRightTimeline(){
               } else {row.classList.add('has-actual')}
             } else {row.classList.add('has-actual')}
             const tm=document.createElement('span');
-            tm.style.cssText='font-family:var(--mo);font-size:9px;color:var(--ink-m);white-space:nowrap;flex-shrink:0';
-            // Show plan time if available for comparison
+            tm.style.cssText='font-family:var(--mo);font-size:9px;white-space:nowrap;flex-shrink:0';
             if(t.ps){
-              tm.textContent=(t.ps+(t.pe?'→'+t.pe:''))+' 实：'+t.as+(t.ae?'–'+t.ae:'');
+              // Show: plan → actual
               tm.style.color='var(--bl)';
+              tm.textContent=(t.ps+(t.pe?'–'+t.pe:''))+' → '+(t.as+(t.ae?'–'+t.ae:''));
             } else {
+              tm.style.color='var(--ink-m)';
               tm.textContent=t.as+(t.ae?'–'+t.ae:'');
             }
             mainRow.insertBefore(tm,mainRow.querySelector('.rtl-dev')||null);
+          } else if(t.ps){
+            // No actual time yet — show plan time in pending style
+            row.classList.add('has-plan-only');
+            const tm=document.createElement('span');
+            tm.style.cssText='font-family:var(--mo);font-size:9px;color:var(--am);white-space:nowrap;flex-shrink:0;opacity:.8';
+            tm.textContent=t.ps+(t.pe?'–'+t.pe:'');
+            mainRow.appendChild(tm);
           }
         }
         row.appendChild(mainRow);
