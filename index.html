@@ -74,33 +74,38 @@ body{font-family:var(--ss);background:var(--paper);color:var(--ink);min-height:1
 .twrap{display:flex;overflow-y:auto;flex:1}
 .tax{display:flex;flex-direction:column;width:40px;flex-shrink:0;padding-right:7px;position:relative}
 .tax::after{content:'';position:absolute;right:0;top:0;bottom:0;width:1.5px;background:var(--ac);opacity:.35}
-.tslot{height:48px;display:flex;align-items:flex-start;padding-top:2px}
+.tslot{min-height:48px;display:flex;align-items:flex-start;padding-top:6px}
 .tlbl{font-family:var(--mo);font-size:9.5px;color:var(--ink-m);white-space:nowrap;position:relative}
 .tlbl::after{content:'';position:absolute;right:-11px;top:5px;width:7px;height:1px;background:var(--ac);opacity:.35}
 .tevs{flex:1;display:flex;flex-direction:column}
 /* each time block */
-.tblk{height:48px;display:flex;align-items:center;gap:5px;padding:2px 6px;border-bottom:1px dashed var(--paper-l);position:relative;transition:background var(--t)}
+.tblk{min-height:48px;display:flex;flex-direction:column;justify-content:center;gap:1px;padding:4px 6px;border-bottom:1px dashed var(--paper-l);position:relative;transition:background var(--t)}
 .tblk:hover{background:var(--paper-w)}
 .tblk.has-plan{background:var(--am-l)}
 .tblk.has-plan::before{content:'';position:absolute;left:0;top:4px;bottom:4px;width:3px;background:var(--am);border-radius:2px}
 .tblk.is-done{background:var(--gr-l) !important}
 .tblk.is-done::before{background:var(--gr) !important}
+.tblk-main{display:flex;align-items:center;gap:5px;min-width:0}
 .tblk-txt{flex:1;border:none;background:transparent;font-family:var(--ss);font-size:11.5px;color:var(--ink);padding:0;min-width:0}
 .tblk-txt:focus{outline:none}
 .tblk-txt::placeholder{color:var(--ink-m);font-size:10px}
 .tblk-txt.struck{text-decoration:line-through;color:var(--ink-m)}
+.tblk-note{font-size:9.5px;color:var(--ink-m);font-family:var(--ss);padding-left:2px;line-height:1.4;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
 
 /* ── RIGHT TIMELINE (execution - same style as left) ── */
 .rtl-wrap{overflow-y:auto;max-height:none;flex:1}
 .rtl{display:flex;position:relative;height:100%}
 .rtl-axis{display:flex;flex-direction:column;width:40px;flex-shrink:0;padding-right:7px;position:relative}
 .rtl-axis::after{content:'';position:absolute;right:0;top:0;bottom:0;width:1.5px;background:var(--bl);opacity:.35}
-.rtl-slot{height:48px;display:flex;align-items:flex-start;padding-top:2px}
+.rtl-slot{min-height:48px;display:flex;align-items:flex-start;padding-top:6px}
 .rtl-lbl{font-family:var(--mo);font-size:9.5px;color:var(--ink-m);white-space:nowrap;position:relative}
 .rtl-lbl::after{content:'';position:absolute;right:-11px;top:5px;width:7px;height:1px;background:var(--bl);opacity:.35}
 .rtl-bars{flex:1;display:flex;flex-direction:column}
 /* right timeline row — same height as left .tblk */
-.rtl-row{height:48px;border-bottom:1px dashed var(--paper-l);position:relative;display:flex;align-items:center;padding:2px 6px;gap:5px}
+.rtl-row{min-height:48px;border-bottom:1px dashed var(--paper-l);position:relative;display:flex;flex-direction:column;justify-content:center;gap:1px;padding:4px 6px}
+.rtl-row-main{display:flex;align-items:center;gap:5px;min-width:0}
+.rtl-note{font-size:9.5px;color:var(--ink-m);font-family:var(--ss);padding-left:2px;line-height:1.4;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
+.rtl-note.extra-note{color:#8b68c0}
 /* has actual time: same warm blue tint as left's has-plan */
 .rtl-row.has-actual{background:var(--bl-l)}
 .rtl-row.has-actual::before{content:'';position:absolute;left:0;top:4px;bottom:4px;width:3px;background:var(--bl);opacity:.5;border-radius:2px}
@@ -172,8 +177,9 @@ body{font-family:var(--ss);background:var(--paper);color:var(--ink);min-height:1
 
 /* OTHER TASKS (no-time) */
 .otask-list{display:flex;flex-direction:column;gap:5px}
-.otask{display:flex;align-items:center;gap:6px;padding:5px 8px;border:1px solid var(--bdr);border-radius:2px;background:white}
+.otask{display:flex;flex-direction:column;gap:0;border:1px solid var(--bdr);border-radius:2px;background:white;overflow:hidden}
 .otask.ck{background:var(--gr-l);border-color:#b8d8c0}
+.otask-top{display:flex;align-items:center;gap:6px;padding:5px 8px}
 .otask-chk{width:15px;height:15px;border:1.5px solid var(--bdr);border-radius:2px;cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center;background:white;transition:all var(--t);font-size:9px}
 .otask-chk.ck{background:var(--gr);border-color:var(--gr);color:white}
 .otask-txt{flex:1;border:none;background:transparent;font-family:var(--ss);font-size:12px;color:var(--ink);padding:0}
@@ -181,6 +187,20 @@ body{font-family:var(--ss);background:var(--paper);color:var(--ink);min-height:1
 .otask.ck .otask-txt{text-decoration:line-through;color:var(--ink-m)}
 .otask-del{background:none;border:none;cursor:pointer;color:var(--ink-m);font-size:11px;opacity:0;transition:opacity var(--t)}
 .otask:hover .otask-del{opacity:1}
+.otask-toggle{font-size:9px;color:var(--ink-m);cursor:pointer;padding:1px 6px;border:1px solid var(--paper-l);border-radius:2px;background:none;font-family:var(--ss);transition:all var(--t);flex-shrink:0}
+.otask-toggle:hover{border-color:#6b3fa0;color:#6b3fa0}
+/* otask exec section */
+.otask-exec{border-top:1px dashed var(--paper-l);padding:6px 8px;background:rgba(107,63,160,.04);display:flex;flex-direction:column;gap:5px}
+.otask-times{display:flex;gap:8px;align-items:center}
+.otl{font-size:9px;color:var(--ink-m);white-space:nowrap}
+.oti{font-family:var(--mo);font-size:10px;color:var(--ink);border:1px solid var(--bdr);background:white;padding:2px 4px;border-radius:2px;width:62px}
+.oti:focus{outline:none;border-color:#6b3fa0}
+.otnote{font-size:11px;color:var(--ink);border:1px solid var(--bdr);background:white;padding:3px 5px;border-radius:2px;width:100%;resize:none;font-family:var(--ss);min-height:28px;line-height:1.5}
+.otnote:focus{outline:none;border-color:#6b3fa0}
+/* right timeline: extra (otask) rows */
+.rtl-row.is-extra{background:#f0eaf8}
+.rtl-row.is-extra::before{content:'';position:absolute;left:0;top:4px;bottom:4px;width:3px;background:#6b3fa0;opacity:.7;border-radius:2px}
+.rtl-extra-tag{font-size:9px;padding:1px 5px;background:#6b3fa0;color:white;border-radius:2px;white-space:nowrap;flex-shrink:0;font-family:var(--ss)}
 
 /* reflection */
 .refbox{border:1px solid #b8c8e8;border-radius:2px;padding:9px 11px;background:var(--bl-l)}
@@ -348,6 +368,7 @@ body{font-family:var(--ss);background:var(--paper);color:var(--ink);min-height:1
           <div class="rtl-legend">
             <span><span class="leg-dot" style="background:var(--bl);opacity:.5"></span>实际</span>
             <span><span class="leg-dot" style="background:var(--ac);opacity:.8"></span>偏差</span>
+            <span><span class="leg-dot" style="background:#6b3fa0;opacity:.8"></span>临时</span>
           </div>
         </div>
         <div class="rtl-wrap" style="flex:1">
@@ -528,7 +549,8 @@ function gather(){
   const otasks=[];
   document.querySelectorAll('.otask').forEach(el=>{
     const v=el.querySelector('.otask-txt')?.value||'';
-    if(v)otasks.push({text:v,done:el.classList.contains('ck')});
+    const exec=el.querySelector('.otask-exec');
+    if(v)otasks.push({text:v,done:el.classList.contains('ck'),actualStart:el.querySelector('.oas')?.value||'',actualEnd:el.querySelector('.oae')?.value||'',note:el.querySelector('.otnote')?.value||'',execOpen:exec?exec.style.display!=='none':false});
   });
   return{
     date:fmt(currentDate),
@@ -651,19 +673,22 @@ function renderTL(){
   HOURS.forEach(h=>{
     const s=document.createElement('div');s.className='tslot';s.innerHTML=`<span class="tlbl">${h}</span>`;ax.appendChild(s);
     const b=document.createElement('div');b.className='tblk';b.dataset.hour=h;
+    const mainRow=document.createElement('div');mainRow.className='tblk-main';
     const inp=document.createElement('input');inp.type='text';inp.className='tblk-txt';inp.placeholder=`${h} 的安排…`;
     inp.addEventListener('input',()=>{b.classList.toggle('has-plan',inp.value.length>0);saveDayData()});
-    b.appendChild(inp);
+    mainRow.appendChild(inp);
+    b.appendChild(mainRow);
     ev.appendChild(b);
   });
 }
 
 // sync time blocks from todo plan times and completion state
 function syncTimelineFromTodos(){
-  // reset all is-done first
+  // reset all is-done first, remove note lines
   document.querySelectorAll('.tblk').forEach(b=>{
     b.classList.remove('is-done');
     b.querySelector('.tblk-txt')?.classList.remove('struck');
+    b.querySelectorAll('.tblk-note').forEach(n=>n.remove());
   });
   document.querySelectorAll('.tcard').forEach(c=>{
     const ps=c.querySelector('.eps')?.value||'';
@@ -681,6 +706,13 @@ function syncTimelineFromTodos(){
       blk.classList.add('is-done');
       ti.classList.add('struck');
     }
+    // Show note as sub-line
+    const note=c.querySelector('.enote')?.value||'';
+    if(note&&ti.value===txt){
+      let noteEl=blk.querySelector('.tblk-note');
+      if(!noteEl){noteEl=document.createElement('div');noteEl.className='tblk-note';blk.appendChild(noteEl)}
+      noteEl.textContent='↳ '+note;
+    }
   });
 }
 
@@ -696,9 +728,18 @@ function renderRightTimeline(){
       text:c.querySelector('.ttxt')?.value||'',
       ps:c.querySelector('.eps')?.value||'',pe:c.querySelector('.epe')?.value||'',
       as:c.querySelector('.eas')?.value||'',ae:c.querySelector('.eae')?.value||'',
+      note:c.querySelector('.enote')?.value||'',
       status:c.querySelector('.estat')?.dataset.status||'pending',
-      done:c.classList.contains('done')
+      done:c.classList.contains('done'),isExtra:false
     });
+  });
+  // collect otasks with actual times
+  document.querySelectorAll('.otask').forEach(el=>{
+    const text=el.querySelector('.otask-txt')?.value||'';
+    const as=el.querySelector('.oas')?.value||'';
+    const ae=el.querySelector('.oae')?.value||'';
+    const note=el.querySelector('.otnote')?.value||'';
+    if(text&&as){todos.push({text,ps:'',pe:'',as,ae,note,status:'',done:el.classList.contains('ck'),isExtra:true})}
   });
 
   HOURS.forEach(h=>{
@@ -706,43 +747,55 @@ function renderRightTimeline(){
     const row=document.createElement('div');row.className='rtl-row';
     const hNum=parseInt(h);
 
-    // only show todos that have actual time starting this hour
     const relevant=todos.filter(t=>t.as&&parseInt(t.as)===hNum);
 
     if(relevant.length===0){
-      const empty=document.createElement('div');empty.className='bar-empty';empty.textContent='·';row.appendChild(empty);
+      const mainRow=document.createElement('div');mainRow.className='rtl-row-main';
+      const empty=document.createElement('div');empty.className='bar-empty';empty.textContent='·';mainRow.appendChild(empty);
+      row.appendChild(mainRow);
     } else {
       relevant.forEach(t=>{
-        // task name (same style as left tblk-txt)
-        const txt=document.createElement('span');
-        txt.className='rtl-txt'+(t.done?' done-txt':'');
-        txt.textContent=t.text||'(未命名)';
-        row.appendChild(txt);
-
-        // deviation label: compare actual duration vs plan duration
-        if(t.as&&t.ae){
-          const actualDur=timeToMin(t.ae)-timeToMin(t.as);
-          if(t.ps&&t.pe){
-            const planDur=timeToMin(t.pe)-timeToMin(t.ps);
-            const diff=actualDur-planDur;
-            if(Math.abs(diff)>=5){// only mark if diff ≥5min
-              const dev=document.createElement('span');dev.className='rtl-dev';
-              dev.textContent=(diff>0?'+':'')+diff+'分';
-              dev.title=`计划${planDur}分 → 实际${actualDur}分`;
-              row.appendChild(dev);
-              row.classList.add('has-actual','has-deviation');
-            } else {
-              row.classList.add('has-actual');
-            }
-          } else {
-            // no plan time, just show actual
-            row.classList.add('has-actual');
+        const mainRow=document.createElement('div');mainRow.className='rtl-row-main';
+        if(t.isExtra){
+          row.classList.add('is-extra');
+          const tag=document.createElement('span');tag.className='rtl-extra-tag';tag.textContent='临时';mainRow.appendChild(tag);
+          const txt=document.createElement('span');txt.className='rtl-txt'+(t.done?' done-txt':'');txt.textContent=t.text||'(未命名)';mainRow.appendChild(txt);
+          if(t.as&&t.ae){
+            const tm=document.createElement('span');
+            tm.style.cssText='font-family:var(--mo);font-size:9px;color:#6b3fa0;white-space:nowrap;flex-shrink:0';
+            tm.textContent=t.as+'–'+t.ae;mainRow.appendChild(tm);
           }
-          // show actual time range as small annotation
-          const tm=document.createElement('span');
-          tm.style.cssText='font-family:var(--mo);font-size:9px;color:var(--ink-m);white-space:nowrap;flex-shrink:0';
-          tm.textContent=t.as+'–'+t.ae;
-          row.insertBefore(tm,row.querySelector('.rtl-dev')||null);
+        } else {
+          const txt=document.createElement('span');
+          txt.className='rtl-txt'+(t.done?' done-txt':'');
+          txt.textContent=t.text||'(未命名)';
+          mainRow.appendChild(txt);
+          if(t.as&&t.ae){
+            const actualDur=timeToMin(t.ae)-timeToMin(t.as);
+            if(t.ps&&t.pe){
+              const planDur=timeToMin(t.pe)-timeToMin(t.ps);
+              const diff=actualDur-planDur;
+              if(Math.abs(diff)>=5){
+                const dev=document.createElement('span');dev.className='rtl-dev';
+                dev.textContent=(diff>0?'+':'')+diff+'分';
+                dev.title=`计划${planDur}分 → 实际${actualDur}分`;
+                mainRow.appendChild(dev);
+                row.classList.add('has-actual','has-deviation');
+              } else {row.classList.add('has-actual')}
+            } else {row.classList.add('has-actual')}
+            const tm=document.createElement('span');
+            tm.style.cssText='font-family:var(--mo);font-size:9px;color:var(--ink-m);white-space:nowrap;flex-shrink:0';
+            tm.textContent=t.as+'–'+t.ae;
+            mainRow.insertBefore(tm,mainRow.querySelector('.rtl-dev')||null);
+          }
+        }
+        row.appendChild(mainRow);
+        // show note as sub-line
+        if(t.note){
+          const noteEl=document.createElement('div');
+          noteEl.className='rtl-note'+(t.isExtra?' extra-note':'');
+          noteEl.textContent='↳ '+t.note;
+          row.appendChild(noteEl);
         }
       });
     }
@@ -816,7 +869,7 @@ function buildCard(pre){
     <div class="etf"><div class="etl">实际开始</div><input class="eti eas" list="dl-t" type="text" placeholder="09:15" value="${pre?.actualStart||''}" oninput="saveDayData();renderRightTimeline()"></div>
     <div class="etf"><div class="etl">实际结束</div><input class="eti eae" list="dl-t" type="text" placeholder="10:30" value="${pre?.actualEnd||''}" oninput="saveDayData();renderRightTimeline()"></div>
   </div>
-  <textarea class="enote" placeholder="备注：遇到什么问题？如何解决？" oninput="saveDayData()">${pre?.note||''}</textarea>
+  <textarea class="enote" placeholder="备注：遇到什么问题？如何解决？" oninput="saveDayData();syncTimelineFromTodos();renderRightTimeline()">${pre?.note||''}</textarea>
 </div>`;
   list.appendChild(c);
   ar(c.querySelector('.ttxt'));
@@ -895,15 +948,54 @@ function addOtask(pre){
   const list=document.getElementById('otask-list');
   const div=document.createElement('div');
   div.className='otask'+(pre?.done?' ck':'');
+  const execOpen=pre?.execOpen||false;
+
+  // top row: checkbox + text + toggle + delete
+  const topRow=document.createElement('div');topRow.className='otask-top';
   const chk=document.createElement('div');chk.className='otask-chk'+(pre?.done?' ck':'');chk.textContent=pre?.done?'✓':'';
   chk.onclick=()=>{
     div.classList.toggle('ck');chk.classList.toggle('ck');chk.textContent=chk.classList.contains('ck')?'✓':'';
-    saveDayData();
+    saveDayData();renderRightTimeline();
   };
   const inp=document.createElement('input');inp.type='text';inp.className='otask-txt';inp.placeholder='其他安排…';inp.value=pre?.text||'';
-  inp.addEventListener('input',()=>saveDayData());
-  const del=document.createElement('button');del.className='otask-del';del.textContent='×';del.onclick=()=>{div.remove();saveDayData()};
-  div.appendChild(chk);div.appendChild(inp);div.appendChild(del);
+  inp.addEventListener('input',()=>{saveDayData();renderRightTimeline();syncTimelineFromTodos()});
+
+  const toggle=document.createElement('button');toggle.className='otask-toggle';
+  toggle.textContent='执行 '+(execOpen?'▴':'▾');
+  toggle.onclick=()=>{
+    const exec=div.querySelector('.otask-exec');
+    const open=exec.style.display==='none';
+    exec.style.display=open?'':'none';
+    toggle.textContent='执行 '+(open?'▴':'▾');
+    saveDayData();alignTopSections();
+  };
+
+  const del=document.createElement('button');del.className='otask-del';del.textContent='×';
+  del.onclick=()=>{div.remove();saveDayData();renderRightTimeline();alignTopSections()};
+
+  topRow.appendChild(chk);topRow.appendChild(inp);topRow.appendChild(toggle);topRow.appendChild(del);
+
+  // exec section: times + note (collapsible)
+  const execSec=document.createElement('div');execSec.className='otask-exec';
+  execSec.style.display=execOpen?'':'none';
+
+  const timeRow=document.createElement('div');timeRow.className='otask-times';
+  timeRow.innerHTML=`<span class="otl">实际开始</span><input class="oti oas" list="dl-t" type="text" placeholder="09:00" value="${pre?.actualStart||''}"><span class="otl" style="margin-left:6px">实际结束</span><input class="oti oae" list="dl-t" type="text" placeholder="10:00" value="${pre?.actualEnd||''}">`;
+  timeRow.querySelectorAll('input').forEach(i=>i.addEventListener('input',()=>{
+    const as=div.querySelector('.oas')?.value||'';
+    const ae=div.querySelector('.oae')?.value||'';
+    if(as&&ae&&!div.classList.contains('ck')){
+      div.classList.add('ck');chk.classList.add('ck');chk.textContent='✓';
+    }
+    saveDayData();renderRightTimeline();
+  }));
+
+  const noteTA=document.createElement('textarea');noteTA.className='otnote';
+  noteTA.placeholder='备注：遇到什么问题？如何解决？';noteTA.value=pre?.note||'';
+  noteTA.addEventListener('input',()=>{saveDayData();renderRightTimeline();syncTimelineFromTodos()});
+
+  execSec.appendChild(timeRow);execSec.appendChild(noteTA);
+  div.appendChild(topRow);div.appendChild(execSec);
   list.appendChild(div);
 }
 
