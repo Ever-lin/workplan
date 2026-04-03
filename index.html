@@ -512,7 +512,7 @@ function gather(){
   document.querySelectorAll('.otask').forEach(el=>{
     const v=el.querySelector('.otask-txt')?.value||'';
     const exec=el.querySelector('.otask-exec');
-    if(v)otasks.push({text:v,done:el.classList.contains('ck'),actualStart:el.querySelector('.oas')?.value||'',actualEnd:el.querySelector('.oae')?.value||'',note:el.querySelector('.otnote')?.value||'',execOpen:exec?exec.style.display!=='none':false,movedToNext:el.dataset.movedToNext||''});
+    if(v)otasks.push({text:v,done:el.classList.contains('ck'),actualStart:el.querySelector('.oas')?.value||'',actualEnd:el.querySelector('.oae')?.value||'',note:el.querySelector('.otnote')?.value||'',execOpen:exec?exec.style.display!=='none':false,movedToNext:el.dataset.movedToNext||'',deferredFrom:el.dataset.deferredFrom||''});
   });
   return{
     date:fmt(currentDate),
@@ -894,6 +894,7 @@ function addOtask(pre){
   const list=document.getElementById('otask-list');
   const div=document.createElement('div');
   div.className='otask'+(pre?.done?' ck':'');
+  if(pre?.deferredFrom)div.dataset.deferredFrom=pre.deferredFrom;
   const execOpen=pre?.execOpen||false;
 
   // top row: checkbox + text + toggle + delete
@@ -917,15 +918,27 @@ function addOtask(pre){
   };
 
   const del=document.createElement('button');del.className='otask-del';del.textContent='×';
-  del.onclick=()=>{div.remove();saveDayData();renderRightTimeline();alignTopSections()};
+  del.onclick=()=>{
+    const deferredFrom=div.dataset.deferredFrom||'';
+    if(deferredFrom){
+      const srcKey='plan_'+deferredFrom;
+      let srcData={};try{const r=localStorage.getItem(srcKey);if(r)srcData=JSON.parse(r)}catch{}
+      if(srcData.otasks){
+        const text=div.querySelector('.otask-txt')?.value||'';
+        srcData.otasks=srcData.otasks.map(o=>o.text===text?{...o,movedToNext:''}:o);
+        localStorage.setItem(srcKey,JSON.stringify(srcData));
+        if(fmt(currentDate)===deferredFrom){div.remove();saveDayData();renderRightTimeline();alignTopSections();renderDaily();return}
+      }
+    }
+    div.remove();saveDayData();renderRightTimeline();alignTopSections();
+  };
 
-  const mv=document.createElement('button');mv.className='otask-mv';mv.title='复制到明天';mv.textContent='→明';
+  const mv=document.createElement('button');mv.className='otask-mv';mv.title='推迟到明天';mv.textContent='→明';
   mv.onclick=()=>moveOtaskToNextDay(div);
-  // Restore movedToNext state if previously saved
+  // Restore deferred visual state if previously saved
   if(pre?.movedToNext){
     div.dataset.movedToNext=pre.movedToNext;
-    // Apply after appending (called after list.appendChild below)
-    setTimeout(()=>applyOtaskMovedStyle(div,pre.movedToNext),0);
+    setTimeout(()=>applyOtaskDeferredStyle(div,pre.movedToNext),0);
   }
 
   topRow.appendChild(chk);topRow.appendChild(inp);topRow.appendChild(mv);topRow.appendChild(toggle);topRow.appendChild(del);
@@ -959,28 +972,43 @@ function moveOtaskToNextDay(div){
   const note=div.querySelector('.otnote')?.value||'';
   if(!text)return;
   const tomorrow=new Date(currentDate.getTime()+86400000);
-  const key='plan_'+fmt(tomorrow);
-  let data={};try{const r=localStorage.getItem(key);if(r)data=JSON.parse(r)}catch{}
-  if(!data.otasks)data.otasks=[];
-  if(!data.otasks.some(o=>o.text===text)){
-    data.otasks.push({text,done:false,note,actualStart:'',actualEnd:'',execOpen:false});
-    localStorage.setItem(key,JSON.stringify(data));
+  const tomorrowKey='plan_'+fmt(tomorrow);
+  let tData={};try{const r=localStorage.getItem(tomorrowKey);if(r)tData=JSON.parse(r)}catch{}
+  if(!tData.otasks)tData.otasks=[];
+  if(!tData.otasks.some(o=>o.text===text)){
+    tData.otasks.push({text,done:false,note,actualStart:'',actualEnd:'',execOpen:false,deferredFrom:fmt(currentDate)});
+    localStorage.setItem(tomorrowKey,JSON.stringify(tData));
     const dateStr=(tomorrow.getMonth()+1)+'/'+(tomorrow.getDate());
     div.dataset.movedToNext=dateStr;
     saveDayData();
-    applyOtaskMovedStyle(div,dateStr);
+    applyOtaskDeferredStyle(div,dateStr);
   } else {
     alert('明天已有相同安排');
   }
 }
 
-function applyOtaskMovedStyle(div,dateStr){
+function applyOtaskDeferredStyle(div,dateStr){
+  const inp=div.querySelector('.otask-txt');
+  if(inp){inp.style.textDecoration='line-through';inp.style.color='var(--ink-m)'}
   const mv=div.querySelector('.otask-mv');
   if(mv){
     mv.textContent='→'+dateStr;
     mv.style.color='var(--am)';mv.style.borderColor='var(--am)';mv.style.background='var(--am-l)';
     mv.disabled=true;mv.style.cursor='default';
   }
+}
+
+function restoreOtaskFromDeferred(div){
+  const inp=div.querySelector('.otask-txt');
+  if(inp){inp.style.textDecoration='';inp.style.color=''}
+  const mv=div.querySelector('.otask-mv');
+  if(mv){
+    mv.textContent='→明';
+    mv.style.color='';mv.style.borderColor='';mv.style.background='';
+    mv.disabled=false;mv.style.cursor='pointer';
+  }
+  delete div.dataset.movedToNext;
+  saveDayData();
 }
 
 function moveTdToNextDay(btn){
