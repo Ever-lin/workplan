@@ -189,6 +189,8 @@ body{font-family:var(--ss);background:var(--paper);color:var(--ink);min-height:1
 .otask:hover .otask-del{opacity:1}
 .otask-toggle{font-size:9px;color:var(--ink-m);cursor:pointer;padding:1px 6px;border:1px solid var(--paper-l);border-radius:2px;background:none;font-family:var(--ss);transition:all var(--t);flex-shrink:0}
 .otask-toggle:hover{border-color:#6b3fa0;color:#6b3fa0}
+.otask-mv{font-size:9px;color:var(--ink-m);cursor:pointer;padding:1px 6px;border:1px solid var(--paper-l);border-radius:2px;background:none;font-family:var(--ss);transition:all var(--t);flex-shrink:0}
+.otask-mv:hover{border-color:var(--am);color:var(--am);background:var(--am-l)}
 /* otask exec section */
 .otask-exec{border-top:1px dashed var(--paper-l);padding:6px 8px;background:rgba(107,63,160,.04);display:flex;flex-direction:column;gap:5px}
 .otask-times{display:flex;gap:8px;align-items:center}
@@ -640,19 +642,21 @@ function renderDaily(){
 function injectRepeatTodos(dayData){
   const dow=currentDate.getDay();
   const dayNum=currentDate.getDate();
-  // look for repeat templates in a special key
   let tmpl=[];try{tmpl=JSON.parse(localStorage.getItem('repeat_templates')||'[]')}catch{}
   if(!tmpl.length)return;
-  const existing=new Set((dayData.todos||[]).map(t=>t.id));
+  // Use templateId to detect if this template was already injected for this day
+  const existingTplIds=new Set((dayData.todos||[]).map(t=>t.templateId).filter(Boolean));
   tmpl.forEach(t=>{
     const r=t.repeat;if(!r||r.type==='none')return;
     let match=false;
     if(r.type==='daily')match=true;
     else if(r.type==='weekly'&&r.days&&r.days.includes(dow))match=true;
     else if(r.type==='monthly'&&r.dayOfMonth===dayNum)match=true;
-    if(match&&!existing.has(t.id)){
+    if(match&&!existingTplIds.has(t.id)){
       if(!dayData.todos)dayData.todos=[];
-      dayData.todos.push({...t,note:'',execStatus:'pending',done:false,execOpen:false});
+      // Give each injected instance a unique id, but track the template source
+      const instanceId='t_'+fmt(currentDate)+'_'+t.id;
+      dayData.todos.push({...t,id:instanceId,templateId:t.id,note:'',execStatus:'pending',done:false,execOpen:false});
     }
   });
 }
@@ -973,7 +977,11 @@ function addOtask(pre){
   const del=document.createElement('button');del.className='otask-del';del.textContent='×';
   del.onclick=()=>{div.remove();saveDayData();renderRightTimeline();alignTopSections()};
 
-  topRow.appendChild(chk);topRow.appendChild(inp);topRow.appendChild(toggle);topRow.appendChild(del);
+  // move to tomorrow button (only visible when not done)
+  const mv=document.createElement('button');mv.className='otask-mv';mv.title='挪到明天';mv.textContent='→明';
+  mv.onclick=()=>moveOtaskToNextDay(div);
+
+  topRow.appendChild(chk);topRow.appendChild(inp);topRow.appendChild(mv);topRow.appendChild(toggle);topRow.appendChild(del);
 
   // exec section: times + note (collapsible)
   const execSec=document.createElement('div');execSec.className='otask-exec';
@@ -997,6 +1005,31 @@ function addOtask(pre){
   execSec.appendChild(timeRow);execSec.appendChild(noteTA);
   div.appendChild(topRow);div.appendChild(execSec);
   list.appendChild(div);
+}
+
+function moveOtaskToNextDay(div){
+  const text=div.querySelector('.otask-txt')?.value||'';
+  const note=div.querySelector('.otnote')?.value||'';
+  if(!text)return;
+  const tomorrow=new Date(currentDate.getTime()+86400000);
+  const key='plan_'+fmt(tomorrow);
+  let data={};try{const r=localStorage.getItem(key);if(r)data=JSON.parse(r)}catch{}
+  if(!data.otasks)data.otasks=[];
+  // avoid duplicates
+  if(!data.otasks.some(o=>o.text===text)){
+    data.otasks.push({text,done:false,note,actualStart:'',actualEnd:'',execOpen:false});
+    localStorage.setItem(key,JSON.stringify(data));
+    // visual feedback: flash the row
+    div.style.transition='opacity .3s';div.style.opacity='0.4';
+    setTimeout(()=>{div.style.opacity='';},300);
+    // show a brief toast
+    const toast=document.createElement('div');
+    toast.style.cssText='position:fixed;bottom:44px;right:18px;background:var(--am);color:white;font-size:11px;padding:4px 12px;border-radius:2px;z-index:500;font-family:var(--ss);opacity:1;transition:opacity .4s';
+    toast.textContent='已挪至 '+(tomorrow.getMonth()+1)+'月'+tomorrow.getDate()+'日';
+    document.body.appendChild(toast);setTimeout(()=>{toast.style.opacity='0';setTimeout(()=>toast.remove(),400)},1600);
+  } else {
+    alert('明天已有相同安排');
+  }
 }
 
 // ── REPEAT MODAL ──
