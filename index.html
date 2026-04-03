@@ -629,7 +629,7 @@ function syncTimelineFromTodos(){
   document.querySelectorAll('.tblk').forEach(b=>{
     b.classList.remove('is-done');
     b.querySelector('.tblk-txt')?.classList.remove('struck');
-    b.querySelectorAll('.tblk-note,.tblk-extra,.tblk-timespan').forEach(n=>n.remove());
+    b.querySelectorAll('.tblk-note,.tblk-extra,.tblk-timespan,.tblk-timetag').forEach(n=>n.remove());
     if(b.dataset.todoSynced){
       const ti=b.querySelector('.tblk-txt');
       if(ti){ti.value=''}
@@ -647,32 +647,25 @@ function syncTimelineFromTodos(){
     if(!blk)return;
     const ti=blk.querySelector('.tblk-txt');
     const isDone=c.classList.contains('done');
-    const note=c.querySelector('.enote')?.value||'';
     const timeLabel=ps+(pe?'–'+pe:'');
 
     if(!ti.value){
-      // Empty slot — fill with this todo
-      ti.value=txt;blk.classList.add('has-plan');blk.dataset.todoSynced='1';
+      // Empty slot — fill with pure text, add time as sibling tag
+      ti.value=txt;
+      blk.classList.add('has-plan');blk.dataset.todoSynced='1';
       if(isDone){blk.classList.add('is-done');ti.classList.add('struck');}
-      // Show plan time span below the text
-      const span=document.createElement('div');span.className='tblk-note tblk-timespan';
-      span.style.cssText='color:var(--bl);opacity:.8;font-family:var(--mo)';
-      span.textContent=timeLabel;
-      blk.appendChild(span);
-      if(note){
-        const noteEl=document.createElement('div');noteEl.className='tblk-note';blk.appendChild(noteEl);
-        noteEl.textContent='↳ '+note;
-      }
+      const tag=document.createElement('span');tag.className='tblk-timetag';
+      tag.style.cssText='font-family:var(--mo);font-size:9px;color:var(--ink-m);white-space:nowrap;flex-shrink:0;margin-left:4px';
+      tag.textContent=timeLabel;
+      blk.querySelector('.tblk-main').appendChild(tag);
     } else {
-      // Slot occupied — append this todo as an extra sub-line (no ○ prefix)
+      // Slot occupied — extra sub-line with text + time, same plain style
       const extra=document.createElement('div');
       extra.className='tblk-note tblk-extra';
-      extra.style.cssText='color:var(--bl);font-size:9.5px;padding-left:2px;border-top:1px dotted var(--paper-l);margin-top:2px;padding-top:2px';
-      extra.textContent=(isDone?'✓ ':'')+timeLabel+' '+txt;
+      extra.style.cssText='font-size:11px;color:var(--ink);padding-left:2px;border-top:1px dotted var(--paper-l);margin-top:2px;padding-top:2px;display:flex;justify-content:space-between'+(isDone?';text-decoration:line-through;color:var(--ink-m)':'');
+      extra.innerHTML=`<span>${txt}</span><span style="font-family:var(--mo);font-size:9px;color:var(--ink-m);flex-shrink:0;margin-left:4px">${timeLabel}</span>`;
       blk.appendChild(extra);
       blk.classList.add('has-plan');
-      // Sync done on primary if texts match
-      if(ti.value===txt&&isDone){blk.classList.add('is-done');ti.classList.add('struck');}
     }
   });
 }
@@ -682,104 +675,67 @@ function renderRightTimeline(){
   if(!ax||!bars)return;
   ax.innerHTML='';bars.innerHTML='';
 
-  const todos=[];
+  // Collect all items: todos and otasks
+  const items=[];
   document.querySelectorAll('.tcard').forEach(c=>{
-    todos.push({
-      text:c.querySelector('.ttxt')?.value||'',
-      ps:c.querySelector('.eps')?.value||'',pe:c.querySelector('.epe')?.value||'',
-      as:c.querySelector('.eas')?.value||'',ae:c.querySelector('.eae')?.value||'',
-      note:c.querySelector('.enote')?.value||'',
-      status:c.querySelector('.estat')?.dataset.status||'pending',
-      done:c.classList.contains('done'),isExtra:false
-    });
+    const text=c.querySelector('.ttxt')?.value||'';
+    const as=c.querySelector('.eas')?.value||'';
+    const ae=c.querySelector('.eae')?.value||'';
+    const done=c.classList.contains('done');
+    const status=c.querySelector('.estat')?.dataset.status||'pending';
+    if(text&&as) items.push({text,as,ae,done,status,isExtra:false});
   });
-  // collect otasks with actual times
   document.querySelectorAll('.otask').forEach(el=>{
     const text=el.querySelector('.otask-txt')?.value||'';
     const as=el.querySelector('.oas')?.value||'';
     const ae=el.querySelector('.oae')?.value||'';
-    const note=el.querySelector('.otnote')?.value||'';
-    if(text&&as){todos.push({text,ps:'',pe:'',as,ae,note,status:'',done:el.classList.contains('ck'),isExtra:true})}
+    const done=el.classList.contains('ck');
+    if(text&&as) items.push({text,as,ae,done,status:'',isExtra:true});
   });
 
-  // Helper: parse hour from time string like "9:30" or "09:30" -> 9
-  function parseHour(s){if(!s)return-1;return parseInt(s.split(':')[0],10);}
+  function parseHour(s){return s?parseInt(s.split(':')[0],10):-1;}
 
   HOURS.forEach(h=>{
-    const s=document.createElement('div');s.className='rtl-slot';s.innerHTML=`<span class="rtl-lbl">${h}</span>`;ax.appendChild(s);
+    const s=document.createElement('div');s.className='rtl-slot';
+    s.innerHTML=`<span class="rtl-lbl">${h}</span>`;ax.appendChild(s);
+
     const row=document.createElement('div');row.className='rtl-row';
     const hNum=parseInt(h,10);
-
-    // Match by actual-start hour if available, otherwise by plan-start hour
-    const relevant=todos.filter(t=>{
-      const anchor=t.as||t.ps; // actual start takes priority, fall back to plan start
-      return anchor&&parseHour(anchor)===hNum;
-    });
+    const relevant=items.filter(t=>parseHour(t.as)===hNum);
 
     if(relevant.length===0){
-      const mainRow=document.createElement('div');mainRow.className='rtl-row-main';
-      const empty=document.createElement('div');empty.className='bar-empty';empty.textContent='·';mainRow.appendChild(empty);
-      row.appendChild(mainRow);
+      const mr=document.createElement('div');mr.className='rtl-row-main';
+      const dot=document.createElement('div');dot.className='bar-empty';dot.textContent='·';
+      mr.appendChild(dot);row.appendChild(mr);
     } else {
-      relevant.forEach(t=>{
-        const mainRow=document.createElement('div');mainRow.className='rtl-row-main';
+      // Multiple items stack as sub-rows inside one row
+      relevant.forEach((t,idx)=>{
+        const mr=document.createElement('div');mr.className='rtl-row-main';
+        if(idx>0){
+          // separator between stacked items
+          mr.style.cssText='border-top:1px dotted var(--paper-l);margin-top:3px;padding-top:3px';
+        }
+
         if(t.isExtra){
           row.classList.add('is-extra');
-          const tag=document.createElement('span');tag.className='rtl-extra-tag';tag.textContent='临时';mainRow.appendChild(tag);
-          const txt=document.createElement('span');txt.className='rtl-txt'+(t.done?' done-txt':'');txt.textContent=t.text||'(未命名)';mainRow.appendChild(txt);
-          if(t.as){
-            const tm=document.createElement('span');
-            tm.style.cssText='font-family:var(--mo);font-size:9px;color:#6b3fa0;white-space:nowrap;flex-shrink:0';
-            tm.textContent=t.as+(t.ae?'–'+t.ae:'');mainRow.appendChild(tm);
-          }
+          const tag=document.createElement('span');tag.className='rtl-extra-tag';tag.textContent='临时';mr.appendChild(tag);
         } else {
-          const txt=document.createElement('span');
-          txt.className='rtl-txt'+(t.done?' done-txt':'');
-          txt.textContent=t.text||'(未命名)';
-          mainRow.appendChild(txt);
+          row.classList.add('has-actual');
+        }
 
-          if(t.as){
-            // Has actual time — show comparison
-            const actualDur=timeToMin(t.ae)-timeToMin(t.as);
-            if(t.ps&&t.pe){
-              const planDur=timeToMin(t.pe)-timeToMin(t.ps);
-              const diff=actualDur-planDur;
-              if(Math.abs(diff)>=5){
-                const dev=document.createElement('span');dev.className='rtl-dev';
-                dev.textContent=(diff>0?'+':'')+diff+'分';
-                dev.title=`计划${planDur}分 → 实际${actualDur}分`;
-                mainRow.appendChild(dev);
-                row.classList.add('has-actual','has-deviation');
-              } else {row.classList.add('has-actual')}
-            } else {row.classList.add('has-actual')}
-            const tm=document.createElement('span');
-            tm.style.cssText='font-family:var(--mo);font-size:9px;white-space:nowrap;flex-shrink:0';
-            if(t.ps){
-              // Show: plan → actual
-              tm.style.color='var(--bl)';
-              tm.textContent=(t.ps+(t.pe?'–'+t.pe:''))+' → '+(t.as+(t.ae?'–'+t.ae:''));
-            } else {
-              tm.style.color='var(--ink-m)';
-              tm.textContent=t.as+(t.ae?'–'+t.ae:'');
-            }
-            mainRow.insertBefore(tm,mainRow.querySelector('.rtl-dev')||null);
-          } else if(t.ps){
-            // No actual time yet — show plan time in pending style
-            row.classList.add('has-plan-only');
-            const tm=document.createElement('span');
-            tm.style.cssText='font-family:var(--mo);font-size:9px;color:var(--am);white-space:nowrap;flex-shrink:0;opacity:.8';
-            tm.textContent=t.ps+(t.pe?'–'+t.pe:'');
-            mainRow.appendChild(tm);
-          }
-        }
-        row.appendChild(mainRow);
-        // show note as sub-line
-        if(t.note){
-          const noteEl=document.createElement('div');
-          noteEl.className='rtl-note'+(t.isExtra?' extra-note':'');
-          noteEl.textContent='↳ '+t.note;
-          row.appendChild(noteEl);
-        }
+        const txt=document.createElement('span');
+        txt.className='rtl-txt'+(t.done?' done-txt':'');
+        txt.textContent=t.text;
+        mr.appendChild(txt);
+
+        // Show actual time only
+        const timeStr=t.as+(t.ae?'–'+t.ae:'');
+        const tm=document.createElement('span');
+        tm.style.cssText='font-family:var(--mo);font-size:9px;color:'+(t.isExtra?'#6b3fa0':'var(--ink-m)')+';white-space:nowrap;flex-shrink:0';
+        tm.textContent=timeStr;
+        mr.appendChild(tm);
+
+        row.appendChild(mr);
       });
     }
     bars.appendChild(row);
