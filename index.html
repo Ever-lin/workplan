@@ -637,6 +637,32 @@ function syncTimelineFromTodos(){
       delete b.dataset.todoSynced;
     }
   });
+
+  // Build a set of hours covered by todos, so manual timeline entries don't bleed in
+  const todoCoveredHours=new Set();
+  document.querySelectorAll('.tcard').forEach(c=>{
+    const ps=c.querySelector('.eps')?.value||'';
+    const txt=c.querySelector('.ttxt')?.value||'';
+    if(ps&&txt) todoCoveredHours.add(ps.split(':')[0].padStart(2,'0')+':00');
+  });
+  // Clear any manual timeline entries whose hour is now covered by a todo
+  // (cleans up stale data from old saves)
+  todoCoveredHours.forEach(hour=>{
+    const blk=document.querySelector(`.tblk[data-hour="${hour}"]`);
+    if(!blk)return;
+    const ti=blk.querySelector('.tblk-txt');
+    if(ti&&ti.value&&!blk.dataset.todoSynced){
+      // Only clear if the text doesn't match any manual note (heuristic: if a todo's text matches, it's stale)
+      const matchesTodo=[...document.querySelectorAll('.tcard')].some(c=>{
+        const ps=c.querySelector('.eps')?.value||'';
+        const txt=c.querySelector('.ttxt')?.value||'';
+        const h=ps.split(':')[0].padStart(2,'0')+':00';
+        return h===hour&&txt&&ti.value.startsWith(txt);
+      });
+      if(matchesTodo){ti.value='';blk.classList.remove('has-plan','is-done');}
+    }
+  });
+
   document.querySelectorAll('.tcard').forEach(c=>{
     const ps=c.querySelector('.eps')?.value||'';
     const pe=c.querySelector('.epe')?.value||'';
@@ -650,19 +676,21 @@ function syncTimelineFromTodos(){
     const timeLabel=ps+(pe?'–'+pe:'');
 
     if(!ti.value){
-      // Empty slot — fill with pure text, add time as sibling tag
+      // Empty slot — fill with pure text, add time tag in the main row
       ti.value=txt;
+      if(isDone)ti.classList.add('struck');
       blk.classList.add('has-plan');blk.dataset.todoSynced='1';
-      if(isDone){blk.classList.add('is-done');ti.classList.add('struck');}
+      if(isDone)blk.classList.add('is-done');
       const tag=document.createElement('span');tag.className='tblk-timetag';
       tag.style.cssText='font-family:var(--mo);font-size:9px;color:var(--ink-m);white-space:nowrap;flex-shrink:0;margin-left:4px';
       tag.textContent=timeLabel;
       blk.querySelector('.tblk-main').appendChild(tag);
     } else {
-      // Slot occupied — extra sub-line with text + time, same plain style
+      // Slot occupied — extra sub-line with text + time
       const extra=document.createElement('div');
       extra.className='tblk-note tblk-extra';
-      extra.style.cssText='font-size:11px;color:var(--ink);padding-left:2px;border-top:1px dotted var(--paper-l);margin-top:2px;padding-top:2px;display:flex;justify-content:space-between'+(isDone?';text-decoration:line-through;color:var(--ink-m)':'');
+      const doneStyle=isDone?';text-decoration:line-through;color:var(--ink-m)':'';
+      extra.style.cssText='font-size:11px;color:var(--ink);padding-left:2px;border-top:1px dotted var(--paper-l);margin-top:2px;padding-top:2px;display:flex;justify-content:space-between'+doneStyle;
       extra.innerHTML=`<span>${txt}</span><span style="font-family:var(--mo);font-size:9px;color:var(--ink-m);flex-shrink:0;margin-left:4px">${timeLabel}</span>`;
       blk.appendChild(extra);
       blk.classList.add('has-plan');
@@ -675,22 +703,23 @@ function renderRightTimeline(){
   if(!ax||!bars)return;
   ax.innerHTML='';bars.innerHTML='';
 
-  // Collect all items: todos and otasks
+  // Collect todos with actual times; also collect plan times for deviation calc
   const items=[];
   document.querySelectorAll('.tcard').forEach(c=>{
     const text=c.querySelector('.ttxt')?.value||'';
+    const ps=c.querySelector('.eps')?.value||'';
+    const pe=c.querySelector('.epe')?.value||'';
     const as=c.querySelector('.eas')?.value||'';
     const ae=c.querySelector('.eae')?.value||'';
     const done=c.classList.contains('done');
-    const status=c.querySelector('.estat')?.dataset.status||'pending';
-    if(text&&as) items.push({text,as,ae,done,status,isExtra:false});
+    if(text&&as) items.push({text,ps,pe,as,ae,done,isExtra:false});
   });
   document.querySelectorAll('.otask').forEach(el=>{
     const text=el.querySelector('.otask-txt')?.value||'';
     const as=el.querySelector('.oas')?.value||'';
     const ae=el.querySelector('.oae')?.value||'';
     const done=el.classList.contains('ck');
-    if(text&&as) items.push({text,as,ae,done,status:'',isExtra:true});
+    if(text&&as) items.push({text,ps:'',pe:'',as,ae,done,isExtra:true});
   });
 
   function parseHour(s){return s?parseInt(s.split(':')[0],10):-1;}
@@ -708,19 +737,18 @@ function renderRightTimeline(){
       const dot=document.createElement('div');dot.className='bar-empty';dot.textContent='·';
       mr.appendChild(dot);row.appendChild(mr);
     } else {
-      // Multiple items stack as sub-rows inside one row
+      // Determine row class from first item (mixed types: prefer has-actual)
+      const hasNonExtra=relevant.some(t=>!t.isExtra);
+      const allExtra=relevant.every(t=>t.isExtra);
+      if(allExtra) row.classList.add('is-extra');
+      else row.classList.add('has-actual');
+
       relevant.forEach((t,idx)=>{
         const mr=document.createElement('div');mr.className='rtl-row-main';
-        if(idx>0){
-          // separator between stacked items
-          mr.style.cssText='border-top:1px dotted var(--paper-l);margin-top:3px;padding-top:3px';
-        }
+        if(idx>0) mr.style.cssText='border-top:1px dotted var(--paper-l);margin-top:3px;padding-top:3px';
 
         if(t.isExtra){
-          row.classList.add('is-extra');
           const tag=document.createElement('span');tag.className='rtl-extra-tag';tag.textContent='临时';mr.appendChild(tag);
-        } else {
-          row.classList.add('has-actual');
         }
 
         const txt=document.createElement('span');
@@ -728,12 +756,27 @@ function renderRightTimeline(){
         txt.textContent=t.text;
         mr.appendChild(txt);
 
-        // Show actual time only
+        // Actual time
         const timeStr=t.as+(t.ae?'–'+t.ae:'');
         const tm=document.createElement('span');
-        tm.style.cssText='font-family:var(--mo);font-size:9px;color:'+(t.isExtra?'#6b3fa0':'var(--ink-m)')+';white-space:nowrap;flex-shrink:0';
+        tm.style.cssText='font-family:var(--mo);font-size:9px;color:'+(t.isExtra?'#6b3fa0':'var(--ink-m)')+';white-space:nowrap;flex-shrink:0;margin-left:4px';
         tm.textContent=timeStr;
         mr.appendChild(tm);
+
+        // Deviation badge (only for non-extra with both plan and actual end)
+        if(!t.isExtra&&t.ps&&t.pe&&t.as&&t.ae){
+          const planDur=timeToMin(t.pe)-timeToMin(t.ps);
+          const actualDur=timeToMin(t.ae)-timeToMin(t.as);
+          const diff=actualDur-planDur;
+          if(Math.abs(diff)>=5){
+            const dev=document.createElement('span');dev.className='rtl-dev';
+            dev.textContent=(diff>0?'+':'')+diff+'分';
+            dev.title=`计划${planDur}分 → 实际${actualDur}分`;
+            mr.appendChild(dev);
+            row.classList.remove('has-actual');
+            row.classList.add('has-actual','has-deviation');
+          }
+        }
 
         row.appendChild(mr);
       });
