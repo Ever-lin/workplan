@@ -477,6 +477,14 @@ body{font-family:var(--ss);background:var(--paper);color:var(--ink);min-height:1
     </div>
     <label><input type="radio" name="rtype" value="monthly" onchange="onRTypeChange()"> 每月重复（同日）</label>
     <div class="rsel-info" id="rsel-info"></div>
+    <div id="rstop-wrap" style="display:none;margin-top:10px;padding-top:10px;border-top:1px solid var(--bdr)">
+      <div style="font-size:11px;color:var(--ink-m);margin-bottom:6px">停止重复（从哪天起不再出现）</div>
+      <label style="font-size:12px;display:flex;align-items:center;gap:6px"><input type="checkbox" id="rstop-enable" onchange="onRStopChange()"> 设置停止日期</label>
+      <div id="rstop-date-wrap" style="display:none;margin-top:6px">
+        <input type="date" id="rstop-date" style="border:1px solid var(--bdr);border-radius:2px;padding:4px 7px;font-family:var(--ss);font-size:12px;color:var(--ink);background:var(--paper-w);width:100%">
+        <div style="font-size:10px;color:var(--am);margin-top:3px">从该日期起，此待办不再自动出现</div>
+      </div>
+    </div>
     <div class="rmodal-btns">
       <button onclick="closeRepeatModal()">取消</button>
       <button class="primary" onclick="saveRepeat()">确认</button>
@@ -640,6 +648,11 @@ function renderDaily(){
 }
 
 function injectRepeatTodos(dayData){
+  // Only inject repeating todos for today and future dates, not past dates
+  const today=fmt(new Date());
+  const viewing=fmt(currentDate);
+  if(viewing<today)return;
+
   const dow=currentDate.getDay();
   const dayNum=currentDate.getDate();
   let tmpl=[];try{tmpl=JSON.parse(localStorage.getItem('repeat_templates')||'[]')}catch{}
@@ -648,6 +661,8 @@ function injectRepeatTodos(dayData){
   const existingTplIds=new Set((dayData.todos||[]).map(t=>t.templateId).filter(Boolean));
   tmpl.forEach(t=>{
     const r=t.repeat;if(!r||r.type==='none')return;
+    // Check if repeat is stopped for this template (stopDate = YYYY-MM-DD)
+    if(r.stopDate&&viewing>=r.stopDate)return;
     let match=false;
     if(r.type==='daily')match=true;
     else if(r.type==='weekly'&&r.days&&r.days.includes(dow))match=true;
@@ -1046,13 +1061,26 @@ function openRepeatModal(id){
     document.querySelectorAll('#rweek-days input[type=checkbox]').forEach(cb=>{if(repeat.days.includes(parseInt(cb.value)))cb.checked=true});
   }
   onRTypeChange();
+  // restore stop date
+  document.getElementById('rstop-enable').checked=!!(repeat?.stopDate);
+  document.getElementById('rstop-date-wrap').style.display=repeat?.stopDate?'block':'none';
+  document.getElementById('rstop-date').value=repeat?.stopDate||'';
   document.getElementById('rmodal-bg').style.display='flex';
 }
 function closeRepeatModal(){document.getElementById('rmodal-bg').style.display='none';repeatModalTargetId=null}
 function onRTypeChange(){
   const v=document.querySelector('input[name=rtype]:checked')?.value||'none';
   document.getElementById('rweek-days').style.display=v==='weekly'?'flex':'none';
+  document.getElementById('rstop-wrap').style.display=v!=='none'?'block':'none';
   updateRSelInfo(v);
+}
+function onRStopChange(){
+  const en=document.getElementById('rstop-enable').checked;
+  document.getElementById('rstop-date-wrap').style.display=en?'block':'none';
+  if(en&&!document.getElementById('rstop-date').value){
+    const tm=new Date();tm.setDate(tm.getDate()+1);
+    document.getElementById('rstop-date').value=fmt(tm);
+  }
 }
 function updateRSelInfo(v){
   const el=document.getElementById('rsel-info');
@@ -1071,6 +1099,10 @@ function saveRepeat(){
       repeat.days=days;
     }
     if(rtype==='monthly'){repeat.dayOfMonth=currentDate.getDate()}
+    // save stop date if set
+    const stopEn=document.getElementById('rstop-enable').checked;
+    const stopDate=document.getElementById('rstop-date').value;
+    if(stopEn&&stopDate)repeat.stopDate=stopDate;
   }
   // save to card
   if(repeatModalTargetId){
@@ -1119,6 +1151,27 @@ function changeMonth(d){
 function changeYear(d){currentYear+=d;renderYearly()}
 
 // ── MONTHLY ──
+// Returns repeat todos that would be injected for a given date (without saving)
+function getVirtualRepeatTodos(date,existingData){
+  const today=fmt(new Date());
+  const ds=fmt(date);
+  if(ds<today)return[]; // only future/today
+  let tmpl=[];try{tmpl=JSON.parse(localStorage.getItem('repeat_templates')||'[]')}catch{}
+  if(!tmpl.length)return[];
+  const existingTplIds=new Set((existingData?.todos||[]).map(t=>t.templateId).filter(Boolean));
+  const dow=date.getDay(),dayNum=date.getDate();
+  const result=[];
+  tmpl.forEach(t=>{
+    const r=t.repeat;if(!r||r.type==='none')return;
+    if(r.stopDate&&ds>=r.stopDate)return;
+    let match=false;
+    if(r.type==='daily')match=true;
+    else if(r.type==='weekly'&&r.days&&r.days.includes(dow))match=true;
+    else if(r.type==='monthly'&&r.dayOfMonth===dayNum)match=true;
+    if(match&&!existingTplIds.has(t.id))result.push({...t,done:false});
+  });
+  return result;
+}
 function renderMonthly(){
   const y=currentYear,m=currentMonth;
   document.getElementById('m-main').textContent=`${y} 年 ${MCN[m]}`;
@@ -1131,10 +1184,19 @@ function renderMonthly(){
   for(let i=0;i<sd;i++){const c=document.createElement('div');c.className='mc om';c.innerHTML=`<div class="mcd">&nbsp;</div>`;g.appendChild(c)}
   for(let d=1;d<=dim;d++){
     const date=new Date(y,m,d),ds=fmt(date),data=load(date);
+    // compute virtual repeat todos for this day (without modifying storage)
+    const virtualTodos=getVirtualRepeatTodos(date,data);
     const c=document.createElement('div');c.className='mc'+(ds===ts?' td':'');
     c.onclick=()=>{currentDate=date;document.querySelectorAll('.nb')[0].click()};
     let dots='',comp='';
-    if(data){rd++;const todos=data.todos||[];const dn=todos.filter(t=>t.done).length;tt+=todos.length;td+=dn;const r=todos.length?Math.round(dn/todos.length*100):0;todos.forEach(t=>{dots+=`<div class="mdot ${t.done?'dn':''}"></div>`});comp=todos.length?`${r}%`:''}
+    const allTodos=[...(data?.todos||[]),...virtualTodos];
+    if(data||virtualTodos.length){
+      if(data)rd++;
+      const dn=allTodos.filter(t=>t.done).length;tt+=allTodos.length;td+=dn;
+      const r=allTodos.length?Math.round(dn/allTodos.length*100):0;
+      allTodos.forEach(t=>{dots+=`<div class="mdot ${t.done?'dn':''}"></div>`});
+      comp=allTodos.length?`${r}%`:'';
+    }
     c.innerHTML=`<div class="mcd">${d}</div><div class="mdots">${dots}</div>${comp?`<div class="mcomp">${comp}</div>`:''}`;
     g.appendChild(c);
   }
