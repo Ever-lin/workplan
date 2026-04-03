@@ -505,6 +505,7 @@ function gather(){
   });
   const timeline={};
   document.querySelectorAll('.tblk').forEach(el=>{
+    if(el.dataset.todoSynced)return; // skip todo-synced blocks, only save manual entries
     const v=el.querySelector('.tblk-txt')?.value||'';
     if(v)timeline[el.dataset.hour]={text:v,done:el.classList.contains('is-done')};
   });
@@ -622,13 +623,20 @@ function renderTL(){
   });
 }
 
-// sync time blocks from todo plan times and completion state
+  // sync time blocks from todo plan times and completion state
 function syncTimelineFromTodos(){
-  // reset all is-done first, remove note lines
+  // reset all is-done first, remove note lines, clear todo-synced blocks
   document.querySelectorAll('.tblk').forEach(b=>{
     b.classList.remove('is-done');
     b.querySelector('.tblk-txt')?.classList.remove('struck');
-    b.querySelectorAll('.tblk-note').forEach(n=>n.remove());
+    b.querySelectorAll('.tblk-note,.tblk-extra').forEach(n=>n.remove());
+    // Clear todo-synced entries (not manually typed)
+    if(b.dataset.todoSynced){
+      const ti=b.querySelector('.tblk-txt');
+      if(ti){ti.value=''}
+      b.classList.remove('has-plan');
+      delete b.dataset.todoSynced;
+    }
   });
   document.querySelectorAll('.tcard').forEach(c=>{
     const ps=c.querySelector('.eps')?.value||'';
@@ -638,25 +646,36 @@ function syncTimelineFromTodos(){
     const blk=document.querySelector(`.tblk[data-hour="${hour}"]`);
     if(!blk)return;
     const ti=blk.querySelector('.tblk-txt');
-    // Fill block if empty
-    if(!ti.value){ti.value=txt;blk.classList.add('has-plan');}
-    // Sync done state: match by text content
     const isDone=c.classList.contains('done');
-    if(isDone && ti.value===txt){
-      blk.classList.add('is-done');
-      ti.classList.add('struck');
-    }
-    // Show note as sub-line
     const note=c.querySelector('.enote')?.value||'';
-    if(note&&ti.value===txt){
-      let noteEl=blk.querySelector('.tblk-note');
-      if(!noteEl){noteEl=document.createElement('div');noteEl.className='tblk-note';blk.appendChild(noteEl)}
-      noteEl.textContent='↳ '+note;
+    // Fill block if empty (mark as todo-synced so gather() can skip it)
+    if(!ti.value){
+      ti.value=txt;blk.classList.add('has-plan');blk.dataset.todoSynced='1';
+      if(isDone){blk.classList.add('is-done');ti.classList.add('struck');}
+      if(note){
+        let noteEl=blk.querySelector('.tblk-note');
+        if(!noteEl){noteEl=document.createElement('div');noteEl.className='tblk-note';blk.appendChild(noteEl)}
+        noteEl.textContent='↳ '+note;
+      }
+    } else if(ti.value!==txt){
+      // Another todo at same hour — append as extra sub-line
+      const extra=document.createElement('div');
+      extra.className='tblk-note tblk-extra';
+      extra.style.cssText='color:var(--bl);font-size:9.5px;padding-left:2px;border-top:1px dotted var(--paper-l);margin-top:2px;padding-top:2px';
+      extra.textContent=(isDone?'✓ ':'○ ')+(ps.includes(':')&&ps.split(':')[1]!=='00'?ps+' ':'')+txt;
+      blk.appendChild(extra);
+      blk.classList.add('has-plan');
+    } else {
+      // Same text already in block (manually typed or synced)
+      if(isDone){blk.classList.add('is-done');ti.classList.add('struck');}
+      if(note&&!blk.querySelector('.tblk-note')){
+        const noteEl=document.createElement('div');noteEl.className='tblk-note';blk.appendChild(noteEl);
+        noteEl.textContent='↳ '+note;
+      }
     }
   });
 }
 
-// ── RIGHT TIMELINE ──
 function renderRightTimeline(){
   const ax=document.getElementById('rtl-axis'),bars=document.getElementById('rtl-bars');
   if(!ax||!bars)return;
@@ -682,12 +701,19 @@ function renderRightTimeline(){
     if(text&&as){todos.push({text,ps:'',pe:'',as,ae,note,status:'',done:el.classList.contains('ck'),isExtra:true})}
   });
 
+  // Helper: parse hour from time string like "9:30" or "09:30" -> 9
+  function parseHour(s){if(!s)return-1;return parseInt(s.split(':')[0]);}
+
   HOURS.forEach(h=>{
     const s=document.createElement('div');s.className='rtl-slot';s.innerHTML=`<span class="rtl-lbl">${h}</span>`;ax.appendChild(s);
     const row=document.createElement('div');row.className='rtl-row';
     const hNum=parseInt(h);
 
-    const relevant=todos.filter(t=>t.as&&parseInt(t.as)===hNum);
+    // Match by actual-start hour; fall back to plan-start hour if no actual time
+    const relevant=todos.filter(t=>{
+      if(t.as)return parseHour(t.as)===hNum;
+      return false; // only show in right timeline if there's an actual time
+    });
 
     if(relevant.length===0){
       const mainRow=document.createElement('div');mainRow.className='rtl-row-main';
@@ -700,17 +726,17 @@ function renderRightTimeline(){
           row.classList.add('is-extra');
           const tag=document.createElement('span');tag.className='rtl-extra-tag';tag.textContent='临时';mainRow.appendChild(tag);
           const txt=document.createElement('span');txt.className='rtl-txt'+(t.done?' done-txt':'');txt.textContent=t.text||'(未命名)';mainRow.appendChild(txt);
-          if(t.as&&t.ae){
+          if(t.as){
             const tm=document.createElement('span');
             tm.style.cssText='font-family:var(--mo);font-size:9px;color:#6b3fa0;white-space:nowrap;flex-shrink:0';
-            tm.textContent=t.as+'–'+t.ae;mainRow.appendChild(tm);
+            tm.textContent=t.as+(t.ae?'–'+t.ae:'');mainRow.appendChild(tm);
           }
         } else {
           const txt=document.createElement('span');
           txt.className='rtl-txt'+(t.done?' done-txt':'');
           txt.textContent=t.text||'(未命名)';
           mainRow.appendChild(txt);
-          if(t.as&&t.ae){
+          if(t.as){
             const actualDur=timeToMin(t.ae)-timeToMin(t.as);
             if(t.ps&&t.pe){
               const planDur=timeToMin(t.pe)-timeToMin(t.ps);
@@ -725,7 +751,13 @@ function renderRightTimeline(){
             } else {row.classList.add('has-actual')}
             const tm=document.createElement('span');
             tm.style.cssText='font-family:var(--mo);font-size:9px;color:var(--ink-m);white-space:nowrap;flex-shrink:0';
-            tm.textContent=t.as+'–'+t.ae;
+            // Show plan time if available for comparison
+            if(t.ps){
+              tm.textContent=(t.ps+(t.pe?'→'+t.pe:''))+' 实：'+t.as+(t.ae?'–'+t.ae:'');
+              tm.style.color='var(--bl)';
+            } else {
+              tm.textContent=t.as+(t.ae?'–'+t.ae:'');
+            }
             mainRow.insertBefore(tm,mainRow.querySelector('.rtl-dev')||null);
           }
         }
