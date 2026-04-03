@@ -863,7 +863,17 @@ function moveTd(btn,dir){
   if(!tgt)return;dir===-1?list.insertBefore(c,tgt):list.insertBefore(tgt,c);
   reindex();saveDayData();alignTopSections();
 }
-function removeTd(btn){btn.closest('.tcard').remove();reindex();saveDayData();updateStats();renderRightTimeline();alignTopSections()}
+function removeTd(btn){
+  const c=btn.closest('.tcard');
+  const ps=c.querySelector('.eps')?.value||'';
+  const txt=c.querySelector('.ttxt')?.value||'';
+  if(ps&&txt){
+    const hour=ps.split(':')[0].padStart(2,'0')+':00';
+    const blk=document.querySelector(`.tblk[data-hour="${hour}"]`);
+    if(blk){const ti=blk.querySelector('.tblk-txt');if(ti&&ti.value===txt){ti.value='';blk.classList.remove('has-plan','is-done');ti.classList.remove('struck');blk.querySelectorAll('.tblk-note').forEach(n=>n.remove())}}
+  }
+  c.remove();reindex();saveDayData();updateStats();renderRightTimeline();syncTimelineFromTodos();alignTopSections();
+}
 function reindex(){
   document.querySelectorAll('.tcard').forEach((c,i)=>{
     c.dataset.priority=i+1;const b=c.querySelector('.tpri');
@@ -946,18 +956,18 @@ function moveOtaskToNextDay(div){
   const key='plan_'+fmt(tomorrow);
   let data={};try{const r=localStorage.getItem(key);if(r)data=JSON.parse(r)}catch{}
   if(!data.otasks)data.otasks=[];
-  // avoid duplicates
   if(!data.otasks.some(o=>o.text===text)){
     data.otasks.push({text,done:false,note,actualStart:'',actualEnd:'',execOpen:false});
     localStorage.setItem(key,JSON.stringify(data));
-    // visual feedback: flash the row
-    div.style.transition='opacity .3s';div.style.opacity='0.4';
-    setTimeout(()=>{div.style.opacity='';},300);
-    // show a brief toast
-    const toast=document.createElement('div');
-    toast.style.cssText='position:fixed;bottom:44px;right:18px;background:var(--am);color:white;font-size:11px;padding:4px 12px;border-radius:2px;z-index:500;font-family:var(--ss);opacity:1;transition:opacity .4s';
-    toast.textContent='已挪至 '+(tomorrow.getMonth()+1)+'月'+tomorrow.getDate()+'日';
-    document.body.appendChild(toast);setTimeout(()=>{toast.style.opacity='0';setTimeout(()=>toast.remove(),400)},1600);
+    // visual: strikethrough text + inline moved label, disable button
+    const inp=div.querySelector('.otask-txt');
+    if(inp){inp.style.textDecoration='line-through';inp.style.color='var(--ink-m)'}
+    const mv=div.querySelector('.otask-mv');
+    if(mv){
+      mv.textContent='→'+(tomorrow.getMonth()+1)+'/'+(tomorrow.getDate());
+      mv.style.color='var(--am)';mv.style.borderColor='var(--am)';mv.style.background='var(--am-l)';
+      mv.disabled=true;mv.style.cursor='default';
+    }
   } else {
     alert('明天已有相同安排');
   }
@@ -977,13 +987,12 @@ function moveTdToNextDay(btn){
   if(!data.todos.some(t=>t.text===text)){
     data.todos.push({id:'t_'+fmt(tomorrow)+'_'+Math.random().toString(36).slice(2,6),text,planStart:ps,planEnd:pe,note,done:false,execStatus:'pending',execOpen:true,priority:data.todos.length+1});
     localStorage.setItem(key,JSON.stringify(data));
-    // flash feedback
-    c.style.transition='opacity .3s';c.style.opacity='0.4';
-    setTimeout(()=>{c.style.opacity=''},300);
-    const toast=document.createElement('div');
-    toast.style.cssText='position:fixed;bottom:44px;right:18px;background:var(--am);color:white;font-size:11px;padding:4px 12px;border-radius:2px;z-index:500;font-family:var(--ss);opacity:1;transition:opacity .4s';
-    toast.textContent='已挪至 '+(tomorrow.getMonth()+1)+'月'+tomorrow.getDate()+'日';
-    document.body.appendChild(toast);setTimeout(()=>{toast.style.opacity='0';setTimeout(()=>toast.remove(),400)},1600);
+    // visual: strikethrough text + update button label
+    const ta=c.querySelector('.ttxt');
+    if(ta){ta.style.textDecoration='line-through';ta.style.color='var(--ink-m)'}
+    btn.textContent='→'+(tomorrow.getMonth()+1)+'/'+(tomorrow.getDate());
+    btn.style.color='var(--am)';btn.style.borderColor='var(--am)';btn.style.background='var(--am-l)';
+    btn.disabled=true;btn.style.cursor='default';
   } else {
     alert('明天已有相同待办');
   }
