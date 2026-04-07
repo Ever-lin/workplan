@@ -53,12 +53,64 @@ body{font-family:var(--ss);background:var(--paper);color:var(--ink);min-height:1
 .sl{font-size:11px;color:var(--ink-m);letter-spacing:.4px}
 .sc.a .sv{color:var(--ac)}.sc.b .sv{color:var(--bl)}.sc.g .sv{color:var(--gr)}
 
-/* ── MAIN GRID ── */
+/* ── MAIN LAYOUT ── */
 .pgrid{display:grid;grid-template-columns:1fr 1fr;background:white;border:1.5px solid var(--bdr);border-radius:2px;overflow:hidden;box-shadow:0 2px 10px var(--shd);position:relative}
 .pgrid::after{content:'';position:absolute;top:0;bottom:0;left:50%;width:1px;background:repeating-linear-gradient(to bottom,var(--bdr) 0,var(--bdr) 4px,transparent 4px,transparent 8px);z-index:10;pointer-events:none}
 .pl{padding:16px 14px 16px 16px;border-right:1px solid var(--bdr);display:flex;flex-direction:column;gap:12px;background:var(--paper)}
 .pr{padding:16px 16px 16px 14px;display:flex;flex-direction:column;gap:12px;background:white}
 .ptitle{font-family:var(--sf);font-size:11px;font-weight:600;color:var(--ink-m);letter-spacing:2px;padding-bottom:6px;border-bottom:1px solid var(--paper-l);margin-bottom:0}
+
+/* ── UNIFIED TIMELINE ── */
+.utl-wrap{display:flex;overflow-y:auto;flex:1}
+.utl-ax{display:flex;flex-direction:column;width:42px;flex-shrink:0;padding-right:8px;position:relative}
+.utl-ax::after{content:'';position:absolute;right:0;top:0;bottom:0;width:1.5px;background:var(--ac);opacity:.3}
+.utl-slot{min-height:52px;display:flex;align-items:flex-start;padding-top:6px}
+.utl-lbl{font-family:var(--mo);font-size:9.5px;color:var(--ink-m);white-space:nowrap;position:relative}
+.utl-lbl::after{content:'';position:absolute;right:-12px;top:5px;width:8px;height:1px;background:var(--ac);opacity:.3}
+.utl-rows{flex:1;display:flex;flex-direction:column}
+/* each hour row */
+.utl-row{min-height:52px;display:flex;flex-direction:column;justify-content:center;padding:5px 7px;border-bottom:1px dashed var(--paper-l);position:relative;transition:background var(--t);gap:3px}
+.utl-row:hover{background:var(--paper-w)}
+/* plan bar */
+.utl-plan{display:flex;align-items:center;gap:5px;min-height:18px;position:relative}
+.utl-plan-bar{position:absolute;left:0;top:0;bottom:0;background:var(--am);opacity:.18;border-radius:2px;pointer-events:none}
+.utl-plan-dot{width:7px;height:7px;border-radius:50%;background:var(--am);flex-shrink:0;opacity:.8}
+.utl-plan-txt{font-size:11.5px;color:var(--ink);font-family:var(--ss);flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.utl-plan-txt.is-done{text-decoration:line-through;color:var(--ink-m)}
+.utl-plan-time{font-family:var(--mo);font-size:9px;color:var(--am);white-space:nowrap;flex-shrink:0;font-weight:500}
+/* actual bar */
+.utl-actual{display:flex;align-items:center;gap:5px;min-height:16px;position:relative;padding-left:2px}
+.utl-actual-dot{width:7px;height:7px;border-radius:2px;background:var(--bl);flex-shrink:0}
+.utl-actual-dot.is-done{background:var(--gr)}
+.utl-actual-dot.is-partial{background:var(--am)}
+.utl-actual-dot.is-deviation{background:var(--ac)}
+.utl-actual-dot.is-extra{background:#6b3fa0}
+.utl-actual-time{font-family:var(--mo);font-size:9.5px;color:var(--bl);font-weight:500;white-space:nowrap;flex-shrink:0}
+.utl-actual-time.is-done{color:var(--gr)}
+.utl-actual-time.is-partial{color:var(--am)}
+.utl-actual-time.is-deviation{color:var(--ac)}
+.utl-actual-time.is-extra{color:#6b3fa0}
+.utl-actual-name{font-size:10.5px;color:var(--ink-m);flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.utl-dev-badge{font-family:var(--mo);font-size:9px;font-weight:700;color:var(--ac);background:var(--ac-p);padding:0px 4px;border-radius:2px;white-space:nowrap;flex-shrink:0}
+/* extra (otask) row */
+.utl-extra{display:flex;align-items:center;gap:5px;min-height:16px}
+.utl-extra-dot{width:7px;height:7px;border-radius:2px;background:#6b3fa0;flex-shrink:0}
+.utl-extra-tag{font-size:8.5px;padding:0 5px;background:#6b3fa0;color:white;border-radius:2px;white-space:nowrap;flex-shrink:0}
+.utl-extra-txt{font-size:10.5px;color:#6b3fa0;flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.utl-extra-time{font-family:var(--mo);font-size:9px;color:#6b3fa0;white-space:nowrap;flex-shrink:0;font-weight:500}
+/* connector line between plan and actual */
+.utl-connector{width:1px;height:100%;background:var(--bdr);margin-left:3px;flex-shrink:0;display:none}
+/* row states */
+.utl-row.has-plan{background:linear-gradient(to right,rgba(139,105,20,.04),transparent)}
+.utl-row.has-plan::before{content:'';position:absolute;left:0;top:6px;bottom:6px;width:3px;background:var(--am);border-radius:2px;opacity:.6}
+.utl-row.is-done{background:linear-gradient(to right,rgba(42,92,63,.06),transparent) !important}
+.utl-row.is-done::before{background:var(--gr) !important;opacity:.8}
+.utl-row.is-deviation{background:linear-gradient(to right,rgba(139,58,58,.06),transparent) !important}
+.utl-row.is-deviation::before{background:var(--ac) !important;opacity:.8}
+.utl-row.has-extra{background:linear-gradient(to right,rgba(107,63,160,.05),transparent)}
+.utl-row.has-extra.no-plan::before{content:'';position:absolute;left:0;top:6px;bottom:6px;width:3px;background:#6b3fa0;border-radius:2px;opacity:.7}
+/* note line */
+.utl-note{font-size:9.5px;color:var(--ink-m);padding-left:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-family:var(--ss)}
 
 /* ── COMBO (hour dropdown + type) ── */
 .tfields{display:grid;grid-template-columns:1fr 1fr;gap:7px}
@@ -68,72 +120,12 @@ body{font-family:var(--ss);background:var(--paper);color:var(--ink);min-height:1
 .combo input:focus{outline:none;border-color:var(--ac)}
 .combo::after{content:'▾';position:absolute;right:6px;top:50%;transform:translateY(-50%);font-size:10px;color:var(--ink-m);pointer-events:none}
 
-/* ── Divider line separating top area from timelines ── */
-/* Both dividers sit at the same absolute top, achieved via JS equalizing top-section heights */
+/* ── PANEL DIVIDER ── */
 .panel-divider{height:1px;background:var(--bdr);flex-shrink:0}
-.twrap{display:flex;overflow-y:auto;flex:1}
-.tax{display:flex;flex-direction:column;width:40px;flex-shrink:0;padding-right:7px;position:relative}
-.tax::after{content:'';position:absolute;right:0;top:0;bottom:0;width:1.5px;background:var(--ac);opacity:.35}
-.tslot{min-height:48px;display:flex;align-items:flex-start;padding-top:6px}
-.tlbl{font-family:var(--mo);font-size:9.5px;color:var(--ink-m);white-space:nowrap;position:relative}
-.tlbl::after{content:'';position:absolute;right:-11px;top:5px;width:7px;height:1px;background:var(--ac);opacity:.35}
-.tevs{flex:1;display:flex;flex-direction:column}
-/* each time block */
-.tblk{min-height:48px;display:flex;flex-direction:column;justify-content:center;gap:1px;padding:4px 6px;border-bottom:1px dashed var(--paper-l);position:relative;transition:background var(--t)}
-.tblk:hover{background:var(--paper-w)}
-.tblk.has-plan{background:var(--am-l)}
-.tblk.has-plan::before{content:'';position:absolute;left:0;top:4px;bottom:4px;width:3px;background:var(--am);border-radius:2px}
-.tblk.is-done{background:var(--gr-l) !important}
-.tblk.is-done::before{background:var(--gr) !important}
-.tblk-main{display:flex;align-items:center;gap:5px;min-width:0}
-.tblk-txt{flex:1;border:none;background:transparent;font-family:var(--ss);font-size:11.5px;color:var(--ink);padding:0;min-width:0}
-.tblk-txt:focus{outline:none}
-.tblk-txt::placeholder{color:var(--ink-m);font-size:10px}
-.tblk-txt.struck{text-decoration:line-through;color:var(--ink-m)}
-.tblk-note{font-size:9.5px;color:var(--ink-m);font-family:var(--ss);padding-left:2px;line-height:1.4;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
 
-/* ── RIGHT EXECUTION CARDS ── */
-.exec-wrap{overflow-y:auto;flex:1;display:flex;flex-direction:column;gap:0}
-.exec-empty{font-size:11px;color:var(--ink-m);text-align:center;padding:28px 0;opacity:.5;font-family:var(--mo)}
-/* time group header */
-.exec-group{margin-bottom:2px}
-.exec-group-hdr{display:flex;align-items:center;gap:6px;padding:4px 8px 2px;position:sticky;top:0;background:white;z-index:2}
-.exec-group-time{font-family:var(--mo);font-size:11px;font-weight:600;color:var(--bl);white-space:nowrap}
-.exec-group-line{flex:1;height:1px;background:var(--bl-l)}
-/* card */
-.exec-card{display:flex;align-items:stretch;margin:2px 0;border-radius:3px;overflow:hidden;border:1px solid transparent;transition:border-color var(--t)}
-.exec-card:hover{border-color:var(--bdr)}
-.exec-card-stripe{width:4px;flex-shrink:0}
-.exec-card-body{flex:1;padding:6px 10px;display:flex;flex-direction:column;gap:2px;min-width:0}
-.exec-card-top{display:flex;align-items:center;gap:6px;min-width:0}
-.exec-card-tag{font-size:9px;padding:1px 6px;border-radius:2px;white-space:nowrap;flex-shrink:0;font-family:var(--ss);font-weight:500}
-.exec-card-tag.tag-extra{background:#6b3fa0;color:white}
-.exec-card-tag.tag-done{background:#c8e6d0;color:var(--gr)}
-.exec-card-tag.tag-partial{background:#fde8c0;color:var(--am)}
-.exec-card-tag.tag-deviation{background:var(--ac-p);color:var(--ac)}
-.exec-card-name{font-family:var(--ss);font-size:12px;color:var(--ink);flex:1;min-width:0;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
-.exec-card-name.is-done{text-decoration:line-through;color:var(--ink-m)}
-.exec-card-times{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
-.exec-time-actual{font-family:var(--mo);font-size:10px;font-weight:500;color:var(--bl);background:var(--bl-l);padding:1px 6px;border-radius:2px;white-space:nowrap}
-.exec-time-actual.is-extra{color:#6b3fa0;background:#ede5f8}
-.exec-time-plan{font-family:var(--mo);font-size:10px;color:var(--ink-m);white-space:nowrap}
-.exec-time-dev{font-family:var(--mo);font-size:10px;font-weight:600;color:var(--ac);white-space:nowrap}
-.exec-card-note{font-size:10px;color:var(--ink-m);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-/* stripe colors */
-.exec-card.type-done .exec-card-stripe{background:var(--gr)}
-.exec-card.type-partial .exec-card-stripe{background:var(--am)}
-.exec-card.type-deviation .exec-card-stripe{background:var(--ac)}
-.exec-card.type-extra .exec-card-stripe{background:#6b3fa0}
-.exec-card.type-actual .exec-card-stripe{background:var(--bl)}
-/* background tints */
-.exec-card.type-done{background:var(--gr-l)}
-.exec-card.type-partial{background:var(--am-l)}
-.exec-card.type-deviation{background:#fdf0f0}
-.exec-card.type-extra{background:#ede5f8}
-.exec-card.type-actual{background:var(--bl-l)}
 /* legend */
 .exec-legend{display:flex;gap:10px;align-items:center;padding:4px 0 2px;font-size:10px;color:var(--ink-m);flex-wrap:wrap}
-.leg-dot{width:10px;height:8px;border-radius:2px;display:inline-block;margin-right:3px}
+.leg-dot{width:8px;height:8px;border-radius:50%;display:inline-block;margin-right:3px}
 
 /* ── TODO CARDS ── */
 .tlist{display:flex;flex-direction:column;gap:7px}
@@ -202,11 +194,6 @@ body{font-family:var(--ss);background:var(--paper);color:var(--ink);min-height:1
 .oti:focus{outline:none;border-color:#6b3fa0}
 .otnote{font-size:11px;color:var(--ink);border:1px solid var(--bdr);background:white;padding:3px 5px;border-radius:2px;width:100%;resize:none;font-family:var(--ss);min-height:28px;line-height:1.5}
 .otnote:focus{outline:none;border-color:#6b3fa0}
-/* right timeline: extra (otask/临时) rows — distinct purple stripe */
-.rtl-row.is-extra{background:#ede5f8 !important}
-.rtl-row.is-extra::before{content:'';position:absolute;left:0;top:4px;bottom:4px;width:4px;background:#6b3fa0;opacity:1;border-radius:2px}
-.rtl-extra-tag{font-size:9px;padding:1px 6px;background:#6b3fa0;color:white;border-radius:2px;white-space:nowrap;flex-shrink:0;font-family:var(--ss);letter-spacing:.3px}
-
 /* reflection */
 .refbox{border:1px solid #b8c8e8;border-radius:2px;padding:9px 11px;background:var(--bl-l)}
 .reftitle{font-family:var(--sf);font-size:10px;color:var(--bl);margin-bottom:5px;letter-spacing:1px}
@@ -325,67 +312,46 @@ body{font-family:var(--ss);background:var(--paper);color:var(--ink);min-height:1
   </div>
 
   <div class="pgrid">
-    <!-- LEFT PANEL: 待办事项（顶部） + 横线 + 计划时间轴 -->
+    <!-- LEFT PANEL: 待办事项 -->
     <div class="pl" style="display:flex;flex-direction:column;padding:0">
-
-      <!-- 顶部：待办事项 -->
-      <div id="left-top" style="padding:14px 14px 10px 16px">
+      <div style="padding:14px 14px 10px 16px;flex:1;display:flex;flex-direction:column">
         <div class="ptitle" style="margin-bottom:8px">待办事项</div>
         <div class="tlist" id="tlist"></div>
         <div style="margin-top:6px">
           <button class="addbtn" onclick="addTodo()">＋ 添加待办事项</button>
         </div>
-      </div>
-
-      <!-- 横线分隔（与右侧同高，由JS对齐） -->
-      <div class="panel-divider" id="panel-divider-l"></div>
-
-      <!-- 下部：计划时间轴 -->
-      <div style="flex:1;display:flex;flex-direction:column;padding:10px 14px 14px 16px">
-        <div style="font-size:10px;color:var(--ink-m);margin-bottom:5px;letter-spacing:.4px">计划区 · 时间轴</div>
-        <div class="twrap" style="flex:1">
-          <div class="tax" id="tax"></div>
-          <div class="tevs" id="tevs"></div>
-        </div>
-      </div>
-
-    </div>
-
-    <!-- RIGHT PANEL: 其他工作安排（顶部） + 横线 + 执行时间轴 + 复盘 -->
-    <div class="pr" style="display:flex;flex-direction:column;padding:0">
-
-      <!-- 顶部：其他工作安排 -->
-      <div id="right-top" style="padding:14px 16px 10px 14px">
-        <div class="ptitle" style="margin-bottom:8px">其他工作安排</div>
+        <!-- 其他工作安排 -->
+        <div class="ptitle" style="margin-top:14px;margin-bottom:8px">其他工作安排</div>
         <div class="otask-list" id="otask-list"></div>
         <div style="margin-top:5px">
           <button class="addbtn" onclick="addOtask()">＋ 添加其他安排</button>
         </div>
-      </div>
-
-      <!-- 横线分隔（与左侧同高，由JS对齐） -->
-      <div class="panel-divider" id="panel-divider-r"></div>
-
-      <!-- 下部：执行时间轴 + 复盘 -->
-      <div style="flex:1;display:flex;flex-direction:column;padding:10px 16px 14px 14px">
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
-          <div style="font-size:10px;color:var(--ink-m);letter-spacing:.4px">实施区 · 执行记录</div>
-          <div class="exec-legend">
-            <span><span class="leg-dot" style="background:var(--bl)"></span>实际</span>
-            <span><span class="leg-dot" style="background:var(--ac)"></span>偏差</span>
-            <span><span class="leg-dot" style="background:#6b3fa0"></span>临时</span>
-            <span><span class="leg-dot" style="background:var(--gr)"></span>完成</span>
-          </div>
-        </div>
-        <div class="exec-wrap" id="exec-wrap"></div>
-
         <!-- 复盘 -->
-        <div class="refbox" style="margin-top:12px">
+        <div class="refbox" style="margin-top:14px">
           <div class="reftitle">· 今日复盘</div>
           <textarea class="refta" id="reflection" placeholder="今天做到了什么？有什么收获？明天需要改进什么？" oninput="saveDayData()"></textarea>
         </div>
       </div>
+    </div>
 
+    <!-- RIGHT PANEL: 统一时间轴 -->
+    <div class="pr" style="display:flex;flex-direction:column;padding:0">
+      <div style="flex:1;display:flex;flex-direction:column;padding:14px 16px 14px 14px">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+          <div class="ptitle" style="border:none;padding:0;margin:0">时间轴</div>
+          <div class="exec-legend">
+            <span><span class="leg-dot" style="background:var(--am)"></span>计划</span>
+            <span><span class="leg-dot" style="background:var(--bl)"></span>实际</span>
+            <span><span class="leg-dot" style="background:var(--gr)"></span>完成</span>
+            <span><span class="leg-dot" style="background:var(--ac)"></span>偏差</span>
+            <span><span class="leg-dot" style="background:#6b3fa0"></span>临时</span>
+          </div>
+        </div>
+        <div class="utl-wrap" style="flex:1">
+          <div class="utl-ax" id="utl-ax"></div>
+          <div class="utl-rows" id="utl-rows"></div>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -515,12 +481,6 @@ function gather(){
       execOpen:esec?esec.style.display!=='none':true
     });
   });
-  const timeline={};
-  document.querySelectorAll('.tblk').forEach(el=>{
-    if(el.dataset.todoSynced)return; // skip todo-synced blocks, only save manual entries
-    const v=el.querySelector('.tblk-txt')?.value||'';
-    if(v)timeline[el.dataset.hour]={text:v,done:el.classList.contains('is-done')};
-  });
   const otasks=[];
   document.querySelectorAll('.otask').forEach(el=>{
     const v=el.querySelector('.otask-txt')?.value||'';
@@ -530,7 +490,7 @@ function gather(){
   return{
     date:fmt(currentDate),
     reflection:document.getElementById('reflection')?.value||'',
-    todos,timeline,otasks
+    todos,otasks
   };
 }
 function showSaved(){clearTimeout(saveT);const e=document.getElementById('saved');e.classList.add('show');saveT=setTimeout(()=>e.classList.remove('show'),1400)}
@@ -581,7 +541,6 @@ function onYSelDate(){
 // ── DAILY RENDER ──
 function renderDaily(){
   updateDD();
-  renderTL();
   const d=load(currentDate)||{};
 
   document.getElementById('reflection').value=d.reflection||'';
@@ -589,25 +548,11 @@ function renderDaily(){
   const tlist=document.getElementById('tlist');tlist.innerHTML='';
   (d.todos||[]).forEach(t=>buildCard(t));
 
-  // Restore manually-typed timeline entries from saved data
-  if(d.timeline){
-    document.querySelectorAll('.tblk').forEach(el=>{
-      const entry=d.timeline[el.dataset.hour];
-      if(entry){
-        el.querySelector('.tblk-txt').value=entry.text||entry;
-        el.classList.add('has-plan');
-      }
-    });
-  }
-  // Then fill any remaining empty slots from todos and sync done state
-  syncTimelineFromTodos();
-
   const ol=document.getElementById('otask-list');ol.innerHTML='';
   (d.otasks||[]).forEach(o=>addOtask(o));
 
   updateStats();
-  renderRightTimeline();
-  alignTopSections();
+  renderUnifiedTimeline();
 }
 
 function updateDD(){
@@ -620,243 +565,163 @@ function updateDD(){
   buildDayOpts('sel-day',d.getFullYear(),d.getMonth(),d.getDate());
 }
 
-function renderTL(){
-  const ax=document.getElementById('tax'),ev=document.getElementById('tevs');
-  ax.innerHTML='';ev.innerHTML='';
-  HOURS.forEach(h=>{
-    const s=document.createElement('div');s.className='tslot';s.innerHTML=`<span class="tlbl">${h}</span>`;ax.appendChild(s);
-    const b=document.createElement('div');b.className='tblk';b.dataset.hour=h;
-    const mainRow=document.createElement('div');mainRow.className='tblk-main';
-    const inp=document.createElement('input');inp.type='text';inp.className='tblk-txt';inp.placeholder=`${h} 的安排…`;
-    inp.addEventListener('input',()=>{b.classList.toggle('has-plan',inp.value.length>0);saveDayData()});
-    mainRow.appendChild(inp);
-    b.appendChild(mainRow);
-    ev.appendChild(b);
-  });
-}
+// ── UNIFIED TIMELINE ──
+function renderUnifiedTimeline(){
+  const ax=document.getElementById('utl-ax');
+  const rows=document.getElementById('utl-rows');
+  if(!ax||!rows)return;
+  ax.innerHTML='';rows.innerHTML='';
 
-  // sync time blocks from todo plan times and completion state
-function syncTimelineFromTodos(){
-  // reset: clear todo-synced blocks, remove sub-lines, reset done state
-  document.querySelectorAll('.tblk').forEach(b=>{
-    b.classList.remove('is-done');
-    b.querySelector('.tblk-txt')?.classList.remove('struck');
-    b.querySelectorAll('.tblk-note,.tblk-extra,.tblk-timespan,.tblk-timetag').forEach(n=>n.remove());
-    if(b.dataset.todoSynced){
-      const ti=b.querySelector('.tblk-txt');
-      if(ti){ti.value=''}
-      b.classList.remove('has-plan');
-      delete b.dataset.todoSynced;
-    }
-  });
-
-  // Build a set of hours covered by todos, so manual timeline entries don't bleed in
-  const todoCoveredHours=new Set();
+  // Collect todos keyed by plan start hour
+  const todosByHour={};
   document.querySelectorAll('.tcard').forEach(c=>{
-    const ps=c.querySelector('.eps')?.value||'';
-    const txt=c.querySelector('.ttxt')?.value||'';
-    if(ps&&txt) todoCoveredHours.add(ps.split(':')[0].padStart(2,'0')+':00');
-  });
-  // Clear any manual timeline entries whose hour is now covered by a todo
-  // (cleans up stale data from old saves)
-  todoCoveredHours.forEach(hour=>{
-    const blk=document.querySelector(`.tblk[data-hour="${hour}"]`);
-    if(!blk)return;
-    const ti=blk.querySelector('.tblk-txt');
-    if(ti&&ti.value&&!blk.dataset.todoSynced){
-      // Only clear if the text doesn't match any manual note (heuristic: if a todo's text matches, it's stale)
-      const matchesTodo=[...document.querySelectorAll('.tcard')].some(c=>{
-        const ps=c.querySelector('.eps')?.value||'';
-        const txt=c.querySelector('.ttxt')?.value||'';
-        const h=ps.split(':')[0].padStart(2,'0')+':00';
-        return h===hour&&txt&&ti.value.startsWith(txt);
-      });
-      if(matchesTodo){ti.value='';blk.classList.remove('has-plan','is-done');}
-    }
-  });
-
-  document.querySelectorAll('.tcard').forEach(c=>{
-    const ps=c.querySelector('.eps')?.value||'';
-    const pe=c.querySelector('.epe')?.value||'';
-    const txt=c.querySelector('.ttxt')?.value||'';
-    if(!ps||!txt)return;
-    const hour=ps.split(':')[0].padStart(2,'0')+':00';
-    const blk=document.querySelector(`.tblk[data-hour="${hour}"]`);
-    if(!blk)return;
-    const ti=blk.querySelector('.tblk-txt');
-    const isDone=c.classList.contains('done');
-    const timeLabel=ps+(pe?'–'+pe:'');
-
-    if(!ti.value){
-      // Empty slot — fill with pure text, add time tag in the main row
-      ti.value=txt;
-      if(isDone)ti.classList.add('struck');
-      blk.classList.add('has-plan');blk.dataset.todoSynced='1';
-      if(isDone)blk.classList.add('is-done');
-      const tag=document.createElement('span');tag.className='tblk-timetag';
-      tag.style.cssText='font-family:var(--mo);font-size:9px;color:var(--ink-m);white-space:nowrap;flex-shrink:0;margin-left:4px';
-      tag.textContent=timeLabel;
-      blk.querySelector('.tblk-main').appendChild(tag);
-    } else {
-      // Slot occupied — extra sub-line with text + time
-      const extra=document.createElement('div');
-      extra.className='tblk-note tblk-extra';
-      const doneStyle=isDone?';text-decoration:line-through;color:var(--ink-m)':'';
-      extra.style.cssText='font-size:11px;color:var(--ink);padding-left:2px;border-top:1px dotted var(--paper-l);margin-top:2px;padding-top:2px;display:flex;justify-content:space-between'+doneStyle;
-      extra.innerHTML=`<span>${txt}</span><span style="font-family:var(--mo);font-size:9px;color:var(--ink-m);flex-shrink:0;margin-left:4px">${timeLabel}</span>`;
-      blk.appendChild(extra);
-      blk.classList.add('has-plan');
-    }
-  });
-}
-
-function renderRightTimeline(){
-  const wrap=document.getElementById('exec-wrap');
-  if(!wrap)return;
-  wrap.innerHTML='';
-
-  // Collect all items with actual times
-  const items=[];
-  document.querySelectorAll('.tcard').forEach(c=>{
-    const text=c.querySelector('.ttxt')?.value||'';
     const ps=c.querySelector('.eps')?.value||'';
     const pe=c.querySelector('.epe')?.value||'';
     const as=c.querySelector('.eas')?.value||'';
     const ae=c.querySelector('.eae')?.value||'';
+    const txt=c.querySelector('.ttxt')?.value||'';
     const status=c.querySelector('.estat')?.dataset.status||'pending';
-    const note=c.querySelector('.enote')?.value||'';
     const done=c.classList.contains('done');
-    if(text&&as) items.push({text,ps,pe,as,ae,status,note,done,isExtra:false});
+    const note=c.querySelector('.enote')?.value||'';
+    if(!txt)return;
+    const planHour=ps?ps.split(':')[0].padStart(2,'0')+':00':null;
+    const actualHour=as?as.split(':')[0].padStart(2,'0')+':00':null;
+    const targetHour=planHour||actualHour;
+    if(!targetHour)return;
+    if(!todosByHour[targetHour])todosByHour[targetHour]=[];
+    todosByHour[targetHour].push({txt,ps,pe,as,ae,status,done,note,isPlan:!!ps,isActual:!!as});
   });
+
+  // Collect otasks by actual start hour
+  const otasksByHour={};
   document.querySelectorAll('.otask').forEach(el=>{
-    const text=el.querySelector('.otask-txt')?.value||'';
+    const txt=el.querySelector('.otask-txt')?.value||'';
     const as=el.querySelector('.oas')?.value||'';
     const ae=el.querySelector('.oae')?.value||'';
     const note=el.querySelector('.otnote')?.value||'';
     const done=el.classList.contains('ck');
-    if(text&&as) items.push({text,ps:'',pe:'',as,ae,status:done?'done':'pending',note,done,isExtra:true});
+    if(!txt||!as)return;
+    const hour=as.split(':')[0].padStart(2,'0')+':00';
+    if(!otasksByHour[hour])otasksByHour[hour]=[];
+    otasksByHour[hour].push({txt,as,ae,note,done});
   });
 
-  if(items.length===0){
-    const emp=document.createElement('div');emp.className='exec-empty';
-    emp.textContent='暂无执行记录 · 在待办或其他安排中填入实际时间后显示';
-    wrap.appendChild(emp);return;
-  }
+  HOURS.forEach(h=>{
+    // Axis label
+    const slot=document.createElement('div');slot.className='utl-slot';
+    slot.innerHTML=`<span class="utl-lbl">${h}</span>`;
+    ax.appendChild(slot);
 
-  // Sort by actual start time
-  items.sort((a,b)=>timeToMin(a.as)-timeToMin(b.as));
+    // Row
+    const row=document.createElement('div');row.className='utl-row';row.dataset.hour=h;
 
-  // Group by hour
-  const groups={};
-  items.forEach(t=>{
-    const hh=t.as.split(':')[0].padStart(2,'0')+':00';
-    if(!groups[hh])groups[hh]=[];
-    groups[hh].push(t);
-  });
+    const todos=todosByHour[h]||[];
+    const extras=otasksByHour[h]||[];
+    const hasContent=todos.length>0||extras.length>0;
 
-  Object.keys(groups).sort().forEach(hour=>{
-    const grp=document.createElement('div');grp.className='exec-group';
-
-    // Group header
-    const hdr=document.createElement('div');hdr.className='exec-group-hdr';
-    const ht=document.createElement('span');ht.className='exec-group-time';ht.textContent=hour;
-    const hl=document.createElement('div');hl.className='exec-group-line';
-    hdr.appendChild(ht);hdr.appendChild(hl);
-    grp.appendChild(hdr);
-
-    groups[hour].forEach(t=>{
-      // Determine card type
-      let type='actual';
-      if(t.isExtra) type='extra';
-      else if(t.status==='done'||t.done) type='done';
-      else if(t.status==='partial') type='partial';
-      else if(t.ps&&t.pe&&t.as&&t.ae){
+    if(todos.length>0){
+      row.classList.add('has-plan');
+      // Determine overall done/deviation state
+      const allDone=todos.every(t=>t.done||t.status==='done');
+      const anyDev=todos.some(t=>{
+        if(!t.ps||!t.pe||!t.as||!t.ae)return false;
         const diff=timeToMin(t.ae)-timeToMin(t.as)-(timeToMin(t.pe)-timeToMin(t.ps));
-        if(Math.abs(diff)>=5) type='deviation';
+        return Math.abs(diff)>=5;
+      });
+      if(allDone&&todos.some(t=>t.isActual)) row.classList.add('is-done');
+      else if(anyDev) row.classList.add('is-deviation');
+    }
+    if(extras.length>0){
+      row.classList.add('has-extra');
+      if(todos.length===0) row.classList.add('no-plan');
+    }
+
+    todos.forEach(t=>{
+      // Plan line
+      if(t.isPlan){
+        const plan=document.createElement('div');plan.className='utl-plan';
+        const dot=document.createElement('span');dot.className='utl-plan-dot';
+        const txt=document.createElement('span');txt.className='utl-plan-txt'+(t.done?' is-done':'');txt.textContent=t.txt;
+        const time=document.createElement('span');time.className='utl-plan-time';
+        time.textContent=t.ps+(t.pe?'–'+t.pe:'');
+        plan.appendChild(dot);plan.appendChild(txt);plan.appendChild(time);
+        row.appendChild(plan);
       }
-
-      const card=document.createElement('div');card.className=`exec-card type-${type}`;
-
-      // Stripe
-      const stripe=document.createElement('div');stripe.className='exec-card-stripe';
-      card.appendChild(stripe);
-
-      // Body
-      const body=document.createElement('div');body.className='exec-card-body';
-
-      // Top row: tag + name
-      const top=document.createElement('div');top.className='exec-card-top';
-
-      // Tag
-      const tag=document.createElement('span');tag.className='exec-card-tag';
-      if(t.isExtra){tag.className+=' tag-extra';tag.textContent='临时'}
-      else if(type==='done'){tag.className+=' tag-done';tag.textContent='✓ 完成'}
-      else if(type==='partial'){tag.className+=' tag-partial';tag.textContent='△ 部分'}
-      else if(type==='deviation'){tag.className+=' tag-deviation';tag.textContent='⚠ 偏差'}
-      else{tag.style.display='none'}
-      top.appendChild(tag);
-
-      const name=document.createElement('span');
-      name.className='exec-card-name'+(t.done?' is-done':'');
-      name.textContent=t.text;top.appendChild(name);
-      body.appendChild(top);
-
-      // Times row
-      const times=document.createElement('div');times.className='exec-card-times';
-
-      const actualT=document.createElement('span');
-      actualT.className='exec-time-actual'+(t.isExtra?' is-extra':'');
-      actualT.textContent='实际 '+t.as+(t.ae?'–'+t.ae:'');
-      times.appendChild(actualT);
-
-      if(t.ps){
-        const planT=document.createElement('span');planT.className='exec-time-plan';
-        planT.textContent='计划 '+t.ps+(t.pe?'–'+t.pe:'');
-        times.appendChild(planT);
+      // Actual line
+      if(t.isActual){
+        const actual=document.createElement('div');actual.className='utl-actual';
+        // Determine type
+        let atype='bl';
+        if(t.done||t.status==='done') atype='done';
+        else if(t.status==='partial') atype='partial';
+        else if(t.ps&&t.pe&&t.as&&t.ae){
+          const diff=timeToMin(t.ae)-timeToMin(t.as)-(timeToMin(t.pe)-timeToMin(t.ps));
+          if(Math.abs(diff)>=5) atype='deviation';
+        }
+        const dot=document.createElement('span');dot.className=`utl-actual-dot is-${atype}`;
+        const time=document.createElement('span');
+        time.className=`utl-actual-time is-${atype}`;
+        time.textContent=t.as+(t.ae?'–'+t.ae:'');
+        actual.appendChild(dot);actual.appendChild(time);
+        // Show name only if different hour from plan (actual in different hour row)
+        if(!t.isPlan){
+          const name=document.createElement('span');name.className='utl-actual-name';name.textContent=t.txt;
+          actual.appendChild(name);
+        }
+        // Deviation badge
+        if(atype==='deviation'&&t.ps&&t.pe&&t.as&&t.ae){
+          const diff=timeToMin(t.ae)-timeToMin(t.as)-(timeToMin(t.pe)-timeToMin(t.ps));
+          const badge=document.createElement('span');badge.className='utl-dev-badge';
+          badge.textContent=(diff>0?'+':'')+diff+'分';
+          actual.appendChild(badge);
+        }
+        row.appendChild(actual);
+      } else if(!t.isPlan&&!t.isActual){
+        // plan-only pending
+        const plan=document.createElement('div');plan.className='utl-plan';
+        const dot=document.createElement('span');dot.className='utl-plan-dot';
+        const txt2=document.createElement('span');txt2.className='utl-plan-txt';txt2.textContent=t.txt;
+        plan.appendChild(dot);plan.appendChild(txt2);row.appendChild(plan);
       }
-
-      if(type==='deviation'&&t.ps&&t.pe&&t.as&&t.ae){
-        const diff=timeToMin(t.ae)-timeToMin(t.as)-(timeToMin(t.pe)-timeToMin(t.ps));
-        const dev=document.createElement('span');dev.className='exec-time-dev';
-        dev.textContent=(diff>0?'+':'')+diff+'分';
-        times.appendChild(dev);
-      }
-      body.appendChild(times);
-
       // Note
       if(t.note){
-        const nt=document.createElement('div');nt.className='exec-card-note';nt.textContent=t.note;
-        body.appendChild(nt);
+        const note=document.createElement('div');note.className='utl-note';note.textContent='↳ '+t.note;
+        row.appendChild(note);
       }
-
-      card.appendChild(body);
-      grp.appendChild(card);
     });
 
-    wrap.appendChild(grp);
+    // Extra/otask rows
+    extras.forEach(ex=>{
+      const ext=document.createElement('div');ext.className='utl-extra';
+      const dot=document.createElement('span');dot.className='utl-extra-dot';
+      const tag=document.createElement('span');tag.className='utl-extra-tag';tag.textContent='临时';
+      const txt=document.createElement('span');txt.className='utl-extra-txt'+(ex.done?' is-done':'');
+      if(ex.done)txt.style.textDecoration='line-through';
+      txt.textContent=ex.txt;
+      const time=document.createElement('span');time.className='utl-extra-time';
+      time.textContent=ex.as+(ex.ae?'–'+ex.ae:'');
+      ext.appendChild(dot);ext.appendChild(tag);ext.appendChild(txt);ext.appendChild(time);
+      row.appendChild(ext);
+      if(ex.note){
+        const note=document.createElement('div');note.className='utl-note';note.textContent='↳ '+ex.note;
+        row.appendChild(note);
+      }
+    });
+
+    rows.appendChild(row);
   });
 }
 
 function timeToMin(s){if(!s)return 0;const[h,m]=s.split(':').map(Number);return h*60+(m||0)}
 
-// ── ALIGN DIVIDERS: make both top sections the same height so timelines start at same Y ──
-function alignTopSections(){
-  const lt=document.getElementById('left-top');
-  const rt=document.getElementById('right-top');
-  if(!lt||!rt)return;
-  // reset first
-  lt.style.minHeight='';rt.style.minHeight='';
-  requestAnimationFrame(()=>{
-    const lh=lt.getBoundingClientRect().height;
-    const rh=rt.getBoundingClientRect().height;
-    const max=Math.max(lh,rh);
-    lt.style.minHeight=max+'px';
-    rt.style.minHeight=max+'px';
-  });
-}
+// stubs for backward compat
+function renderTL(){}
+function syncTimelineFromTodos(){renderUnifiedTimeline()}
+function renderRightTimeline(){renderUnifiedTimeline()}
+function alignTopSections(){}
 
 // ── TODO CARDS ──
-function addTodo(pre){buildCard(pre);updateStats();renderRightTimeline();syncTimelineFromTodos();alignTopSections()}
+function addTodo(pre){buildCard(pre);updateStats();renderUnifiedTimeline()}
 
 function buildCard(pre){
   const list=document.getElementById('tlist');
@@ -875,7 +740,7 @@ function buildCard(pre){
   <div class="tpri${pc}">${priority}</div>
   <div class="tchk ${pre?.done?'ck':''}" title="请在执行区点击已完成来勾选">${pre?.done?'✓':''}</div>
   <div class="tbody">
-    <textarea class="ttxt" rows="1" placeholder="待办事项…" oninput="ar(this);saveDayData();renderRightTimeline();syncTimelineFromTodos();alignTopSections()">${pre?.text||''}</textarea>
+    <textarea class="ttxt" rows="1" placeholder="待办事项…" oninput="ar(this);saveDayData();renderUnifiedTimeline()">${pre?.text||''}</textarea>
     <div class="tmeta">
       ${pre?.planStart?`<span class="ttime">${pre.planStart}${pre.planEnd?'–'+pre.planEnd:''}</span>`:''}
     </div>
@@ -894,36 +759,27 @@ function buildCard(pre){
     <span class="estat ${status}" data-status="${status}" onclick="cycleStatus(this)">${SL[status]}</span>
   </div>
   <div class="etimes">
-    <div class="etf"><div class="etl">计划开始</div><input class="eti eps" list="dl-t" type="text" placeholder="09:00" value="${pre?.planStart||''}" oninput="onPlanTimeChange(this);saveDayData();renderRightTimeline();alignTopSections()"></div>
-    <div class="etf"><div class="etl">计划结束</div><input class="eti epe" list="dl-t" type="text" placeholder="10:00" value="${pre?.planEnd||''}" oninput="saveDayData();renderRightTimeline();alignTopSections()"></div>
-    <div class="etf"><div class="etl">实际开始</div><input class="eti eas" list="dl-t" type="text" placeholder="09:15" value="${pre?.actualStart||''}" oninput="saveDayData();renderRightTimeline()"></div>
-    <div class="etf"><div class="etl">实际结束</div><input class="eti eae" list="dl-t" type="text" placeholder="10:30" value="${pre?.actualEnd||''}" oninput="saveDayData();renderRightTimeline()"></div>
+    <div class="etf"><div class="etl">计划开始</div><input class="eti eps" list="dl-t" type="text" placeholder="09:00" value="${pre?.planStart||''}" oninput="onPlanTimeChange(this);saveDayData();renderUnifiedTimeline()"></div>
+    <div class="etf"><div class="etl">计划结束</div><input class="eti epe" list="dl-t" type="text" placeholder="10:00" value="${pre?.planEnd||''}" oninput="saveDayData();renderUnifiedTimeline()"></div>
+    <div class="etf"><div class="etl">实际开始</div><input class="eti eas" list="dl-t" type="text" placeholder="09:15" value="${pre?.actualStart||''}" oninput="saveDayData();renderUnifiedTimeline()"></div>
+    <div class="etf"><div class="etl">实际结束</div><input class="eti eae" list="dl-t" type="text" placeholder="10:30" value="${pre?.actualEnd||''}" oninput="saveDayData();renderUnifiedTimeline()"></div>
   </div>
-  <textarea class="enote" placeholder="备注：遇到什么问题？如何解决？" oninput="saveDayData();syncTimelineFromTodos();renderRightTimeline()">${pre?.note||''}</textarea>
+  <textarea class="enote" placeholder="备注：遇到什么问题？如何解决？" oninput="saveDayData();renderUnifiedTimeline()">${pre?.note||''}</textarea>
 </div>`;
   list.appendChild(c);
   ar(c.querySelector('.ttxt'));
 }
 
-// when plan start is typed, sync to time block
+// when plan start is typed, sync time label on todo card
 function onPlanTimeChange(inp){
   const c=inp.closest('.tcard');
-  const txt=c.querySelector('.ttxt')?.value||'';
-  if(!inp.value||!txt)return;
-  const h=inp.value.split(':')[0];const hour=h.padStart(2,'0')+':00';
-  if(!HOURS.includes(hour))return;
-  const blk=document.querySelector(`.tblk[data-hour="${hour}"]`);
-  if(!blk)return;
-  const ti=blk.querySelector('.tblk-txt');
-  if(!ti.value){ti.value=txt;blk.classList.add('has-plan')}
-  // sync time label on todo card
   const epe=c.querySelector('.epe')?.value||'';
   const meta=c.querySelector('.tmeta');
   if(meta){
     const existing=meta.querySelector('.ttime');
     const label=inp.value+(epe?'–'+epe:'');
     if(existing)existing.textContent=label;
-    else{const span=document.createElement('span');span.className='ttime';span.textContent=label;meta.prepend(span)}
+    else if(inp.value){const span=document.createElement('span');span.className='ttime';span.textContent=label;meta.prepend(span)}
   }
 }
 
@@ -940,14 +796,14 @@ function cycleStatus(el){
   const c=el.closest('.tcard');
   if(next==='done'){c.classList.add('done');const chk=c.querySelector('.tchk');chk.classList.add('ck');chk.textContent='✓'}
   else if(cur==='done'){c.classList.remove('done');const chk=c.querySelector('.tchk');chk.classList.remove('ck');chk.textContent=''}
-  saveDayData();updateStats();syncTimelineFromTodos();alignTopSections();
+  saveDayData();updateStats();renderUnifiedTimeline();
 }
 function toggleDone(chk){
   const c=chk.closest('.tcard');const done=!c.classList.contains('done');
   c.classList.toggle('done',done);chk.classList.toggle('ck',done);chk.textContent=done?'✓':'';
   const st=c.querySelector('.estat');
   if(st){const ns=done?'done':'pending';st.dataset.status=ns;st.className='estat '+ns;st.textContent=SL[ns]}
-  saveDayData();updateStats();syncTimelineFromTodos();alignTopSections();
+  saveDayData();updateStats();renderUnifiedTimeline();
 }
 function cyclePri(el){
   const c=el.closest('.tcard');let p=parseInt(c.dataset.priority)||1;p=p>=3?1:p+1;
@@ -956,18 +812,11 @@ function cyclePri(el){
 function moveTd(btn,dir){
   const c=btn.closest('.tcard'),list=c.parentElement,items=[...list.children],idx=items.indexOf(c),tgt=items[idx+dir];
   if(!tgt)return;dir===-1?list.insertBefore(c,tgt):list.insertBefore(tgt,c);
-  reindex();saveDayData();alignTopSections();
+  reindex();saveDayData();renderUnifiedTimeline();
 }
 function removeTd(btn){
   const c=btn.closest('.tcard');
-  const ps=c.querySelector('.eps')?.value||'';
-  const txt=c.querySelector('.ttxt')?.value||'';
-  if(ps&&txt){
-    const hour=ps.split(':')[0].padStart(2,'0')+':00';
-    const blk=document.querySelector(`.tblk[data-hour="${hour}"]`);
-    if(blk){const ti=blk.querySelector('.tblk-txt');if(ti&&ti.value===txt){ti.value='';blk.classList.remove('has-plan','is-done');ti.classList.remove('struck');blk.querySelectorAll('.tblk-note').forEach(n=>n.remove())}}
-  }
-  c.remove();reindex();saveDayData();updateStats();renderRightTimeline();syncTimelineFromTodos();alignTopSections();
+  c.remove();reindex();saveDayData();updateStats();renderUnifiedTimeline();
 }
 function reindex(){
   document.querySelectorAll('.tcard').forEach((c,i)=>{
@@ -996,10 +845,10 @@ function addOtask(pre){
   const chk=document.createElement('div');chk.className='otask-chk'+(pre?.done?' ck':'');chk.textContent=pre?.done?'✓':'';
   chk.onclick=()=>{
     div.classList.toggle('ck');chk.classList.toggle('ck');chk.textContent=chk.classList.contains('ck')?'✓':'';
-    saveDayData();renderRightTimeline();
+    saveDayData();renderUnifiedTimeline();
   };
   const inp=document.createElement('input');inp.type='text';inp.className='otask-txt';inp.placeholder='其他安排…';inp.value=pre?.text||'';
-  inp.addEventListener('input',()=>{saveDayData();renderRightTimeline();syncTimelineFromTodos()});
+  inp.addEventListener('input',()=>{saveDayData();renderUnifiedTimeline()});
 
   const toggle=document.createElement('button');toggle.className='otask-toggle';
   toggle.textContent='执行 '+(execOpen?'▴':'▾');
@@ -1008,7 +857,7 @@ function addOtask(pre){
     const open=exec.style.display==='none';
     exec.style.display=open?'':'none';
     toggle.textContent='执行 '+(open?'▴':'▾');
-    saveDayData();alignTopSections();
+    saveDayData();
   };
 
   const del=document.createElement('button');del.className='otask-del';del.textContent='×';
@@ -1021,10 +870,10 @@ function addOtask(pre){
         const text=div.querySelector('.otask-txt')?.value||'';
         srcData.otasks=srcData.otasks.map(o=>o.text===text?{...o,movedToNext:''}:o);
         localStorage.setItem(srcKey,JSON.stringify(srcData));
-        if(fmt(currentDate)===deferredFrom){div.remove();saveDayData();renderRightTimeline();alignTopSections();renderDaily();return}
+        if(fmt(currentDate)===deferredFrom){div.remove();saveDayData();renderUnifiedTimeline();renderDaily();return}
       }
     }
-    div.remove();saveDayData();renderRightTimeline();alignTopSections();
+    div.remove();saveDayData();renderUnifiedTimeline();
   };
 
   const mv=document.createElement('button');mv.className='otask-mv';mv.title='推迟到明天';mv.textContent='→明';
@@ -1049,12 +898,12 @@ function addOtask(pre){
     if(as&&ae&&!div.classList.contains('ck')){
       div.classList.add('ck');chk.classList.add('ck');chk.textContent='✓';
     }
-    saveDayData();renderRightTimeline();
+    saveDayData();renderUnifiedTimeline();
   }));
 
   const noteTA=document.createElement('textarea');noteTA.className='otnote';
   noteTA.placeholder='备注：遇到什么问题？如何解决？';noteTA.value=pre?.note||'';
-  noteTA.addEventListener('input',()=>{saveDayData();renderRightTimeline();syncTimelineFromTodos()});
+  noteTA.addEventListener('input',()=>{saveDayData();renderUnifiedTimeline()});
 
   execSec.appendChild(timeRow);execSec.appendChild(noteTA);
   div.appendChild(topRow);div.appendChild(execSec);
