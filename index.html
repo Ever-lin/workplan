@@ -92,33 +92,47 @@ body{font-family:var(--ss);background:var(--paper);color:var(--ink);min-height:1
 .tblk-txt.struck{text-decoration:line-through;color:var(--ink-m)}
 .tblk-note{font-size:9.5px;color:var(--ink-m);font-family:var(--ss);padding-left:2px;line-height:1.4;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
 
-/* ── RIGHT TIMELINE (execution - same style as left) ── */
-.rtl-wrap{overflow-y:auto;max-height:none;flex:1}
-.rtl{display:flex;position:relative;height:100%}
-.rtl-axis{display:flex;flex-direction:column;width:40px;flex-shrink:0;padding-right:7px;position:relative}
-.rtl-axis::after{content:'';position:absolute;right:0;top:0;bottom:0;width:1.5px;background:var(--bl);opacity:.35}
-.rtl-slot{min-height:24px;display:flex;align-items:flex-start;padding-top:4px}
-.rtl-lbl{font-family:var(--mo);font-size:9.5px;color:var(--ink-m);white-space:nowrap;position:relative}
-.rtl-lbl::after{content:'';position:absolute;right:-11px;top:5px;width:7px;height:1px;background:var(--bl);opacity:.35}
-.rtl-lbl.half-lbl::after{opacity:.15;width:4px}
-.rtl-bars{flex:1;display:flex;flex-direction:column}
-/* right timeline row — 24px per half-hour slot */
-.rtl-row{min-height:24px;border-bottom:1px dashed var(--paper-l);position:relative;display:flex;flex-direction:column;justify-content:center;gap:1px;padding:2px 6px}
-.rtl-row.hour-start{border-top:1px solid var(--paper-l)}
-.rtl-row-main{display:flex;align-items:center;gap:5px;min-width:0}
-.rtl-note{font-size:9.5px;color:var(--ink-m);font-family:var(--ss);padding-left:2px;line-height:1.4;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
-.rtl-note.extra-note{color:#8b68c0}
-/* has actual time: blue tint */
-.rtl-row.has-actual{background:var(--bl-l)}
-.rtl-row.has-actual::before{content:'';position:absolute;left:0;top:4px;bottom:4px;width:3px;background:var(--bl);opacity:.7;border-radius:2px}
-/* deviation: red background + thicker bar, clearly distinct */
-.rtl-row.has-deviation{background:#fdf0f0 !important}
-.rtl-row.has-deviation::before{background:var(--ac) !important;opacity:1 !important;width:4px !important}
-.rtl-txt{font-family:var(--ss);font-size:11.5px;color:var(--ink);flex:1;min-width:0;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
-.rtl-txt.done-txt{text-decoration:line-through;color:var(--ink-m)}
-.rtl-dev{font-family:var(--mo);font-size:9.5px;color:var(--ac);white-space:nowrap;flex-shrink:0;font-weight:500}
-.bar-empty{font-size:9px;color:var(--ink-m);opacity:.4;font-family:var(--mo);line-height:24px}
-.rtl-legend{display:flex;gap:12px;align-items:center;padding:6px 0 2px;font-size:10px;color:var(--ink-m)}
+/* ── RIGHT EXECUTION CARDS ── */
+.exec-wrap{overflow-y:auto;flex:1;display:flex;flex-direction:column;gap:0}
+.exec-empty{font-size:11px;color:var(--ink-m);text-align:center;padding:28px 0;opacity:.5;font-family:var(--mo)}
+/* time group header */
+.exec-group{margin-bottom:2px}
+.exec-group-hdr{display:flex;align-items:center;gap:6px;padding:4px 8px 2px;position:sticky;top:0;background:white;z-index:2}
+.exec-group-time{font-family:var(--mo);font-size:11px;font-weight:600;color:var(--bl);white-space:nowrap}
+.exec-group-line{flex:1;height:1px;background:var(--bl-l)}
+/* card */
+.exec-card{display:flex;align-items:stretch;margin:2px 0;border-radius:3px;overflow:hidden;border:1px solid transparent;transition:border-color var(--t)}
+.exec-card:hover{border-color:var(--bdr)}
+.exec-card-stripe{width:4px;flex-shrink:0}
+.exec-card-body{flex:1;padding:6px 10px;display:flex;flex-direction:column;gap:2px;min-width:0}
+.exec-card-top{display:flex;align-items:center;gap:6px;min-width:0}
+.exec-card-tag{font-size:9px;padding:1px 6px;border-radius:2px;white-space:nowrap;flex-shrink:0;font-family:var(--ss);font-weight:500}
+.exec-card-tag.tag-extra{background:#6b3fa0;color:white}
+.exec-card-tag.tag-done{background:#c8e6d0;color:var(--gr)}
+.exec-card-tag.tag-partial{background:#fde8c0;color:var(--am)}
+.exec-card-tag.tag-deviation{background:var(--ac-p);color:var(--ac)}
+.exec-card-name{font-family:var(--ss);font-size:12px;color:var(--ink);flex:1;min-width:0;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+.exec-card-name.is-done{text-decoration:line-through;color:var(--ink-m)}
+.exec-card-times{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.exec-time-actual{font-family:var(--mo);font-size:10px;font-weight:500;color:var(--bl);background:var(--bl-l);padding:1px 6px;border-radius:2px;white-space:nowrap}
+.exec-time-actual.is-extra{color:#6b3fa0;background:#ede5f8}
+.exec-time-plan{font-family:var(--mo);font-size:10px;color:var(--ink-m);white-space:nowrap}
+.exec-time-dev{font-family:var(--mo);font-size:10px;font-weight:600;color:var(--ac);white-space:nowrap}
+.exec-card-note{font-size:10px;color:var(--ink-m);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+/* stripe colors */
+.exec-card.type-done .exec-card-stripe{background:var(--gr)}
+.exec-card.type-partial .exec-card-stripe{background:var(--am)}
+.exec-card.type-deviation .exec-card-stripe{background:var(--ac)}
+.exec-card.type-extra .exec-card-stripe{background:#6b3fa0}
+.exec-card.type-actual .exec-card-stripe{background:var(--bl)}
+/* background tints */
+.exec-card.type-done{background:var(--gr-l)}
+.exec-card.type-partial{background:var(--am-l)}
+.exec-card.type-deviation{background:#fdf0f0}
+.exec-card.type-extra{background:#ede5f8}
+.exec-card.type-actual{background:var(--bl-l)}
+/* legend */
+.exec-legend{display:flex;gap:10px;align-items:center;padding:4px 0 2px;font-size:10px;color:var(--ink-m);flex-wrap:wrap}
 .leg-dot{width:10px;height:8px;border-radius:2px;display:inline-block;margin-right:3px}
 
 /* ── TODO CARDS ── */
@@ -355,19 +369,15 @@ body{font-family:var(--ss);background:var(--paper);color:var(--ink);min-height:1
       <!-- 下部：执行时间轴 + 复盘 -->
       <div style="flex:1;display:flex;flex-direction:column;padding:10px 16px 14px 14px">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
-          <div style="font-size:10px;color:var(--ink-m);letter-spacing:.4px">实施区 · 执行时间轴</div>
-          <div class="rtl-legend">
-            <span><span class="leg-dot" style="background:var(--bl);opacity:.7"></span>实际</span>
-            <span><span class="leg-dot" style="background:var(--ac);opacity:1"></span>偏差</span>
-            <span><span class="leg-dot" style="background:#6b3fa0;opacity:1"></span>临时</span>
+          <div style="font-size:10px;color:var(--ink-m);letter-spacing:.4px">实施区 · 执行记录</div>
+          <div class="exec-legend">
+            <span><span class="leg-dot" style="background:var(--bl)"></span>实际</span>
+            <span><span class="leg-dot" style="background:var(--ac)"></span>偏差</span>
+            <span><span class="leg-dot" style="background:#6b3fa0"></span>临时</span>
+            <span><span class="leg-dot" style="background:var(--gr)"></span>完成</span>
           </div>
         </div>
-        <div class="rtl-wrap" style="flex:1">
-          <div class="rtl">
-            <div class="rtl-axis" id="rtl-axis"></div>
-            <div class="rtl-bars" id="rtl-bars"></div>
-          </div>
-        </div>
+        <div class="exec-wrap" id="exec-wrap"></div>
 
         <!-- 复盘 -->
         <div class="refbox" style="margin-top:12px">
@@ -701,11 +711,11 @@ function syncTimelineFromTodos(){
 }
 
 function renderRightTimeline(){
-  const ax=document.getElementById('rtl-axis'),bars=document.getElementById('rtl-bars');
-  if(!ax||!bars)return;
-  ax.innerHTML='';bars.innerHTML='';
+  const wrap=document.getElementById('exec-wrap');
+  if(!wrap)return;
+  wrap.innerHTML='';
 
-  // Collect todos with actual times; also collect plan times for deviation calc
+  // Collect all items with actual times
   const items=[];
   document.querySelectorAll('.tcard').forEach(c=>{
     const text=c.querySelector('.ttxt')?.value||'';
@@ -713,99 +723,117 @@ function renderRightTimeline(){
     const pe=c.querySelector('.epe')?.value||'';
     const as=c.querySelector('.eas')?.value||'';
     const ae=c.querySelector('.eae')?.value||'';
+    const status=c.querySelector('.estat')?.dataset.status||'pending';
+    const note=c.querySelector('.enote')?.value||'';
     const done=c.classList.contains('done');
-    if(text&&as) items.push({text,ps,pe,as,ae,done,isExtra:false});
+    if(text&&as) items.push({text,ps,pe,as,ae,status,note,done,isExtra:false});
   });
   document.querySelectorAll('.otask').forEach(el=>{
     const text=el.querySelector('.otask-txt')?.value||'';
     const as=el.querySelector('.oas')?.value||'';
     const ae=el.querySelector('.oae')?.value||'';
+    const note=el.querySelector('.otnote')?.value||'';
     const done=el.classList.contains('ck');
-    if(text&&as) items.push({text,ps:'',pe:'',as,ae,done,isExtra:true});
+    if(text&&as) items.push({text,ps:'',pe:'',as,ae,status:done?'done':'pending',note,done,isExtra:true});
   });
 
-  // Build half-hour slots from HOURS range
-  const firstH=parseInt(HOURS[0],10);
-  const lastH=parseInt(HOURS[HOURS.length-1],10);
-  const halfSlots=[];
-  for(let h=firstH;h<=lastH;h++){
-    halfSlots.push(String(h).padStart(2,'0')+':00');
-    halfSlots.push(String(h).padStart(2,'0')+':30');
+  if(items.length===0){
+    const emp=document.createElement('div');emp.className='exec-empty';
+    emp.textContent='暂无执行记录 · 在待办或其他安排中填入实际时间后显示';
+    wrap.appendChild(emp);return;
   }
 
-  // Normalize time to slot key "HH:MM" matching the slot format above
-  function toSlotKey(s){
-    if(!s)return'';
-    const[hh,mm]=s.split(':').map(Number);
-    const slotMin=mm<30?'00':'30';
-    return String(hh).padStart(2,'0')+':'+slotMin;
-  }
+  // Sort by actual start time
+  items.sort((a,b)=>timeToMin(a.as)-timeToMin(b.as));
 
-  halfSlots.forEach(slot=>{
-    const isHour=slot.endsWith(':00');
+  // Group by hour
+  const groups={};
+  items.forEach(t=>{
+    const hh=t.as.split(':')[0].padStart(2,'0')+':00';
+    if(!groups[hh])groups[hh]=[];
+    groups[hh].push(t);
+  });
 
-    const s=document.createElement('div');
-    s.className='rtl-slot';
-    if(isHour){
-      s.innerHTML=`<span class="rtl-lbl">${slot}</span>`;
-    } else {
-      s.innerHTML=`<span class="rtl-lbl" style="opacity:0.3;font-size:8px">${slot}</span>`;
-    }
-    ax.appendChild(s);
+  Object.keys(groups).sort().forEach(hour=>{
+    const grp=document.createElement('div');grp.className='exec-group';
 
-    const row=document.createElement('div');row.className='rtl-row'+(isHour?' hour-start':'');
-    const relevant=items.filter(t=>toSlotKey(t.as)===slot);
+    // Group header
+    const hdr=document.createElement('div');hdr.className='exec-group-hdr';
+    const ht=document.createElement('span');ht.className='exec-group-time';ht.textContent=hour;
+    const hl=document.createElement('div');hl.className='exec-group-line';
+    hdr.appendChild(ht);hdr.appendChild(hl);
+    grp.appendChild(hdr);
 
-    if(relevant.length===0){
-      const mr=document.createElement('div');mr.className='rtl-row-main';
-      const dot=document.createElement('div');dot.className='bar-empty';dot.textContent='·';
-      mr.appendChild(dot);row.appendChild(mr);
-    } else {
-      // Determine row class from first item (mixed types: prefer has-actual)
-      const hasNonExtra=relevant.some(t=>!t.isExtra);
-      const allExtra=relevant.every(t=>t.isExtra);
-      if(allExtra) row.classList.add('is-extra');
-      else row.classList.add('has-actual');
+    groups[hour].forEach(t=>{
+      // Determine card type
+      let type='actual';
+      if(t.isExtra) type='extra';
+      else if(t.status==='done'||t.done) type='done';
+      else if(t.status==='partial') type='partial';
+      else if(t.ps&&t.pe&&t.as&&t.ae){
+        const diff=timeToMin(t.ae)-timeToMin(t.as)-(timeToMin(t.pe)-timeToMin(t.ps));
+        if(Math.abs(diff)>=5) type='deviation';
+      }
 
-      relevant.forEach((t,idx)=>{
-        const mr=document.createElement('div');mr.className='rtl-row-main';
-        if(idx>0) mr.style.cssText='border-top:1px dotted var(--paper-l);margin-top:3px;padding-top:3px';
+      const card=document.createElement('div');card.className=`exec-card type-${type}`;
 
-        if(t.isExtra){
-          const tag=document.createElement('span');tag.className='rtl-extra-tag';tag.textContent='临时';mr.appendChild(tag);
-        }
+      // Stripe
+      const stripe=document.createElement('div');stripe.className='exec-card-stripe';
+      card.appendChild(stripe);
 
-        const txt=document.createElement('span');
-        txt.className='rtl-txt'+(t.done?' done-txt':'');
-        txt.textContent=t.text;
-        mr.appendChild(txt);
+      // Body
+      const body=document.createElement('div');body.className='exec-card-body';
 
-        // Actual time
-        const timeStr=t.as+(t.ae?'–'+t.ae:'');
-        const tm=document.createElement('span');
-        tm.style.cssText='font-family:var(--mo);font-size:9px;color:'+(t.isExtra?'#6b3fa0':'var(--ink-m)')+';white-space:nowrap;flex-shrink:0;margin-left:4px';
-        tm.textContent=timeStr;
-        mr.appendChild(tm);
+      // Top row: tag + name
+      const top=document.createElement('div');top.className='exec-card-top';
 
-        // Deviation badge (only for non-extra with both plan and actual end)
-        if(!t.isExtra&&t.ps&&t.pe&&t.as&&t.ae){
-          const planDur=timeToMin(t.pe)-timeToMin(t.ps);
-          const actualDur=timeToMin(t.ae)-timeToMin(t.as);
-          const diff=actualDur-planDur;
-          if(Math.abs(diff)>=5){
-            const dev=document.createElement('span');dev.className='rtl-dev';
-            dev.textContent=(diff>0?'+':'')+diff+'分';
-            dev.title=`计划${planDur}分 → 实际${actualDur}分`;
-            mr.appendChild(dev);
-            row.classList.remove('has-actual');
-            row.classList.add('has-actual','has-deviation');
-          }
-        }
+      // Tag
+      const tag=document.createElement('span');tag.className='exec-card-tag';
+      if(t.isExtra){tag.className+=' tag-extra';tag.textContent='临时'}
+      else if(type==='done'){tag.className+=' tag-done';tag.textContent='✓ 完成'}
+      else if(type==='partial'){tag.className+=' tag-partial';tag.textContent='△ 部分'}
+      else if(type==='deviation'){tag.className+=' tag-deviation';tag.textContent='⚠ 偏差'}
+      else{tag.style.display='none'}
+      top.appendChild(tag);
 
-        row.appendChild(mr);
-      });
-    }
-    bars.appendChild(row);
+      const name=document.createElement('span');
+      name.className='exec-card-name'+(t.done?' is-done':'');
+      name.textContent=t.text;top.appendChild(name);
+      body.appendChild(top);
+
+      // Times row
+      const times=document.createElement('div');times.className='exec-card-times';
+
+      const actualT=document.createElement('span');
+      actualT.className='exec-time-actual'+(t.isExtra?' is-extra':'');
+      actualT.textContent='实际 '+t.as+(t.ae?'–'+t.ae:'');
+      times.appendChild(actualT);
+
+      if(t.ps){
+        const planT=document.createElement('span');planT.className='exec-time-plan';
+        planT.textContent='计划 '+t.ps+(t.pe?'–'+t.pe:'');
+        times.appendChild(planT);
+      }
+
+      if(type==='deviation'&&t.ps&&t.pe&&t.as&&t.ae){
+        const diff=timeToMin(t.ae)-timeToMin(t.as)-(timeToMin(t.pe)-timeToMin(t.ps));
+        const dev=document.createElement('span');dev.className='exec-time-dev';
+        dev.textContent=(diff>0?'+':'')+diff+'分';
+        times.appendChild(dev);
+      }
+      body.appendChild(times);
+
+      // Note
+      if(t.note){
+        const nt=document.createElement('div');nt.className='exec-card-note';nt.textContent=t.note;
+        body.appendChild(nt);
+      }
+
+      card.appendChild(body);
+      grp.appendChild(card);
+    });
+
+    wrap.appendChild(grp);
   });
 }
 
