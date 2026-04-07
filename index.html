@@ -97,12 +97,14 @@ body{font-family:var(--ss);background:var(--paper);color:var(--ink);min-height:1
 .rtl{display:flex;position:relative;height:100%}
 .rtl-axis{display:flex;flex-direction:column;width:40px;flex-shrink:0;padding-right:7px;position:relative}
 .rtl-axis::after{content:'';position:absolute;right:0;top:0;bottom:0;width:1.5px;background:var(--bl);opacity:.35}
-.rtl-slot{min-height:48px;display:flex;align-items:flex-start;padding-top:6px}
+.rtl-slot{min-height:24px;display:flex;align-items:flex-start;padding-top:4px}
 .rtl-lbl{font-family:var(--mo);font-size:9.5px;color:var(--ink-m);white-space:nowrap;position:relative}
 .rtl-lbl::after{content:'';position:absolute;right:-11px;top:5px;width:7px;height:1px;background:var(--bl);opacity:.35}
+.rtl-lbl.half-lbl::after{opacity:.15;width:4px}
 .rtl-bars{flex:1;display:flex;flex-direction:column}
-/* right timeline row — same height as left .tblk */
-.rtl-row{min-height:48px;border-bottom:1px dashed var(--paper-l);position:relative;display:flex;flex-direction:column;justify-content:center;gap:1px;padding:4px 6px}
+/* right timeline row — 24px per half-hour slot */
+.rtl-row{min-height:24px;border-bottom:1px dashed var(--paper-l);position:relative;display:flex;flex-direction:column;justify-content:center;gap:1px;padding:2px 6px}
+.rtl-row.hour-start{border-top:1px solid var(--paper-l)}
 .rtl-row-main{display:flex;align-items:center;gap:5px;min-width:0}
 .rtl-note{font-size:9.5px;color:var(--ink-m);font-family:var(--ss);padding-left:2px;line-height:1.4;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
 .rtl-note.extra-note{color:#8b68c0}
@@ -115,7 +117,7 @@ body{font-family:var(--ss);background:var(--paper);color:var(--ink);min-height:1
 .rtl-txt{font-family:var(--ss);font-size:11.5px;color:var(--ink);flex:1;min-width:0;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
 .rtl-txt.done-txt{text-decoration:line-through;color:var(--ink-m)}
 .rtl-dev{font-family:var(--mo);font-size:9.5px;color:var(--ac);white-space:nowrap;flex-shrink:0;font-weight:500}
-.bar-empty{font-size:9px;color:var(--ink-m);opacity:.4;font-family:var(--mo);line-height:48px}
+.bar-empty{font-size:9px;color:var(--ink-m);opacity:.4;font-family:var(--mo);line-height:24px}
 .rtl-legend{display:flex;gap:12px;align-items:center;padding:6px 0 2px;font-size:10px;color:var(--ink-m)}
 .leg-dot{width:10px;height:8px;border-radius:2px;display:inline-block;margin-right:3px}
 
@@ -722,15 +724,36 @@ function renderRightTimeline(){
     if(text&&as) items.push({text,ps:'',pe:'',as,ae,done,isExtra:true});
   });
 
-  function parseHour(s){return s?parseInt(s.split(':')[0],10):-1;}
+  // Build half-hour slots from HOURS range
+  const firstH=parseInt(HOURS[0],10);
+  const lastH=parseInt(HOURS[HOURS.length-1],10);
+  const halfSlots=[];
+  for(let h=firstH;h<=lastH;h++){halfSlots.push(h+':00');halfSlots.push(h+':30');}
 
-  HOURS.forEach(h=>{
-    const s=document.createElement('div');s.className='rtl-slot';
-    s.innerHTML=`<span class="rtl-lbl">${h}</span>`;ax.appendChild(s);
+  // Normalize time to slot key "H:MM" (no leading zero on hour) matching the slot format
+  function toSlotKey(s){
+    if(!s)return'';
+    const[hh,mm]=s.split(':').map(Number);
+    const slot=mm<30?hh+':00':hh+':30';
+    return slot;
+  }
 
-    const row=document.createElement('div');row.className='rtl-row';
-    const hNum=parseInt(h,10);
-    const relevant=items.filter(t=>parseHour(t.as)===hNum);
+  halfSlots.forEach(slot=>{
+    const isHour=slot.endsWith(':00');
+    const displayH=slot.split(':')[0].padStart(2,'0')+':00';
+    const displayHalf=slot.split(':')[0].padStart(2,'0')+':30';
+
+    const s=document.createElement('div');
+    s.className='rtl-slot';
+    if(isHour){
+      s.innerHTML=`<span class="rtl-lbl">${displayH}</span>`;
+    } else {
+      s.innerHTML=`<span class="rtl-lbl" style="opacity:0.3;font-size:8px">${displayHalf}</span>`;
+    }
+    ax.appendChild(s);
+
+    const row=document.createElement('div');row.className='rtl-row'+(isHour?' hour-start':'');
+    const relevant=items.filter(t=>toSlotKey(t.as)===slot);
 
     if(relevant.length===0){
       const mr=document.createElement('div');mr.className='rtl-row-main';
