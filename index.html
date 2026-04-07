@@ -728,27 +728,28 @@ function renderRightTimeline(){
   const firstH=parseInt(HOURS[0],10);
   const lastH=parseInt(HOURS[HOURS.length-1],10);
   const halfSlots=[];
-  for(let h=firstH;h<=lastH;h++){halfSlots.push(h+':00');halfSlots.push(h+':30');}
+  for(let h=firstH;h<=lastH;h++){
+    halfSlots.push(String(h).padStart(2,'0')+':00');
+    halfSlots.push(String(h).padStart(2,'0')+':30');
+  }
 
-  // Normalize time to slot key "H:MM" (no leading zero on hour) matching the slot format
+  // Normalize time to slot key "HH:MM" matching the slot format above
   function toSlotKey(s){
     if(!s)return'';
     const[hh,mm]=s.split(':').map(Number);
-    const slot=mm<30?hh+':00':hh+':30';
-    return slot;
+    const slotMin=mm<30?'00':'30';
+    return String(hh).padStart(2,'0')+':'+slotMin;
   }
 
   halfSlots.forEach(slot=>{
     const isHour=slot.endsWith(':00');
-    const displayH=slot.split(':')[0].padStart(2,'0')+':00';
-    const displayHalf=slot.split(':')[0].padStart(2,'0')+':30';
 
     const s=document.createElement('div');
     s.className='rtl-slot';
     if(isHour){
-      s.innerHTML=`<span class="rtl-lbl">${displayH}</span>`;
+      s.innerHTML=`<span class="rtl-lbl">${slot}</span>`;
     } else {
-      s.innerHTML=`<span class="rtl-lbl" style="opacity:0.3;font-size:8px">${displayHalf}</span>`;
+      s.innerHTML=`<span class="rtl-lbl" style="opacity:0.3;font-size:8px">${slot}</span>`;
     }
     ax.appendChild(s);
 
