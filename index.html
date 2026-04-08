@@ -64,63 +64,85 @@ body{font-family:var(--ss);background:var(--paper);color:var(--ink);min-height:1
 .utl-wrap{display:flex;overflow-y:auto;flex:1}
 .utl-ax{display:flex;flex-direction:column;width:42px;flex-shrink:0;padding-right:8px;position:relative}
 .utl-ax::after{content:'';position:absolute;right:0;top:0;bottom:0;width:1.5px;background:var(--ac);opacity:.3}
-.utl-slot{min-height:44px;display:flex;align-items:flex-start;padding-top:5px}
+.utl-slot{min-height:48px;display:flex;align-items:flex-start;padding-top:6px}
 .utl-lbl{font-family:var(--mo);font-size:9.5px;color:var(--ink-m);white-space:nowrap;position:relative}
 .utl-lbl::after{content:'';position:absolute;right:-12px;top:5px;width:8px;height:1px;background:var(--ac);opacity:.3}
 .utl-rows{flex:1;display:flex;flex-direction:column}
-/* each hour row — two-column: left=plan, right=actual+extra */
-.utl-row{min-height:44px;display:grid;grid-template-columns:1fr 1fr;align-items:start;padding:4px 7px;border-bottom:1px dashed var(--paper-l);position:relative;transition:background var(--t)}
+
+/* 3-column layout: name | plan-time | actual-time+diff */
+.utl-row{min-height:48px;display:grid;grid-template-columns:minmax(80px,1.6fr) minmax(90px,1fr) minmax(100px,1fr);align-items:start;padding:5px 7px;border-bottom:1px dashed var(--paper-l);position:relative;transition:background var(--t)}
 .utl-row:hover{background:var(--paper-w)}
-.utl-col-plan{display:flex;flex-direction:column;gap:3px;padding-right:5px;border-right:1px solid var(--paper-l)}
-.utl-col-actual{display:flex;flex-direction:column;gap:3px;padding-left:6px}
-/* combined plan+actual line */
-.utl-item{display:flex;align-items:center;gap:0;min-height:20px;position:relative}
-/* plan section of item */
-.utl-item-plan{display:flex;align-items:center;gap:4px;flex:1;min-width:0}
+
+/* column header row */
+.utl-col-hdr{display:grid;grid-template-columns:minmax(80px,1.6fr) minmax(90px,1fr) minmax(100px,1fr);padding:3px 7px 3px;border-bottom:1px solid var(--paper-l);background:var(--paper-w)}
+.utl-hdr-cell{font-size:9px;color:var(--ink-m);letter-spacing:.6px;text-align:left}
+.utl-hdr-cell:nth-child(2){padding-left:4px}
+.utl-hdr-cell:nth-child(3){padding-left:4px}
+
+/* name column */
+.utl-col-name{display:flex;flex-direction:column;gap:3px;padding-right:5px}
+/* plan time column */
+.utl-col-plan{display:flex;flex-direction:column;gap:3px;padding:0 4px;border-left:1px solid var(--paper-l)}
+/* actual+diff column */
+.utl-col-actual{display:flex;flex-direction:column;gap:3px;padding-left:4px;border-left:1px solid var(--paper-l)}
+
+/* each row entry — name part */
+.utl-name-entry{display:flex;align-items:center;gap:5px;min-height:22px}
 .utl-plan-dot{width:7px;height:7px;border-radius:50%;background:var(--am);flex-shrink:0;opacity:.8}
+.utl-plan-dot.is-extra{background:#6b3fa0;border-radius:2px}
+.utl-plan-dot.is-cont{opacity:.3}
 .utl-plan-txt{font-size:11px;color:var(--ink);font-family:var(--ss);flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .utl-plan-txt.is-done{text-decoration:line-through;color:var(--ink-m)}
-.utl-plan-time{font-family:var(--mo);font-size:9px;color:var(--am);white-space:nowrap;flex-shrink:0;font-weight:500}
-/* divider between plan and actual */
-.utl-sep{width:1px;height:14px;background:var(--bdr);margin:0 5px;flex-shrink:0}
-/* actual section of item */
-.utl-item-actual{display:flex;align-items:center;gap:3px;flex-shrink:0}
-.utl-actual-dot{width:7px;height:7px;border-radius:2px;background:var(--bl);flex-shrink:0}
-.utl-actual-dot.is-done{background:var(--gr)}
-.utl-actual-dot.is-partial{background:var(--am)}
-.utl-actual-dot.is-deviation{background:var(--ac)}
-.utl-actual-dot.is-extra{background:#6b3fa0}
-.utl-actual-time{font-family:var(--mo);font-size:9px;color:var(--bl);font-weight:500;white-space:nowrap;flex-shrink:0}
-.utl-actual-time.is-done{color:var(--gr)}
-.utl-actual-time.is-partial{color:var(--am)}
-.utl-actual-time.is-deviation{color:var(--ac)}
-.utl-actual-time.is-extra{color:#6b3fa0}
-.utl-actual-name{font-size:10px;color:var(--ink-m);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:90px}
-.utl-dev-badge{font-family:var(--mo);font-size:8.5px;font-weight:700;color:var(--ac);background:var(--ac-p);padding:0px 3px;border-radius:2px;white-space:nowrap;flex-shrink:0;margin-left:2px}
-/* continuation row marker (for multi-hour tasks) */
-.utl-item.is-cont .utl-plan-dot{opacity:.3;border-radius:2px}
-.utl-item.is-cont .utl-plan-time{opacity:.5;font-size:8px}
-/* extra (otask) row */
-.utl-extra{display:flex;align-items:center;gap:5px;min-height:16px}
-.utl-extra-dot{width:7px;height:7px;border-radius:2px;background:#6b3fa0;flex-shrink:0}
-.utl-extra-tag{font-size:8.5px;padding:0 5px;background:#6b3fa0;color:white;border-radius:2px;white-space:nowrap;flex-shrink:0}
-.utl-extra-txt{font-size:10.5px;color:#6b3fa0;flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.utl-extra-time{font-family:var(--mo);font-size:9px;color:#6b3fa0;white-space:nowrap;flex-shrink:0;font-weight:500}
-/* connector line between plan and actual */
-.utl-connector{width:1px;height:100%;background:var(--bdr);margin-left:3px;flex-shrink:0;display:none}
+.utl-extra-tag{font-size:8px;padding:1px 5px;background:#6b3fa0;color:white;border-radius:2px;white-space:nowrap;flex-shrink:0}
+
+/* time badge — filled color pill */
+.utl-time-badge{display:inline-flex;align-items:center;font-family:var(--mo);font-size:9px;font-weight:500;padding:2px 6px;border-radius:3px;white-space:nowrap;min-height:18px;line-height:1.2}
+.utl-time-badge.plan{background:rgba(139,105,20,.15);color:#6b5000}
+.utl-time-badge.plan.is-cont{background:rgba(139,105,20,.07);color:#a08030;font-size:8px}
+.utl-time-badge.actual-bl{background:rgba(44,74,124,.14);color:#1a3a6a}
+.utl-time-badge.actual-done{background:rgba(42,92,63,.18);color:#1a4830}
+.utl-time-badge.actual-partial{background:rgba(139,105,20,.2);color:#6b5000}
+.utl-time-badge.actual-deviation{background:rgba(139,58,58,.18);color:#7a1a1a}
+.utl-time-badge.actual-extra{background:rgba(107,63,160,.16);color:#3d1878}
+.utl-time-badge.empty{background:transparent}
+
+/* diff badge */
+.utl-diff-badge{font-family:var(--mo);font-size:8px;font-weight:700;padding:2px 5px;border-radius:3px;white-space:nowrap;flex-shrink:0;margin-left:3px}
+.utl-diff-badge.over{background:rgba(139,58,58,.15);color:#8b3a3a}
+.utl-diff-badge.under{background:rgba(42,92,63,.15);color:#2a5c3f}
+.utl-diff-badge.exact{background:rgba(42,92,63,.1);color:#2a5c3f}
+
+/* plan-time slot wrapper */
+.utl-plan-slot{display:flex;align-items:center;min-height:22px}
+.utl-actual-slot{display:flex;align-items:center;gap:3px;min-height:22px}
+
 /* row states */
-.utl-row.has-plan{background:linear-gradient(to right,rgba(139,105,20,.04),transparent)}
-.utl-row.has-plan::before{content:'';position:absolute;left:0;top:4px;bottom:4px;width:3px;background:var(--am);border-radius:2px;opacity:.6;z-index:1}
-/* is-done: no special background, keep plan amber style */
-.utl-row.is-deviation{background:linear-gradient(to right,rgba(139,58,58,.06),transparent) !important}
+.utl-row.has-plan{background:linear-gradient(to right,rgba(139,105,20,.03),transparent)}
+.utl-row.has-plan::before{content:'';position:absolute;left:0;top:4px;bottom:4px;width:3px;background:var(--am);border-radius:2px;opacity:.5;z-index:1}
+.utl-row.is-deviation{background:linear-gradient(to right,rgba(139,58,58,.05),transparent) !important}
 .utl-row.is-deviation::before{background:var(--ac) !important;opacity:.8}
-.utl-row.has-extra{background:linear-gradient(to right,rgba(107,63,160,.05),transparent)}
-.utl-row.has-extra.no-plan::before{content:'';position:absolute;left:0;top:4px;bottom:4px;width:3px;background:#6b3fa0;border-radius:2px;opacity:.7}
-/* continuation rows (task spans multiple hours) */
+.utl-row.has-extra{background:linear-gradient(to right,rgba(107,63,160,.04),transparent)}
+.utl-row.has-extra.no-plan::before{content:'';position:absolute;left:0;top:4px;bottom:4px;width:3px;background:#6b3fa0;border-radius:2px;opacity:.6}
 .utl-row.is-cont{background:linear-gradient(to right,rgba(139,105,20,.02),transparent)}
-.utl-row.is-cont::before{opacity:.25 !important}
+.utl-row.is-cont::before{opacity:.2 !important}
+
 /* note line */
-.utl-note{font-size:9.5px;color:var(--ink-m);padding-left:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-family:var(--ss)}
+.utl-note{font-size:9px;color:var(--ink-m);padding-left:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-family:var(--ss)}
+
+/* legacy compat */
+.utl-item{display:flex;align-items:center;min-height:20px}
+.utl-item-plan{display:flex;align-items:center;gap:4px;flex:1;min-width:0}
+.utl-sep{display:none}
+.utl-item-actual{display:flex;align-items:center;gap:3px}
+.utl-actual-dot{display:none}
+.utl-actual-time{display:none}
+.utl-actual-name{display:none}
+.utl-dev-badge{display:none}
+.utl-extra-dot{display:none}
+.utl-extra-txt{display:none}
+.utl-extra-time{display:none}
+.utl-plan-time{display:none}
+.utl-connector{display:none}
 
 /* ── COMBO (hour dropdown + type) ── */
 .tfields{display:grid;grid-template-columns:1fr 1fr;gap:7px}
@@ -350,11 +372,11 @@ body{font-family:var(--ss);background:var(--paper);color:var(--ink);min-height:1
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
           <div class="ptitle" style="border:none;padding:0;margin:0">时间轴</div>
           <div class="exec-legend">
-            <span><span class="leg-dot" style="background:var(--am)"></span>计划</span>
-            <span><span class="leg-dot" style="background:var(--bl)"></span>实际</span>
-            <span><span class="leg-dot" style="background:var(--gr)"></span>完成</span>
-            <span><span class="leg-dot" style="background:var(--ac)"></span>偏差</span>
-            <span><span class="leg-dot" style="background:#6b3fa0"></span>临时</span>
+            <span><span style="display:inline-block;padding:1px 5px;background:rgba(139,105,20,.18);color:#6b5000;border-radius:3px;font-size:9px;font-family:var(--mo)">计划</span></span>
+            <span><span style="display:inline-block;padding:1px 5px;background:rgba(44,74,124,.18);color:#1a3a6a;border-radius:3px;font-size:9px;font-family:var(--mo)">实际</span></span>
+            <span><span style="display:inline-block;padding:1px 5px;background:rgba(42,92,63,.2);color:#1a4830;border-radius:3px;font-size:9px;font-family:var(--mo)">完成</span></span>
+            <span><span style="display:inline-block;padding:1px 5px;background:rgba(139,58,58,.18);color:#7a1a1a;border-radius:3px;font-size:9px;font-family:var(--mo)">偏差</span></span>
+            <span><span style="display:inline-block;padding:1px 5px;background:rgba(107,63,160,.18);color:#3d1878;border-radius:3px;font-size:9px;font-family:var(--mo)">临时</span></span>
           </div>
         </div>
         <div class="utl-wrap" style="flex:1">
@@ -582,11 +604,8 @@ function renderUnifiedTimeline(){
   if(!ax||!rows)return;
   ax.innerHTML='';rows.innerHTML='';
 
-  // Collect todos — each todo can span multiple hours
-  // For each todo, record which hours it occupies (from plan start hour to plan end hour)
-  // plus which hour its actual falls in (if different)
-  const todosByHour={}; // hour -> [{todo, isCont (continuation row), isActualHere}]
-
+  // Collect todos
+  const todosByHour={};
   document.querySelectorAll('.tcard').forEach(c=>{
     const ps=c.querySelector('.eps')?.value||'';
     const pe=c.querySelector('.epe')?.value||'';
@@ -598,7 +617,6 @@ function renderUnifiedTimeline(){
     const note=c.querySelector('.enote')?.value||'';
     if(!txt)return;
 
-    // Determine atype for actual
     function getAtype(){
       if(done||status==='done') return 'done';
       if(status==='partial') return 'partial';
@@ -608,39 +626,25 @@ function renderUnifiedTimeline(){
       }
       return 'bl';
     }
-
     const todoData={txt,ps,pe,as,ae,status,done,note,isPlan:!!ps,isActual:!!as,atype:getAtype()};
 
     if(ps){
-      // Plan occupies from ps hour to pe hour (inclusive of each hour slot it touches)
       const startH=parseInt(ps.split(':')[0]);
       const endH=pe?parseInt(pe.split(':')[0]):startH;
-      // endMin: if pe minutes==0, the task ends exactly at that hour boundary (don't include that hour)
       const endMin=pe?parseInt(pe.split(':')[1]||0):0;
-
       for(let h=startH;h<=(endMin>0?endH:endH-1);h++){
-        if(h<6||h>23)continue; // only within HOURS range
+        if(h<6||h>23)continue;
         const hkey=String(h).padStart(2,'0')+':00';
         if(!todosByHour[hkey])todosByHour[hkey]=[];
         todosByHour[hkey].push({...todoData,isCont:h>startH,showActualHere:false});
       }
-      // If pe==startH (same hour) or no pe, show in startH
-      if(startH===endH||(pe&&endMin===0&&startH===endH-1)){
-        // already handled
-      }
-      // Always ensure start hour is in
       const startKey=String(startH).padStart(2,'0')+':00';
-      if(!todosByHour[startKey]){todosByHour[startKey]=[];}
+      if(!todosByHour[startKey])todosByHour[startKey]=[];
       if(!todosByHour[startKey].find(e=>e.txt===txt&&e.ps===ps))
         todosByHour[startKey].push({...todoData,isCont:false,showActualHere:false});
-
-      // Mark actual display: show actual on the plan-start row (first row)
-      // find the first entry for this todo and mark showActualHere
       const firstEntries=todosByHour[startKey].filter(e=>e.txt===txt&&e.ps===ps&&!e.isCont);
       if(firstEntries.length>0) firstEntries[firstEntries.length-1].showActualHere=true;
-
     } else if(as){
-      // No plan time, but has actual — show in actual start hour
       const h=parseInt(as.split(':')[0]);
       const hkey=String(h).padStart(2,'0')+':00';
       if(!todosByHour[hkey])todosByHour[hkey]=[];
@@ -662,27 +666,32 @@ function renderUnifiedTimeline(){
     otasksByHour[hour].push({txt,as,ae,note,done});
   });
 
+  // Add axis header placeholder (aligns with column header row)
+  const axHdr=document.createElement('div');axHdr.style.cssText='height:24px;flex-shrink:0';
+  ax.appendChild(axHdr);
+
+  // Add column header
+  const hdr=document.createElement('div');hdr.className='utl-col-hdr';
+  hdr.innerHTML='<div class="utl-hdr-cell">事项</div><div class="utl-hdr-cell">计划时间</div><div class="utl-hdr-cell">实际时间</div>';
+  rows.appendChild(hdr);
+
   HOURS.forEach(h=>{
     // Axis label
     const slot=document.createElement('div');slot.className='utl-slot';
     slot.innerHTML=`<span class="utl-lbl">${h}</span>`;
     ax.appendChild(slot);
 
-    // Row
     const row=document.createElement('div');row.className='utl-row';row.dataset.hour=h;
 
     const todos=todosByHour[h]||[];
     const extras=otasksByHour[h]||[];
-
     const planTodos=todos.filter(t=>!t.isCont);
     const contTodos=todos.filter(t=>t.isCont);
 
     if(todos.length>0){
       row.classList.add('has-plan');
-      const allDone=planTodos.every(t=>t.done||t.status==='done');
       const anyDev=planTodos.some(t=>t.atype==='deviation');
-      if(allDone&&planTodos.some(t=>t.isActual)) row.classList.add('is-done');
-      else if(anyDev) row.classList.add('is-deviation');
+      if(anyDev) row.classList.add('is-deviation');
       if(contTodos.length>0&&planTodos.length===0) row.classList.add('is-cont');
     }
     if(extras.length>0){
@@ -690,79 +699,99 @@ function renderUnifiedTimeline(){
       if(todos.length===0) row.classList.add('no-plan');
     }
 
-    // Two-column layout: left=plan, right=actual+extra
+    // ── COL 1: names (todos + extras together) ──
+    const colName=document.createElement('div');colName.className='utl-col-name';
+
+    // ── COL 2: plan times (todos only; extras have no plan) ──
     const colPlan=document.createElement('div');colPlan.className='utl-col-plan';
+
+    // ── COL 3: actual times (todos + extras) ──
     const colActual=document.createElement('div');colActual.className='utl-col-actual';
 
-    // LEFT COLUMN: plan items
+    // Build parallel rows: todos first
+    // We need name, plan, actual to align row-by-row
+    // Each todo gets one entry across all 3 cols
     todos.forEach(t=>{
-      const item=document.createElement('div');
-      item.className='utl-item'+(t.isCont?' is-cont':'');
-
-      const planSec=document.createElement('div');planSec.className='utl-item-plan';
-      if(t.isPlan){
-        const dot=document.createElement('span');dot.className='utl-plan-dot';
-        const txt2=document.createElement('span');txt2.className='utl-plan-txt'+(t.done?' is-done':'');txt2.textContent=t.txt;
-        const ptime=document.createElement('span');ptime.className='utl-plan-time';
-        if(t.isCont){
-          ptime.textContent=t.pe?'→'+t.pe:'';
-          ptime.style.opacity='.5';ptime.style.fontSize='8px';
-        } else {
-          ptime.textContent=t.ps+(t.pe?'–'+t.pe:'');
-        }
-        planSec.appendChild(dot);planSec.appendChild(txt2);planSec.appendChild(ptime);
-      } else {
-        // actual-only entry shown in left col with blue dot
-        const dot=document.createElement('span');dot.className='utl-plan-dot';dot.style.background='var(--bl)';dot.style.borderRadius='2px';
-        const txt2=document.createElement('span');txt2.className='utl-plan-txt';txt2.textContent=t.txt;
-        planSec.appendChild(dot);planSec.appendChild(txt2);
-      }
-      item.appendChild(planSec);
-      colPlan.appendChild(item);
-
-      // Note in left col too
+      // Name cell
+      const nameEntry=document.createElement('div');nameEntry.className='utl-name-entry';
+      const dot=document.createElement('span');
+      dot.className='utl-plan-dot'+(t.isCont?' is-cont':'')+(t.isPlan?'':' is-cont');
+      if(!t.isPlan){dot.style.background='var(--bl)';dot.style.borderRadius='2px';}
+      const txt2=document.createElement('span');
+      txt2.className='utl-plan-txt'+(t.done?' is-done':'');
+      txt2.textContent=t.txt;
+      nameEntry.appendChild(dot);nameEntry.appendChild(txt2);
+      colName.appendChild(nameEntry);
       if(t.note&&!t.isCont){
         const note=document.createElement('div');note.className='utl-note';note.textContent='↳ '+t.note;
-        colPlan.appendChild(note);
+        colName.appendChild(note);
       }
-    });
 
-    // RIGHT COLUMN: actual times + extra/otask
-    todos.forEach(t=>{
-      if(t.isActual&&t.showActualHere){
-        const actSec=document.createElement('div');actSec.className='utl-item-actual';
-        const adot=document.createElement('span');adot.className=`utl-actual-dot is-${t.atype}`;
-        const atime=document.createElement('span');atime.className=`utl-actual-time is-${t.atype}`;
-        atime.textContent=t.as+(t.ae?'–'+t.ae:'');
-        actSec.appendChild(adot);actSec.appendChild(atime);
-        if(t.atype==='deviation'&&t.ps&&t.pe&&t.as&&t.ae){
-          const diff=timeToMin(t.ae)-timeToMin(t.as)-(timeToMin(t.pe)-timeToMin(t.ps));
-          const badge=document.createElement('span');badge.className='utl-dev-badge';
-          badge.textContent=(diff>0?'+':'')+diff+'分';
-          actSec.appendChild(badge);
+      // Plan time cell
+      const planSlot=document.createElement('div');planSlot.className='utl-plan-slot';
+      if(t.isPlan){
+        const badge=document.createElement('span');
+        badge.className='utl-time-badge plan'+(t.isCont?' is-cont':'');
+        if(t.isCont){
+          badge.textContent=t.pe?'→'+t.pe:'↓';
+        } else {
+          badge.textContent=t.ps+(t.pe?'–'+t.pe:'');
         }
-        colActual.appendChild(actSec);
+        planSlot.appendChild(badge);
       }
+      colPlan.appendChild(planSlot);
+
+      // Actual time cell
+      const actSlot=document.createElement('div');actSlot.className='utl-actual-slot';
+      if(t.isActual&&t.showActualHere){
+        const badge=document.createElement('span');
+        badge.className=`utl-time-badge actual-${t.atype}`;
+        badge.textContent=t.as+(t.ae?'–'+t.ae:'');
+        actSlot.appendChild(badge);
+        // diff badge
+        if((t.atype==='deviation'||t.atype==='done'||t.atype==='partial')&&t.ps&&t.pe&&t.as&&t.ae){
+          const diff=timeToMin(t.ae)-timeToMin(t.as)-(timeToMin(t.pe)-timeToMin(t.ps));
+          if(diff!==0){
+            const db=document.createElement('span');
+            db.className='utl-diff-badge '+(diff>0?'over':'under');
+            db.textContent=(diff>0?'+':'')+diff+'分';
+            actSlot.appendChild(db);
+          }
+        }
+      }
+      colActual.appendChild(actSlot);
     });
 
-    // Extra/otask rows in RIGHT column
+    // Extras (otasks): name in col1, no plan in col2, actual in col3
     extras.forEach(ex=>{
-      const ext=document.createElement('div');ext.className='utl-extra';
-      const dot=document.createElement('span');dot.className='utl-extra-dot';
+      // Name
+      const nameEntry=document.createElement('div');nameEntry.className='utl-name-entry';
       const tag=document.createElement('span');tag.className='utl-extra-tag';tag.textContent='临时';
-      const txt=document.createElement('span');txt.className='utl-extra-txt'+(ex.done?' is-done':'');
-      if(ex.done)txt.style.textDecoration='line-through';
-      txt.textContent=ex.txt;
-      const time=document.createElement('span');time.className='utl-extra-time';
-      time.textContent=ex.as+(ex.ae?'–'+ex.ae:'');
-      ext.appendChild(dot);ext.appendChild(tag);ext.appendChild(txt);ext.appendChild(time);
-      colActual.appendChild(ext);
+      const txt3=document.createElement('span');txt3.className='utl-plan-txt'+(ex.done?' is-done':'');
+      if(ex.done)txt3.style.textDecoration='line-through';
+      txt3.textContent=ex.txt;
+      nameEntry.appendChild(tag);nameEntry.appendChild(txt3);
+      colName.appendChild(nameEntry);
       if(ex.note){
         const note=document.createElement('div');note.className='utl-note';note.textContent='↳ '+ex.note;
-        colActual.appendChild(note);
+        colName.appendChild(note);
       }
+
+      // Plan — empty placeholder to keep rows aligned
+      const planSlot=document.createElement('div');planSlot.className='utl-plan-slot';
+      colPlan.appendChild(planSlot);
+
+      // Actual
+      const actSlot=document.createElement('div');actSlot.className='utl-actual-slot';
+      if(ex.as){
+        const badge=document.createElement('span');badge.className='utl-time-badge actual-extra';
+        badge.textContent=ex.as+(ex.ae?'–'+ex.ae:'');
+        actSlot.appendChild(badge);
+      }
+      colActual.appendChild(actSlot);
     });
 
+    row.appendChild(colName);
     row.appendChild(colPlan);
     row.appendChild(colActual);
     rows.appendChild(row);
