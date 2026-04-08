@@ -68,10 +68,12 @@ body{font-family:var(--ss);background:var(--paper);color:var(--ink);min-height:1
 .utl-lbl{font-family:var(--mo);font-size:9.5px;color:var(--ink-m);white-space:nowrap;position:relative}
 .utl-lbl::after{content:'';position:absolute;right:-12px;top:5px;width:8px;height:1px;background:var(--ac);opacity:.3}
 .utl-rows{flex:1;display:flex;flex-direction:column}
-/* each hour row */
-.utl-row{min-height:44px;display:flex;flex-direction:column;justify-content:center;padding:4px 7px;border-bottom:1px dashed var(--paper-l);position:relative;transition:background var(--t);gap:3px}
+/* each hour row — two-column: left=plan, right=actual+extra */
+.utl-row{min-height:44px;display:grid;grid-template-columns:1fr 1fr;align-items:start;padding:4px 7px;border-bottom:1px dashed var(--paper-l);position:relative;transition:background var(--t)}
 .utl-row:hover{background:var(--paper-w)}
-/* combined plan+actual line: plan | actual (diff) in one row */
+.utl-col-plan{display:flex;flex-direction:column;gap:3px;padding-right:5px;border-right:1px solid var(--paper-l)}
+.utl-col-actual{display:flex;flex-direction:column;gap:3px;padding-left:6px}
+/* combined plan+actual line */
 .utl-item{display:flex;align-items:center;gap:0;min-height:20px;position:relative}
 /* plan section of item */
 .utl-item-plan{display:flex;align-items:center;gap:4px;flex:1;min-width:0}
@@ -108,9 +110,8 @@ body{font-family:var(--ss);background:var(--paper);color:var(--ink);min-height:1
 .utl-connector{width:1px;height:100%;background:var(--bdr);margin-left:3px;flex-shrink:0;display:none}
 /* row states */
 .utl-row.has-plan{background:linear-gradient(to right,rgba(139,105,20,.04),transparent)}
-.utl-row.has-plan::before{content:'';position:absolute;left:0;top:4px;bottom:4px;width:3px;background:var(--am);border-radius:2px;opacity:.6}
-.utl-row.is-done{background:linear-gradient(to right,rgba(42,92,63,.06),transparent) !important}
-.utl-row.is-done::before{background:var(--gr) !important;opacity:.8}
+.utl-row.has-plan::before{content:'';position:absolute;left:0;top:4px;bottom:4px;width:3px;background:var(--am);border-radius:2px;opacity:.6;z-index:1}
+/* is-done: no special background, keep plan amber style */
 .utl-row.is-deviation{background:linear-gradient(to right,rgba(139,58,58,.06),transparent) !important}
 .utl-row.is-deviation::before{background:var(--ac) !important;opacity:.8}
 .utl-row.has-extra{background:linear-gradient(to right,rgba(107,63,160,.05),transparent)}
@@ -689,65 +690,62 @@ function renderUnifiedTimeline(){
       if(todos.length===0) row.classList.add('no-plan');
     }
 
-    // Render todos: plan + actual side by side in one .utl-item line
+    // Two-column layout: left=plan, right=actual+extra
+    const colPlan=document.createElement('div');colPlan.className='utl-col-plan';
+    const colActual=document.createElement('div');colActual.className='utl-col-actual';
+
+    // LEFT COLUMN: plan items
     todos.forEach(t=>{
       const item=document.createElement('div');
       item.className='utl-item'+(t.isCont?' is-cont':'');
 
-      // Plan section
       const planSec=document.createElement('div');planSec.className='utl-item-plan';
       if(t.isPlan){
         const dot=document.createElement('span');dot.className='utl-plan-dot';
         const txt2=document.createElement('span');txt2.className='utl-plan-txt'+(t.done?' is-done':'');txt2.textContent=t.txt;
         const ptime=document.createElement('span');ptime.className='utl-plan-time';
         if(t.isCont){
-          // continuation: show "→ pe" to indicate end time
           ptime.textContent=t.pe?'→'+t.pe:'';
-          ptime.style.opacity='.5';
-          ptime.style.fontSize='8px';
+          ptime.style.opacity='.5';ptime.style.fontSize='8px';
         } else {
           ptime.textContent=t.ps+(t.pe?'–'+t.pe:'');
         }
         planSec.appendChild(dot);planSec.appendChild(txt2);planSec.appendChild(ptime);
       } else {
-        // actual-only (no plan)
+        // actual-only entry shown in left col with blue dot
         const dot=document.createElement('span');dot.className='utl-plan-dot';dot.style.background='var(--bl)';dot.style.borderRadius='2px';
         const txt2=document.createElement('span');txt2.className='utl-plan-txt';txt2.textContent=t.txt;
         planSec.appendChild(dot);planSec.appendChild(txt2);
       }
       item.appendChild(planSec);
+      colPlan.appendChild(item);
 
-      // Actual section (only show on the designated row: plan-start row or actual-hour row)
+      // Note in left col too
+      if(t.note&&!t.isCont){
+        const note=document.createElement('div');note.className='utl-note';note.textContent='↳ '+t.note;
+        colPlan.appendChild(note);
+      }
+    });
+
+    // RIGHT COLUMN: actual times + extra/otask
+    todos.forEach(t=>{
       if(t.isActual&&t.showActualHere){
-        const sep=document.createElement('span');sep.className='utl-sep';
-        item.appendChild(sep);
-
         const actSec=document.createElement('div');actSec.className='utl-item-actual';
         const adot=document.createElement('span');adot.className=`utl-actual-dot is-${t.atype}`;
         const atime=document.createElement('span');atime.className=`utl-actual-time is-${t.atype}`;
         atime.textContent=t.as+(t.ae?'–'+t.ae:'');
         actSec.appendChild(adot);actSec.appendChild(atime);
-
-        // Deviation badge (diff in minutes)
         if(t.atype==='deviation'&&t.ps&&t.pe&&t.as&&t.ae){
           const diff=timeToMin(t.ae)-timeToMin(t.as)-(timeToMin(t.pe)-timeToMin(t.ps));
           const badge=document.createElement('span');badge.className='utl-dev-badge';
           badge.textContent=(diff>0?'+':'')+diff+'分';
           actSec.appendChild(badge);
         }
-        item.appendChild(actSec);
-      }
-
-      row.appendChild(item);
-
-      // Note on first (non-cont) row only
-      if(t.note&&!t.isCont){
-        const note=document.createElement('div');note.className='utl-note';note.textContent='↳ '+t.note;
-        row.appendChild(note);
+        colActual.appendChild(actSec);
       }
     });
 
-    // Extra/otask rows
+    // Extra/otask rows in RIGHT column
     extras.forEach(ex=>{
       const ext=document.createElement('div');ext.className='utl-extra';
       const dot=document.createElement('span');dot.className='utl-extra-dot';
@@ -758,13 +756,15 @@ function renderUnifiedTimeline(){
       const time=document.createElement('span');time.className='utl-extra-time';
       time.textContent=ex.as+(ex.ae?'–'+ex.ae:'');
       ext.appendChild(dot);ext.appendChild(tag);ext.appendChild(txt);ext.appendChild(time);
-      row.appendChild(ext);
+      colActual.appendChild(ext);
       if(ex.note){
         const note=document.createElement('div');note.className='utl-note';note.textContent='↳ '+ex.note;
-        row.appendChild(note);
+        colActual.appendChild(note);
       }
     });
 
+    row.appendChild(colPlan);
+    row.appendChild(colActual);
     rows.appendChild(row);
   });
 }
