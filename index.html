@@ -64,34 +64,40 @@ body{font-family:var(--ss);background:var(--paper);color:var(--ink);min-height:1
 .utl-wrap{display:flex;overflow-y:auto;flex:1}
 .utl-ax{display:flex;flex-direction:column;width:42px;flex-shrink:0;padding-right:8px;position:relative}
 .utl-ax::after{content:'';position:absolute;right:0;top:0;bottom:0;width:1.5px;background:var(--ac);opacity:.3}
-.utl-slot{min-height:52px;display:flex;align-items:flex-start;padding-top:6px}
+.utl-slot{min-height:44px;display:flex;align-items:flex-start;padding-top:5px}
 .utl-lbl{font-family:var(--mo);font-size:9.5px;color:var(--ink-m);white-space:nowrap;position:relative}
 .utl-lbl::after{content:'';position:absolute;right:-12px;top:5px;width:8px;height:1px;background:var(--ac);opacity:.3}
 .utl-rows{flex:1;display:flex;flex-direction:column}
 /* each hour row */
-.utl-row{min-height:52px;display:flex;flex-direction:column;justify-content:center;padding:5px 7px;border-bottom:1px dashed var(--paper-l);position:relative;transition:background var(--t);gap:3px}
+.utl-row{min-height:44px;display:flex;flex-direction:column;justify-content:center;padding:4px 7px;border-bottom:1px dashed var(--paper-l);position:relative;transition:background var(--t);gap:3px}
 .utl-row:hover{background:var(--paper-w)}
-/* plan bar */
-.utl-plan{display:flex;align-items:center;gap:5px;min-height:18px;position:relative}
-.utl-plan-bar{position:absolute;left:0;top:0;bottom:0;background:var(--am);opacity:.18;border-radius:2px;pointer-events:none}
+/* combined plan+actual line: plan | actual (diff) in one row */
+.utl-item{display:flex;align-items:center;gap:0;min-height:20px;position:relative}
+/* plan section of item */
+.utl-item-plan{display:flex;align-items:center;gap:4px;flex:1;min-width:0}
 .utl-plan-dot{width:7px;height:7px;border-radius:50%;background:var(--am);flex-shrink:0;opacity:.8}
-.utl-plan-txt{font-size:11.5px;color:var(--ink);font-family:var(--ss);flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.utl-plan-txt{font-size:11px;color:var(--ink);font-family:var(--ss);flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .utl-plan-txt.is-done{text-decoration:line-through;color:var(--ink-m)}
 .utl-plan-time{font-family:var(--mo);font-size:9px;color:var(--am);white-space:nowrap;flex-shrink:0;font-weight:500}
-/* actual bar */
-.utl-actual{display:flex;align-items:center;gap:5px;min-height:16px;position:relative;padding-left:2px}
+/* divider between plan and actual */
+.utl-sep{width:1px;height:14px;background:var(--bdr);margin:0 5px;flex-shrink:0}
+/* actual section of item */
+.utl-item-actual{display:flex;align-items:center;gap:3px;flex-shrink:0}
 .utl-actual-dot{width:7px;height:7px;border-radius:2px;background:var(--bl);flex-shrink:0}
 .utl-actual-dot.is-done{background:var(--gr)}
 .utl-actual-dot.is-partial{background:var(--am)}
 .utl-actual-dot.is-deviation{background:var(--ac)}
 .utl-actual-dot.is-extra{background:#6b3fa0}
-.utl-actual-time{font-family:var(--mo);font-size:9.5px;color:var(--bl);font-weight:500;white-space:nowrap;flex-shrink:0}
+.utl-actual-time{font-family:var(--mo);font-size:9px;color:var(--bl);font-weight:500;white-space:nowrap;flex-shrink:0}
 .utl-actual-time.is-done{color:var(--gr)}
 .utl-actual-time.is-partial{color:var(--am)}
 .utl-actual-time.is-deviation{color:var(--ac)}
 .utl-actual-time.is-extra{color:#6b3fa0}
-.utl-actual-name{font-size:10.5px;color:var(--ink-m);flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.utl-dev-badge{font-family:var(--mo);font-size:9px;font-weight:700;color:var(--ac);background:var(--ac-p);padding:0px 4px;border-radius:2px;white-space:nowrap;flex-shrink:0}
+.utl-actual-name{font-size:10px;color:var(--ink-m);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:90px}
+.utl-dev-badge{font-family:var(--mo);font-size:8.5px;font-weight:700;color:var(--ac);background:var(--ac-p);padding:0px 3px;border-radius:2px;white-space:nowrap;flex-shrink:0;margin-left:2px}
+/* continuation row marker (for multi-hour tasks) */
+.utl-item.is-cont .utl-plan-dot{opacity:.3;border-radius:2px}
+.utl-item.is-cont .utl-plan-time{opacity:.5;font-size:8px}
 /* extra (otask) row */
 .utl-extra{display:flex;align-items:center;gap:5px;min-height:16px}
 .utl-extra-dot{width:7px;height:7px;border-radius:2px;background:#6b3fa0;flex-shrink:0}
@@ -102,13 +108,16 @@ body{font-family:var(--ss);background:var(--paper);color:var(--ink);min-height:1
 .utl-connector{width:1px;height:100%;background:var(--bdr);margin-left:3px;flex-shrink:0;display:none}
 /* row states */
 .utl-row.has-plan{background:linear-gradient(to right,rgba(139,105,20,.04),transparent)}
-.utl-row.has-plan::before{content:'';position:absolute;left:0;top:6px;bottom:6px;width:3px;background:var(--am);border-radius:2px;opacity:.6}
+.utl-row.has-plan::before{content:'';position:absolute;left:0;top:4px;bottom:4px;width:3px;background:var(--am);border-radius:2px;opacity:.6}
 .utl-row.is-done{background:linear-gradient(to right,rgba(42,92,63,.06),transparent) !important}
 .utl-row.is-done::before{background:var(--gr) !important;opacity:.8}
 .utl-row.is-deviation{background:linear-gradient(to right,rgba(139,58,58,.06),transparent) !important}
 .utl-row.is-deviation::before{background:var(--ac) !important;opacity:.8}
 .utl-row.has-extra{background:linear-gradient(to right,rgba(107,63,160,.05),transparent)}
-.utl-row.has-extra.no-plan::before{content:'';position:absolute;left:0;top:6px;bottom:6px;width:3px;background:#6b3fa0;border-radius:2px;opacity:.7}
+.utl-row.has-extra.no-plan::before{content:'';position:absolute;left:0;top:4px;bottom:4px;width:3px;background:#6b3fa0;border-radius:2px;opacity:.7}
+/* continuation rows (task spans multiple hours) */
+.utl-row.is-cont{background:linear-gradient(to right,rgba(139,105,20,.02),transparent)}
+.utl-row.is-cont::before{opacity:.25 !important}
 /* note line */
 .utl-note{font-size:9.5px;color:var(--ink-m);padding-left:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-family:var(--ss)}
 
@@ -572,8 +581,11 @@ function renderUnifiedTimeline(){
   if(!ax||!rows)return;
   ax.innerHTML='';rows.innerHTML='';
 
-  // Collect todos keyed by plan start hour
-  const todosByHour={};
+  // Collect todos — each todo can span multiple hours
+  // For each todo, record which hours it occupies (from plan start hour to plan end hour)
+  // plus which hour its actual falls in (if different)
+  const todosByHour={}; // hour -> [{todo, isCont (continuation row), isActualHere}]
+
   document.querySelectorAll('.tcard').forEach(c=>{
     const ps=c.querySelector('.eps')?.value||'';
     const pe=c.querySelector('.epe')?.value||'';
@@ -584,12 +596,55 @@ function renderUnifiedTimeline(){
     const done=c.classList.contains('done');
     const note=c.querySelector('.enote')?.value||'';
     if(!txt)return;
-    const planHour=ps?ps.split(':')[0].padStart(2,'0')+':00':null;
-    const actualHour=as?as.split(':')[0].padStart(2,'0')+':00':null;
-    const targetHour=planHour||actualHour;
-    if(!targetHour)return;
-    if(!todosByHour[targetHour])todosByHour[targetHour]=[];
-    todosByHour[targetHour].push({txt,ps,pe,as,ae,status,done,note,isPlan:!!ps,isActual:!!as});
+
+    // Determine atype for actual
+    function getAtype(){
+      if(done||status==='done') return 'done';
+      if(status==='partial') return 'partial';
+      if(ps&&pe&&as&&ae){
+        const diff=timeToMin(ae)-timeToMin(as)-(timeToMin(pe)-timeToMin(ps));
+        if(Math.abs(diff)>=5) return 'deviation';
+      }
+      return 'bl';
+    }
+
+    const todoData={txt,ps,pe,as,ae,status,done,note,isPlan:!!ps,isActual:!!as,atype:getAtype()};
+
+    if(ps){
+      // Plan occupies from ps hour to pe hour (inclusive of each hour slot it touches)
+      const startH=parseInt(ps.split(':')[0]);
+      const endH=pe?parseInt(pe.split(':')[0]):startH;
+      // endMin: if pe minutes==0, the task ends exactly at that hour boundary (don't include that hour)
+      const endMin=pe?parseInt(pe.split(':')[1]||0):0;
+
+      for(let h=startH;h<=(endMin>0?endH:endH-1);h++){
+        if(h<6||h>23)continue; // only within HOURS range
+        const hkey=String(h).padStart(2,'0')+':00';
+        if(!todosByHour[hkey])todosByHour[hkey]=[];
+        todosByHour[hkey].push({...todoData,isCont:h>startH,showActualHere:false});
+      }
+      // If pe==startH (same hour) or no pe, show in startH
+      if(startH===endH||(pe&&endMin===0&&startH===endH-1)){
+        // already handled
+      }
+      // Always ensure start hour is in
+      const startKey=String(startH).padStart(2,'0')+':00';
+      if(!todosByHour[startKey]){todosByHour[startKey]=[];}
+      if(!todosByHour[startKey].find(e=>e.txt===txt&&e.ps===ps))
+        todosByHour[startKey].push({...todoData,isCont:false,showActualHere:false});
+
+      // Mark actual display: show actual on the plan-start row (first row)
+      // find the first entry for this todo and mark showActualHere
+      const firstEntries=todosByHour[startKey].filter(e=>e.txt===txt&&e.ps===ps&&!e.isCont);
+      if(firstEntries.length>0) firstEntries[firstEntries.length-1].showActualHere=true;
+
+    } else if(as){
+      // No plan time, but has actual — show in actual start hour
+      const h=parseInt(as.split(':')[0]);
+      const hkey=String(h).padStart(2,'0')+':00';
+      if(!todosByHour[hkey])todosByHour[hkey]=[];
+      todosByHour[hkey].push({...todoData,isCont:false,showActualHere:true});
+    }
   });
 
   // Collect otasks by actual start hour
@@ -617,74 +672,76 @@ function renderUnifiedTimeline(){
 
     const todos=todosByHour[h]||[];
     const extras=otasksByHour[h]||[];
-    const hasContent=todos.length>0||extras.length>0;
+
+    const planTodos=todos.filter(t=>!t.isCont);
+    const contTodos=todos.filter(t=>t.isCont);
 
     if(todos.length>0){
       row.classList.add('has-plan');
-      // Determine overall done/deviation state
-      const allDone=todos.every(t=>t.done||t.status==='done');
-      const anyDev=todos.some(t=>{
-        if(!t.ps||!t.pe||!t.as||!t.ae)return false;
-        const diff=timeToMin(t.ae)-timeToMin(t.as)-(timeToMin(t.pe)-timeToMin(t.ps));
-        return Math.abs(diff)>=5;
-      });
-      if(allDone&&todos.some(t=>t.isActual)) row.classList.add('is-done');
+      const allDone=planTodos.every(t=>t.done||t.status==='done');
+      const anyDev=planTodos.some(t=>t.atype==='deviation');
+      if(allDone&&planTodos.some(t=>t.isActual)) row.classList.add('is-done');
       else if(anyDev) row.classList.add('is-deviation');
+      if(contTodos.length>0&&planTodos.length===0) row.classList.add('is-cont');
     }
     if(extras.length>0){
       row.classList.add('has-extra');
       if(todos.length===0) row.classList.add('no-plan');
     }
 
+    // Render todos: plan + actual side by side in one .utl-item line
     todos.forEach(t=>{
-      // Plan line
+      const item=document.createElement('div');
+      item.className='utl-item'+(t.isCont?' is-cont':'');
+
+      // Plan section
+      const planSec=document.createElement('div');planSec.className='utl-item-plan';
       if(t.isPlan){
-        const plan=document.createElement('div');plan.className='utl-plan';
         const dot=document.createElement('span');dot.className='utl-plan-dot';
-        const txt=document.createElement('span');txt.className='utl-plan-txt'+(t.done?' is-done':'');txt.textContent=t.txt;
-        const time=document.createElement('span');time.className='utl-plan-time';
-        time.textContent=t.ps+(t.pe?'–'+t.pe:'');
-        plan.appendChild(dot);plan.appendChild(txt);plan.appendChild(time);
-        row.appendChild(plan);
+        const txt2=document.createElement('span');txt2.className='utl-plan-txt'+(t.done?' is-done':'');txt2.textContent=t.txt;
+        const ptime=document.createElement('span');ptime.className='utl-plan-time';
+        if(t.isCont){
+          // continuation: show "→ pe" to indicate end time
+          ptime.textContent=t.pe?'→'+t.pe:'';
+          ptime.style.opacity='.5';
+          ptime.style.fontSize='8px';
+        } else {
+          ptime.textContent=t.ps+(t.pe?'–'+t.pe:'');
+        }
+        planSec.appendChild(dot);planSec.appendChild(txt2);planSec.appendChild(ptime);
+      } else {
+        // actual-only (no plan)
+        const dot=document.createElement('span');dot.className='utl-plan-dot';dot.style.background='var(--bl)';dot.style.borderRadius='2px';
+        const txt2=document.createElement('span');txt2.className='utl-plan-txt';txt2.textContent=t.txt;
+        planSec.appendChild(dot);planSec.appendChild(txt2);
       }
-      // Actual line
-      if(t.isActual){
-        const actual=document.createElement('div');actual.className='utl-actual';
-        // Determine type
-        let atype='bl';
-        if(t.done||t.status==='done') atype='done';
-        else if(t.status==='partial') atype='partial';
-        else if(t.ps&&t.pe&&t.as&&t.ae){
-          const diff=timeToMin(t.ae)-timeToMin(t.as)-(timeToMin(t.pe)-timeToMin(t.ps));
-          if(Math.abs(diff)>=5) atype='deviation';
-        }
-        const dot=document.createElement('span');dot.className=`utl-actual-dot is-${atype}`;
-        const time=document.createElement('span');
-        time.className=`utl-actual-time is-${atype}`;
-        time.textContent=t.as+(t.ae?'–'+t.ae:'');
-        actual.appendChild(dot);actual.appendChild(time);
-        // Show name only if different hour from plan (actual in different hour row)
-        if(!t.isPlan){
-          const name=document.createElement('span');name.className='utl-actual-name';name.textContent=t.txt;
-          actual.appendChild(name);
-        }
-        // Deviation badge
-        if(atype==='deviation'&&t.ps&&t.pe&&t.as&&t.ae){
+      item.appendChild(planSec);
+
+      // Actual section (only show on the designated row: plan-start row or actual-hour row)
+      if(t.isActual&&t.showActualHere){
+        const sep=document.createElement('span');sep.className='utl-sep';
+        item.appendChild(sep);
+
+        const actSec=document.createElement('div');actSec.className='utl-item-actual';
+        const adot=document.createElement('span');adot.className=`utl-actual-dot is-${t.atype}`;
+        const atime=document.createElement('span');atime.className=`utl-actual-time is-${t.atype}`;
+        atime.textContent=t.as+(t.ae?'–'+t.ae:'');
+        actSec.appendChild(adot);actSec.appendChild(atime);
+
+        // Deviation badge (diff in minutes)
+        if(t.atype==='deviation'&&t.ps&&t.pe&&t.as&&t.ae){
           const diff=timeToMin(t.ae)-timeToMin(t.as)-(timeToMin(t.pe)-timeToMin(t.ps));
           const badge=document.createElement('span');badge.className='utl-dev-badge';
           badge.textContent=(diff>0?'+':'')+diff+'分';
-          actual.appendChild(badge);
+          actSec.appendChild(badge);
         }
-        row.appendChild(actual);
-      } else if(!t.isPlan&&!t.isActual){
-        // plan-only pending
-        const plan=document.createElement('div');plan.className='utl-plan';
-        const dot=document.createElement('span');dot.className='utl-plan-dot';
-        const txt2=document.createElement('span');txt2.className='utl-plan-txt';txt2.textContent=t.txt;
-        plan.appendChild(dot);plan.appendChild(txt2);row.appendChild(plan);
+        item.appendChild(actSec);
       }
-      // Note
-      if(t.note){
+
+      row.appendChild(item);
+
+      // Note on first (non-cont) row only
+      if(t.note&&!t.isCont){
         const note=document.createElement('div');note.className='utl-note';note.textContent='↳ '+t.note;
         row.appendChild(note);
       }
