@@ -615,12 +615,12 @@ function renderUnifiedTimeline(){
     if(!txt)return;
 
     function getAtype(){
-      if(done||status==='done') return 'done';
       if(ps&&pe&&as&&ae){
-        const diff=timeToMin(ae)-timeToMin(as)-(timeToMin(pe)-timeToMin(ps));
+        const durDiff=timeToMin(ae)-timeToMin(as)-(timeToMin(pe)-timeToMin(ps));
         const startDiff=timeToMin(as)-timeToMin(ps);
-        if(Math.abs(diff)>=1||Math.abs(startDiff)>=1) return 'deviation';
+        if(Math.abs(durDiff)>=1||Math.abs(startDiff)>=1) return 'deviation';
       }
+      if(done||status==='done') return 'done';
       return 'same';
     }
     const todoData={txt,ps,pe,as,ae,status,done,note,isPlan:!!ps,isActual:!!as,atype:getAtype()};
