@@ -382,7 +382,7 @@ body{font-family:var(--ss);background:var(--paper);color:var(--ink);min-height:1
           </div>
         </div>
         <div class="utl-wrap" style="flex:1">
-          <div class="utl-ax" id="utl-ax"></div>
+          <div id="utl-ax" style="display:none"></div>
           <div class="utl-rows" id="utl-rows"></div>
         </div>
       </div>
@@ -685,49 +685,22 @@ function renderUnifiedTimeline(){
   });
 
   // ── 4. Column header ──
-  const axHdr=document.createElement('div');axHdr.style.cssText='height:24px;flex-shrink:0';
-  ax.appendChild(axHdr);
   const hdr=document.createElement('div');hdr.className='utl-col-hdr';
   hdr.innerHTML='<div class="utl-hdr-cell">事项</div><div class="utl-hdr-cell">计划时间</div><div class="utl-hdr-cell">实际时间</div>';
   rows.appendChild(hdr);
 
   // ── 5. Render items ──
-  // Deduplicate: events that span multiple hours — only show once (at their sortMin)
   const renderedEvents=new Set();
 
   items.forEach(item=>{
     if(item.kind==='hour'){
-      const slot=document.createElement('div');slot.className='utl-slot';
-      slot.innerHTML=`<span class="utl-lbl">${item.label}</span>`;
-      ax.appendChild(slot);
-
-      // Emit an empty hour row so the axis label has something to align with
-      const row=document.createElement('div');row.className='utl-row';row.dataset.hour=item.label;
-      // Will be populated only if there are events at exactly this hour with no other slot
-      // Actually we need the row for axis alignment - but events are rendered separately now.
-      // So this row is just a spacer if there are no events at this exact hour.
-      // We check: are there any events whose sortMin falls exactly on this hour?
-      const hasEventsHere=events.some(ev=>ev.sortMin===item.sortMin);
-      if(!hasEventsHere){
-        // Empty placeholder row for the hour
-        const colName=document.createElement('div');colName.className='utl-col-name';
-        const colPlan=document.createElement('div');colPlan.className='utl-col-plan';
-        const colActual=document.createElement('div');colActual.className='utl-col-actual';
-        row.appendChild(colName);row.appendChild(colPlan);row.appendChild(colActual);
-        rows.appendChild(row);
-      }
-      // If there ARE events here, they'll be rendered by the 'event' items below
+      // axis hidden — no output needed
     }
 
     else if(item.kind==='event'){
       const evKey=item.ev.sortMin+'_'+item.ev.data.txt;
       if(renderedEvents.has(evKey))return;
       renderedEvents.add(evKey);
-
-      // Axis: blank placeholder to match row height
-      const axSlot=document.createElement('div');
-      axSlot.style.cssText='flex-shrink:0;min-height:32px';
-      ax.appendChild(axSlot);
 
       // Row
       const ev=item.ev;
@@ -815,22 +788,17 @@ function renderUnifiedTimeline(){
       const dh=Math.floor(g.dur/60),dm=g.dur%60;
       const durTxt=dh>0?(dm>0?dh+'h'+dm+'分':dh+'h'):dm+'分';
 
-      // Axis: gap badge
-      const axGap=document.createElement('div');
-      axGap.style.cssText='display:flex;align-items:center;justify-content:flex-end;padding-right:8px;flex-shrink:0;min-height:24px';
-      const axBadge=document.createElement('span');axBadge.className='utl-gap-badge';
-      axBadge.textContent=durTxt;
-      axGap.appendChild(axBadge);
-      ax.appendChild(axGap);
-
-      // Row: gap indicator
+      // Row: gap indicator with duration badge on left
       const rowGap=document.createElement('div');
       rowGap.style.cssText='display:flex;align-items:center;min-height:24px;padding:3px 7px;border-bottom:1px dashed rgba(42,92,63,.2);background:rgba(42,92,63,.04)';
+      const durBadge=document.createElement('span');durBadge.className='utl-gap-badge';
+      durBadge.style.cssText='margin-right:8px;flex-shrink:0';
+      durBadge.textContent=durTxt;
       const ruleEl=document.createElement('div');ruleEl.className='utl-gap-rule';ruleEl.style.cssText='flex:1;height:1px';
       const lblEl=document.createElement('span');lblEl.className='utl-gap-label';
       lblEl.style.cssText='margin-left:8px;white-space:nowrap;font-size:10px;font-weight:500;color:rgba(42,92,63,.75)';
-      lblEl.textContent=`空闲 ${fmt2(g.startMin)}–${fmt2(g.endMin)}　${durTxt}`;
-      rowGap.appendChild(ruleEl);rowGap.appendChild(lblEl);
+      lblEl.textContent=`空闲 ${fmt2(g.startMin)}–${fmt2(g.endMin)}`;
+      rowGap.appendChild(durBadge);rowGap.appendChild(ruleEl);rowGap.appendChild(lblEl);
       rows.appendChild(rowGap);
     }
   });
