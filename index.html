@@ -112,6 +112,14 @@ body{font-family:var(--ss);background:var(--paper);color:var(--ink);min-height:1
 .utl-diff-badge.under{background:rgba(42,92,63,.15);color:#2a5c3f}
 .utl-diff-badge.exact{background:rgba(42,92,63,.1);color:#2a5c3f}
 
+/* ── FREE TIME GAP (shown in axis between hour labels) ── */
+.utl-gap-wrap{display:flex;flex-direction:row;align-items:stretch;width:calc(100% + 52px);margin-left:-42px;flex-shrink:0;pointer-events:none;z-index:2}
+.utl-gap-ax{width:42px;flex-shrink:0;display:flex;align-items:center;justify-content:flex-end;padding-right:6px}
+.utl-gap-badge{font-family:var(--mo);font-size:8.5px;font-weight:700;color:#3d7a3d;background:rgba(42,92,63,.11);border:1px dashed rgba(42,92,63,.35);border-radius:3px;padding:1px 4px;white-space:nowrap;line-height:1.4}
+.utl-gap-line{flex:1;display:flex;align-items:center;padding-left:6px}
+.utl-gap-rule{flex:1;height:1px;background:repeating-linear-gradient(to right,rgba(42,92,63,.25) 0,rgba(42,92,63,.25) 4px,transparent 4px,transparent 8px)}
+.utl-gap-label{font-family:var(--ss);font-size:9px;color:rgba(42,92,63,.7);margin-left:5px;white-space:nowrap}
+
 /* plan-time slot wrapper */
 .utl-plan-slot{display:flex;align-items:center;min-height:22px}
 .utl-actual-slot{display:flex;align-items:center;gap:3px;min-height:22px}
@@ -672,7 +680,79 @@ function renderUnifiedTimeline(){
   hdr.innerHTML='<div class="utl-hdr-cell">事项</div><div class="utl-hdr-cell">计划时间</div><div class="utl-hdr-cell">实际时间</div>';
   rows.appendChild(hdr);
 
-  HOURS.forEach(h=>{
+  // ── Collect all occupied intervals for gap detection ──
+  const allIntervals=[];
+  document.querySelectorAll('.tcard').forEach(c=>{
+    const ps=c.querySelector('.eps')?.value||'';const pe=c.querySelector('.epe')?.value||'';
+    const as=c.querySelector('.eas')?.value||'';const ae=c.querySelector('.eae')?.value||'';
+    // Use actual time if available, else plan time
+    const s=as||ps; const e=ae||pe;
+    if(s&&e&&timeToMin(e)>timeToMin(s)) allIntervals.push({s:timeToMin(s),e:timeToMin(e)});
+  });
+  document.querySelectorAll('.otask').forEach(el=>{
+    const as=el.querySelector('.oas')?.value||'';const ae=el.querySelector('.oae')?.value||'';
+    if(as&&ae&&timeToMin(ae)>timeToMin(as)) allIntervals.push({s:timeToMin(as),e:timeToMin(ae)});
+  });
+  allIntervals.sort((a,b)=>a.s-b.s);
+  // Merge overlapping
+  const merged=[];
+  allIntervals.forEach(iv=>{
+    if(!merged.length||iv.s>=merged[merged.length-1].e) merged.push({...iv});
+    else merged[merged.length-1].e=Math.max(merged[merged.length-1].e,iv.e);
+  });
+  // Gaps between consecutive intervals (min gap = 5 min to show)
+  const gaps=[];
+  for(let i=0;i<merged.length-1;i++){
+    const gapMin=merged[i+1].s-merged[i].e;
+    if(gapMin>=5) gaps.push({startMin:merged[i].e,endMin:merged[i+1].s,dur:gapMin});
+  }
+
+  // Helper: show gaps whose startMin falls within (prevHour, curHour]
+  const hourMin=h=>parseInt(h)*60;
+  function getGapsBetween(h1min,h2min){return gaps.filter(g=>g.startMin>=h1min&&g.startMin<h2min);}
+
+  HOURS.forEach((h,hi)=>{
+    // ── Insert gap indicators between the PREVIOUS hour end and this hour start ──
+    if(hi>0){
+      const prevHMin=parseInt(HOURS[hi-1])*60;
+      const curHMin=parseInt(h)*60;
+      const midGaps=getGapsBetween(prevHMin,curHMin);
+      midGaps.forEach(g=>{
+        const gWrap=document.createElement('div');gWrap.className='utl-gap-wrap';
+        const gAx=document.createElement('div');gAx.className='utl-gap-ax';
+        const badge=document.createElement('span');badge.className='utl-gap-badge';
+        const dh=Math.floor(g.dur/60),dm=g.dur%60;
+        badge.textContent=dh>0?(dm>0?dh+'h'+dm+'m':dh+'h'):dm+'分';
+        gAx.appendChild(badge);
+        const gLine=document.createElement('div');gLine.className='utl-gap-line';
+        const rule=document.createElement('div');rule.className='utl-gap-rule';
+        const lbl=document.createElement('span');lbl.className='utl-gap-label';
+        // Format the gap time range
+        const fmt2=m=>`${String(Math.floor(m/60)).padStart(2,'0')}:${String(m%60).padStart(2,'0')}`;
+        lbl.textContent=`空闲 ${fmt2(g.startMin)}–${fmt2(g.endMin)}`;
+        gLine.appendChild(rule);gLine.appendChild(lbl);
+        gWrap.appendChild(gAx);gWrap.appendChild(gLine);
+        // Insert into BOTH ax and rows containers as a unified row
+        // We build a special "gap row" that spans the full width using a wrapper
+        // Strategy: insert gap into the rows container as a special row, and
+        // insert matching placeholder in ax
+        const axGap=document.createElement('div');
+        axGap.style.cssText='display:flex;align-items:center;justify-content:flex-end;padding-right:8px;flex-shrink:0;min-height:20px';
+        const axBadge=document.createElement('span');axBadge.className='utl-gap-badge';
+        axBadge.textContent=badge.textContent;
+        axGap.appendChild(axBadge);
+        ax.appendChild(axGap);
+
+        const rowGap=document.createElement('div');
+        rowGap.style.cssText='display:flex;align-items:center;min-height:20px;padding:2px 7px;border-bottom:1px dashed rgba(42,92,63,.2);background:rgba(42,92,63,.03)';
+        const ruleEl=document.createElement('div');ruleEl.className='utl-gap-rule';ruleEl.style.flex='1';
+        const lblEl=document.createElement('span');lblEl.className='utl-gap-label';lblEl.style.marginLeft='6px';
+        lblEl.textContent=`空闲 ${fmt2(g.startMin)}–${fmt2(g.endMin)}`;
+        rowGap.appendChild(ruleEl);rowGap.appendChild(lblEl);
+        rows.appendChild(rowGap);
+      });
+    }
+
     // Axis label
     const slot=document.createElement('div');slot.className='utl-slot';
     slot.innerHTML=`<span class="utl-lbl">${h}</span>`;
