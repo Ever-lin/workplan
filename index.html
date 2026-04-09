@@ -113,12 +113,9 @@ body{font-family:var(--ss);background:var(--paper);color:var(--ink);min-height:1
 .utl-diff-badge.exact{background:rgba(42,92,63,.1);color:#2a5c3f}
 
 /* ── FREE TIME GAP (shown in axis between hour labels) ── */
-.utl-gap-wrap{display:flex;flex-direction:row;align-items:stretch;width:calc(100% + 52px);margin-left:-42px;flex-shrink:0;pointer-events:none;z-index:2}
-.utl-gap-ax{width:42px;flex-shrink:0;display:flex;align-items:center;justify-content:flex-end;padding-right:6px}
-.utl-gap-badge{font-family:var(--mo);font-size:8.5px;font-weight:700;color:#3d7a3d;background:rgba(42,92,63,.11);border:1px dashed rgba(42,92,63,.35);border-radius:3px;padding:1px 4px;white-space:nowrap;line-height:1.4}
-.utl-gap-line{flex:1;display:flex;align-items:center;padding-left:6px}
 .utl-gap-rule{flex:1;height:1px;background:repeating-linear-gradient(to right,rgba(42,92,63,.25) 0,rgba(42,92,63,.25) 4px,transparent 4px,transparent 8px)}
 .utl-gap-label{font-family:var(--ss);font-size:9px;color:rgba(42,92,63,.7);margin-left:5px;white-space:nowrap}
+.utl-gap-badge{font-family:var(--mo);font-size:8.5px;font-weight:700;color:#3d7a3d;background:rgba(42,92,63,.11);border:1px dashed rgba(42,92,63,.35);border-radius:3px;padding:1px 4px;white-space:nowrap;line-height:1.4}
 
 /* plan-time slot wrapper */
 .utl-plan-slot{display:flex;align-items:center;min-height:22px}
@@ -609,8 +606,11 @@ function renderUnifiedTimeline(){
   if(!ax||!rows)return;
   ax.innerHTML='';rows.innerHTML='';
 
-  // Collect todos
-  const todosByHour={};
+  const fmt2=m=>`${String(Math.floor(m/60)).padStart(2,'0')}:${String(m%60).padStart(2,'0')}`;
+
+  // ── 1. Collect all events with a sort key (actual start > plan start) ──
+  const events=[]; // {type:'todo'|'otask', sortMin, endMin, data}
+
   document.querySelectorAll('.tcard').forEach(c=>{
     const ps=c.querySelector('.eps')?.value||'';
     const pe=c.querySelector('.epe')?.value||'';
@@ -621,7 +621,6 @@ function renderUnifiedTimeline(){
     const done=c.classList.contains('done');
     const note=c.querySelector('.enote')?.value||'';
     if(!txt)return;
-
     function getAtype(){
       if(ps&&pe&&as&&ae){
         const durDiff=timeToMin(ae)-timeToMin(as)-(timeToMin(pe)-timeToMin(ps));
@@ -631,34 +630,15 @@ function renderUnifiedTimeline(){
       if(done||status==='done') return 'done';
       return 'same';
     }
-    const todoData={txt,ps,pe,as,ae,status,done,note,isPlan:!!ps,isActual:!!as,atype:getAtype()};
-
-    if(ps){
-      const startH=parseInt(ps.split(':')[0]);
-      const endH=pe?parseInt(pe.split(':')[0]):startH;
-      const endMin=pe?parseInt(pe.split(':')[1]||0):0;
-      for(let h=startH;h<=(endMin>0?endH:endH-1);h++){
-        if(h<6||h>23)continue;
-        const hkey=String(h).padStart(2,'0')+':00';
-        if(!todosByHour[hkey])todosByHour[hkey]=[];
-        todosByHour[hkey].push({...todoData,isCont:h>startH,showActualHere:false});
-      }
-      const startKey=String(startH).padStart(2,'0')+':00';
-      if(!todosByHour[startKey])todosByHour[startKey]=[];
-      if(!todosByHour[startKey].find(e=>e.txt===txt&&e.ps===ps))
-        todosByHour[startKey].push({...todoData,isCont:false,showActualHere:false});
-      const firstEntries=todosByHour[startKey].filter(e=>e.txt===txt&&e.ps===ps&&!e.isCont);
-      if(firstEntries.length>0) firstEntries[firstEntries.length-1].showActualHere=true;
-    } else if(as){
-      const h=parseInt(as.split(':')[0]);
-      const hkey=String(h).padStart(2,'0')+':00';
-      if(!todosByHour[hkey])todosByHour[hkey]=[];
-      todosByHour[hkey].push({...todoData,isCont:false,showActualHere:true});
-    }
+    const sortKey=as||ps; // prefer actual start for sorting
+    if(!sortKey)return;
+    const sortMin=timeToMin(sortKey);
+    // endMin for gap calc: actual end > plan end > sortMin+1
+    const endStr=ae||pe;
+    const endMin=endStr?timeToMin(endStr):sortMin+1;
+    events.push({type:'todo',sortMin,endMin,data:{txt,ps,pe,as,ae,status,done,note,isPlan:!!ps,isActual:!!as,atype:getAtype()}});
   });
 
-  // Collect otasks by actual start hour
-  const otasksByHour={};
   document.querySelectorAll('.otask').forEach(el=>{
     const txt=el.querySelector('.otask-txt')?.value||'';
     const as=el.querySelector('.oas')?.value||'';
@@ -666,218 +646,193 @@ function renderUnifiedTimeline(){
     const note=el.querySelector('.otnote')?.value||'';
     const done=el.classList.contains('ck');
     if(!txt||!as)return;
-    const hour=as.split(':')[0].padStart(2,'0')+':00';
-    if(!otasksByHour[hour])otasksByHour[hour]=[];
-    otasksByHour[hour].push({txt,as,ae,note,done});
+    const sortMin=timeToMin(as);
+    const endMin=ae?timeToMin(ae):sortMin+1;
+    events.push({type:'otask',sortMin,endMin,data:{txt,as,ae,note,done}});
   });
 
-  // Add axis header placeholder (aligns with column header row)
+  // Sort by actual/plan start time
+  events.sort((a,b)=>a.sortMin-b.sortMin);
+
+  // ── 2. Merge intervals to find gaps ──
+  const intervals=events.map(e=>({s:e.sortMin,e:e.endMin}));
+  const merged=[];
+  intervals.forEach(iv=>{
+    if(!merged.length||iv.s>=merged[merged.length-1].e) merged.push({...iv});
+    else merged[merged.length-1].e=Math.max(merged[merged.length-1].e,iv.e);
+  });
+  // Map: after which merged-interval-index does each gap sit?
+  const gaps=[];
+  for(let i=0;i<merged.length-1;i++){
+    const dur=merged[i+1].s-merged[i].e;
+    if(dur>=5) gaps.push({afterEndMin:merged[i].e,startMin:merged[i].e,endMin:merged[i+1].s,dur});
+  }
+
+  // ── 3. Build a flat render list: hour-label | event-row | gap-row ──
+  // Strategy: walk HOURS; for each hour slot, also emit any events+gaps that start in [prevH, curH)
+  // But since events can start at non-hour times, we need a merged pass.
+
+  // Build sorted sequence of "things to render": hour-ticks + events + gaps
+  const items=[]; // {kind:'hour'|'event'|'gap', sortMin, ...}
+  HOURS.forEach(h=>items.push({kind:'hour',sortMin:parseInt(h)*60,label:h}));
+  events.forEach((ev,i)=>items.push({kind:'event',sortMin:ev.sortMin,endMin:ev.endMin,ev}));
+  gaps.forEach(g=>items.push({kind:'gap',sortMin:g.startMin,gap:g}));
+  items.sort((a,b)=>{
+    if(a.sortMin!==b.sortMin) return a.sortMin-b.sortMin;
+    // at same time: hour first, then events, then gaps
+    const order={hour:0,event:1,gap:2};
+    return order[a.kind]-order[b.kind];
+  });
+
+  // ── 4. Column header ──
   const axHdr=document.createElement('div');axHdr.style.cssText='height:24px;flex-shrink:0';
   ax.appendChild(axHdr);
-
-  // Add column header
   const hdr=document.createElement('div');hdr.className='utl-col-hdr';
   hdr.innerHTML='<div class="utl-hdr-cell">事项</div><div class="utl-hdr-cell">计划时间</div><div class="utl-hdr-cell">实际时间</div>';
   rows.appendChild(hdr);
 
-  // ── Collect all occupied intervals for gap detection ──
-  const allIntervals=[];
-  document.querySelectorAll('.tcard').forEach(c=>{
-    const ps=c.querySelector('.eps')?.value||'';const pe=c.querySelector('.epe')?.value||'';
-    const as=c.querySelector('.eas')?.value||'';const ae=c.querySelector('.eae')?.value||'';
-    // Use actual time if available, else plan time
-    const s=as||ps; const e=ae||pe;
-    if(s&&e&&timeToMin(e)>timeToMin(s)) allIntervals.push({s:timeToMin(s),e:timeToMin(e)});
-  });
-  document.querySelectorAll('.otask').forEach(el=>{
-    const as=el.querySelector('.oas')?.value||'';const ae=el.querySelector('.oae')?.value||'';
-    if(as&&ae&&timeToMin(ae)>timeToMin(as)) allIntervals.push({s:timeToMin(as),e:timeToMin(ae)});
-  });
-  allIntervals.sort((a,b)=>a.s-b.s);
-  // Merge overlapping
-  const merged=[];
-  allIntervals.forEach(iv=>{
-    if(!merged.length||iv.s>=merged[merged.length-1].e) merged.push({...iv});
-    else merged[merged.length-1].e=Math.max(merged[merged.length-1].e,iv.e);
-  });
-  // Gaps between consecutive intervals (min gap = 5 min to show)
-  const gaps=[];
-  for(let i=0;i<merged.length-1;i++){
-    const gapMin=merged[i+1].s-merged[i].e;
-    if(gapMin>=5) gaps.push({startMin:merged[i].e,endMin:merged[i+1].s,dur:gapMin});
-  }
+  // ── 5. Render items ──
+  // Deduplicate: events that span multiple hours — only show once (at their sortMin)
+  const renderedEvents=new Set();
 
-  // Helper: show gaps whose startMin falls within (prevHour, curHour]
-  const hourMin=h=>parseInt(h)*60;
-  function getGapsBetween(h1min,h2min){return gaps.filter(g=>g.startMin>=h1min&&g.startMin<h2min);}
+  items.forEach(item=>{
+    if(item.kind==='hour'){
+      const slot=document.createElement('div');slot.className='utl-slot';
+      slot.innerHTML=`<span class="utl-lbl">${item.label}</span>`;
+      ax.appendChild(slot);
 
-  HOURS.forEach((h,hi)=>{
-    // ── Insert gap indicators between the PREVIOUS hour end and this hour start ──
-    if(hi>0){
-      const prevHMin=parseInt(HOURS[hi-1])*60;
-      const curHMin=parseInt(h)*60;
-      const midGaps=getGapsBetween(prevHMin,curHMin);
-      midGaps.forEach(g=>{
-        const gWrap=document.createElement('div');gWrap.className='utl-gap-wrap';
-        const gAx=document.createElement('div');gAx.className='utl-gap-ax';
-        const badge=document.createElement('span');badge.className='utl-gap-badge';
-        const dh=Math.floor(g.dur/60),dm=g.dur%60;
-        badge.textContent=dh>0?(dm>0?dh+'h'+dm+'m':dh+'h'):dm+'分';
-        gAx.appendChild(badge);
-        const gLine=document.createElement('div');gLine.className='utl-gap-line';
-        const rule=document.createElement('div');rule.className='utl-gap-rule';
-        const lbl=document.createElement('span');lbl.className='utl-gap-label';
-        // Format the gap time range
-        const fmt2=m=>`${String(Math.floor(m/60)).padStart(2,'0')}:${String(m%60).padStart(2,'0')}`;
-        lbl.textContent=`空闲 ${fmt2(g.startMin)}–${fmt2(g.endMin)}`;
-        gLine.appendChild(rule);gLine.appendChild(lbl);
-        gWrap.appendChild(gAx);gWrap.appendChild(gLine);
-        // Insert into BOTH ax and rows containers as a unified row
-        // We build a special "gap row" that spans the full width using a wrapper
-        // Strategy: insert gap into the rows container as a special row, and
-        // insert matching placeholder in ax
-        const axGap=document.createElement('div');
-        axGap.style.cssText='display:flex;align-items:center;justify-content:flex-end;padding-right:8px;flex-shrink:0;min-height:20px';
-        const axBadge=document.createElement('span');axBadge.className='utl-gap-badge';
-        axBadge.textContent=badge.textContent;
-        axGap.appendChild(axBadge);
-        ax.appendChild(axGap);
-
-        const rowGap=document.createElement('div');
-        rowGap.style.cssText='display:flex;align-items:center;min-height:20px;padding:2px 7px;border-bottom:1px dashed rgba(42,92,63,.2);background:rgba(42,92,63,.03)';
-        const ruleEl=document.createElement('div');ruleEl.className='utl-gap-rule';ruleEl.style.flex='1';
-        const lblEl=document.createElement('span');lblEl.className='utl-gap-label';lblEl.style.marginLeft='6px';
-        lblEl.textContent=`空闲 ${fmt2(g.startMin)}–${fmt2(g.endMin)}`;
-        rowGap.appendChild(ruleEl);rowGap.appendChild(lblEl);
-        rows.appendChild(rowGap);
-      });
+      // Emit an empty hour row so the axis label has something to align with
+      const row=document.createElement('div');row.className='utl-row';row.dataset.hour=item.label;
+      // Will be populated only if there are events at exactly this hour with no other slot
+      // Actually we need the row for axis alignment - but events are rendered separately now.
+      // So this row is just a spacer if there are no events at this exact hour.
+      // We check: are there any events whose sortMin falls exactly on this hour?
+      const hasEventsHere=events.some(ev=>ev.sortMin===item.sortMin);
+      if(!hasEventsHere){
+        // Empty placeholder row for the hour
+        const colName=document.createElement('div');colName.className='utl-col-name';
+        const colPlan=document.createElement('div');colPlan.className='utl-col-plan';
+        const colActual=document.createElement('div');colActual.className='utl-col-actual';
+        row.appendChild(colName);row.appendChild(colPlan);row.appendChild(colActual);
+        rows.appendChild(row);
+      }
+      // If there ARE events here, they'll be rendered by the 'event' items below
     }
 
-    // Axis label
-    const slot=document.createElement('div');slot.className='utl-slot';
-    slot.innerHTML=`<span class="utl-lbl">${h}</span>`;
-    ax.appendChild(slot);
+    else if(item.kind==='event'){
+      const evKey=item.ev.sortMin+'_'+item.ev.data.txt;
+      if(renderedEvents.has(evKey))return;
+      renderedEvents.add(evKey);
 
-    const row=document.createElement('div');row.className='utl-row';row.dataset.hour=h;
+      // Axis: blank placeholder to match row height
+      const axSlot=document.createElement('div');
+      axSlot.style.cssText='flex-shrink:0;min-height:32px';
+      ax.appendChild(axSlot);
 
-    const todos=todosByHour[h]||[];
-    const extras=otasksByHour[h]||[];
-    const planTodos=todos.filter(t=>!t.isCont);
-    const contTodos=todos.filter(t=>t.isCont);
+      // Row
+      const ev=item.ev;
+      const t=ev.data;
+      const row=document.createElement('div');row.className='utl-row';
 
-    if(todos.length>0){
-      row.classList.add('has-plan');
-      const anyDev=planTodos.some(t=>t.atype==='deviation');
-      if(anyDev) row.classList.add('is-deviation');
-      if(contTodos.length>0&&planTodos.length===0) row.classList.add('is-cont');
-    }
-    if(extras.length>0){
-      row.classList.add('has-extra');
-      if(todos.length===0) row.classList.add('no-plan');
-    }
-
-    // ── COL 1: names (todos + extras together) ──
-    const colName=document.createElement('div');colName.className='utl-col-name';
-
-    // ── COL 2: plan times (todos only; extras have no plan) ──
-    const colPlan=document.createElement('div');colPlan.className='utl-col-plan';
-
-    // ── COL 3: actual times (todos + extras) ──
-    const colActual=document.createElement('div');colActual.className='utl-col-actual';
-
-    // Build parallel rows: todos first
-    // We need name, plan, actual to align row-by-row
-    // Each todo gets one entry across all 3 cols
-    todos.forEach(t=>{
-      // Name cell
-      const nameEntry=document.createElement('div');nameEntry.className='utl-name-entry';
-      const dot=document.createElement('span');
-      dot.className='utl-plan-dot'+(t.isCont?' is-cont':'')+(t.isPlan?'':' is-cont');
-      if(!t.isPlan){dot.style.background='var(--bl)';dot.style.borderRadius='2px';}
-      const txt2=document.createElement('span');
-      txt2.className='utl-plan-txt'+(t.done?' is-done':'');
-      txt2.textContent=t.txt;
-      nameEntry.appendChild(dot);nameEntry.appendChild(txt2);
-      colName.appendChild(nameEntry);
-      if(t.note&&!t.isCont){
-        const note=document.createElement('div');note.className='utl-note';note.textContent='↳ '+t.note;
-        colName.appendChild(note);
+      if(ev.type==='todo'){
+        row.classList.add('has-plan');
+        if(t.atype==='deviation') row.classList.add('is-deviation');
+      } else {
+        row.classList.add('has-extra','no-plan');
       }
 
-      // Plan time cell
-      const planSlot=document.createElement('div');planSlot.className='utl-plan-slot';
-      if(t.isPlan){
-        const badge=document.createElement('span');
-        badge.className='utl-time-badge plan'+(t.isCont?' is-cont':'');
-        if(t.isCont){
-          badge.textContent=t.pe?'→'+t.pe:'↓';
-        } else {
+      const colName=document.createElement('div');colName.className='utl-col-name';
+      const colPlan=document.createElement('div');colPlan.className='utl-col-plan';
+      const colActual=document.createElement('div');colActual.className='utl-col-actual';
+
+      if(ev.type==='todo'){
+        const nameEntry=document.createElement('div');nameEntry.className='utl-name-entry';
+        const dot=document.createElement('span');dot.className='utl-plan-dot'+(t.isPlan?'':' is-cont');
+        if(!t.isPlan){dot.style.background='var(--bl)';dot.style.borderRadius='2px';}
+        const txt2=document.createElement('span');txt2.className='utl-plan-txt'+(t.done?' is-done':'');
+        txt2.textContent=t.txt;
+        nameEntry.appendChild(dot);nameEntry.appendChild(txt2);
+        colName.appendChild(nameEntry);
+        if(t.note){const note=document.createElement('div');note.className='utl-note';note.textContent='↳ '+t.note;colName.appendChild(note);}
+
+        const planSlot=document.createElement('div');planSlot.className='utl-plan-slot';
+        if(t.isPlan){
+          const badge=document.createElement('span');badge.className='utl-time-badge plan';
           badge.textContent=t.ps+(t.pe?'–'+t.pe:'');
+          planSlot.appendChild(badge);
         }
-        planSlot.appendChild(badge);
-      }
-      colPlan.appendChild(planSlot);
+        colPlan.appendChild(planSlot);
 
-      // Actual time cell
-      const actSlot=document.createElement('div');actSlot.className='utl-actual-slot';
-      if(t.isActual&&t.showActualHere){
-        const badge=document.createElement('span');
-        const cls=t.atype==='done'?'actual-done':t.atype==='deviation'?'actual-deviation':'actual-same';
-        badge.className=`utl-time-badge ${cls}`;
-        badge.textContent=t.as+(t.ae?'–'+t.ae:'');
-        actSlot.appendChild(badge);
-        // diff badge: show when time differs from plan
-        if(t.atype==='deviation'&&t.ps&&t.pe&&t.as&&t.ae){
-          const planDur=timeToMin(t.pe)-timeToMin(t.ps);
-          const actDur=timeToMin(t.ae)-timeToMin(t.as);
-          const durDiff=actDur-planDur;
-          const startDiff=timeToMin(t.as)-timeToMin(t.ps);
-          // show duration diff if significant, else show start diff
-          const showDiff=Math.abs(durDiff)>=1?durDiff:startDiff;
-          if(showDiff!==0){
-            const db=document.createElement('span');
-            db.className='utl-diff-badge '+(showDiff>0?'over':'under');
-            db.textContent=(showDiff>0?'+':'')+showDiff+'分';
-            actSlot.appendChild(db);
+        const actSlot=document.createElement('div');actSlot.className='utl-actual-slot';
+        if(t.isActual){
+          const badge=document.createElement('span');
+          const cls=t.atype==='done'?'actual-done':t.atype==='deviation'?'actual-deviation':'actual-same';
+          badge.className=`utl-time-badge ${cls}`;
+          badge.textContent=t.as+(t.ae?'–'+t.ae:'');
+          actSlot.appendChild(badge);
+          if(t.atype==='deviation'&&t.ps&&t.pe&&t.as&&t.ae){
+            const planDur=timeToMin(t.pe)-timeToMin(t.ps);
+            const actDur=timeToMin(t.ae)-timeToMin(t.as);
+            const durDiff=actDur-planDur;
+            const startDiff=timeToMin(t.as)-timeToMin(t.ps);
+            const showDiff=Math.abs(durDiff)>=1?durDiff:startDiff;
+            if(showDiff!==0){
+              const db=document.createElement('span');
+              db.className='utl-diff-badge '+(showDiff>0?'over':'under');
+              db.textContent=(showDiff>0?'+':'')+showDiff+'分';
+              actSlot.appendChild(db);
+            }
           }
         }
-      }
-      colActual.appendChild(actSlot);
-    });
+        colActual.appendChild(actSlot);
 
-    // Extras (otasks): name in col1, no plan in col2, actual in col3
-    extras.forEach(ex=>{
-      // Name
-      const nameEntry=document.createElement('div');nameEntry.className='utl-name-entry';
-      const tag=document.createElement('span');tag.className='utl-extra-tag';tag.textContent='临时';
-      const txt3=document.createElement('span');txt3.className='utl-plan-txt'+(ex.done?' is-done':'');
-      if(ex.done)txt3.style.textDecoration='line-through';
-      txt3.textContent=ex.txt;
-      nameEntry.appendChild(tag);nameEntry.appendChild(txt3);
-      colName.appendChild(nameEntry);
-      if(ex.note){
-        const note=document.createElement('div');note.className='utl-note';note.textContent='↳ '+ex.note;
-        colName.appendChild(note);
-      }
+      } else {
+        // otask
+        const nameEntry=document.createElement('div');nameEntry.className='utl-name-entry';
+        const tag=document.createElement('span');tag.className='utl-extra-tag';tag.textContent='临时';
+        const txt3=document.createElement('span');txt3.className='utl-plan-txt'+(t.done?' is-done':'');
+        if(t.done)txt3.style.textDecoration='line-through';
+        txt3.textContent=t.txt;
+        nameEntry.appendChild(tag);nameEntry.appendChild(txt3);
+        colName.appendChild(nameEntry);
+        if(t.note){const note=document.createElement('div');note.className='utl-note';note.textContent='↳ '+t.note;colName.appendChild(note);}
 
-      // Plan — empty placeholder to keep rows aligned
-      const planSlot=document.createElement('div');planSlot.className='utl-plan-slot';
-      colPlan.appendChild(planSlot);
+        colPlan.appendChild(document.createElement('div')); // empty
 
-      // Actual
-      const actSlot=document.createElement('div');actSlot.className='utl-actual-slot';
-      if(ex.as){
+        const actSlot=document.createElement('div');actSlot.className='utl-actual-slot';
         const badge=document.createElement('span');badge.className='utl-time-badge actual-extra';
-        badge.textContent=ex.as+(ex.ae?'–'+ex.ae:'');
+        badge.textContent=t.as+(t.ae?'–'+t.ae:'');
         actSlot.appendChild(badge);
+        colActual.appendChild(actSlot);
       }
-      colActual.appendChild(actSlot);
-    });
 
-    row.appendChild(colName);
-    row.appendChild(colPlan);
-    row.appendChild(colActual);
-    rows.appendChild(row);
+      row.appendChild(colName);row.appendChild(colPlan);row.appendChild(colActual);
+      rows.appendChild(row);
+    }
+
+    else if(item.kind==='gap'){
+      const g=item.gap;
+      const dh=Math.floor(g.dur/60),dm=g.dur%60;
+      const durTxt=dh>0?(dm>0?dh+'h'+dm+'分':dh+'h'):dm+'分';
+
+      // Axis: gap badge
+      const axGap=document.createElement('div');
+      axGap.style.cssText='display:flex;align-items:center;justify-content:flex-end;padding-right:8px;flex-shrink:0;min-height:24px';
+      const axBadge=document.createElement('span');axBadge.className='utl-gap-badge';
+      axBadge.textContent=durTxt;
+      axGap.appendChild(axBadge);
+      ax.appendChild(axGap);
+
+      // Row: gap indicator
+      const rowGap=document.createElement('div');
+      rowGap.style.cssText='display:flex;align-items:center;min-height:24px;padding:3px 7px;border-bottom:1px dashed rgba(42,92,63,.2);background:rgba(42,92,63,.04)';
+      const ruleEl=document.createElement('div');ruleEl.className='utl-gap-rule';ruleEl.style.cssText='flex:1;height:1px';
+      const lblEl=document.createElement('span');lblEl.className='utl-gap-label';
+      lblEl.style.cssText='margin-left:8px;white-space:nowrap;font-size:10px;font-weight:500;color:rgba(42,92,63,.75)';
+      lblEl.textContent=`空闲 ${fmt2(g.startMin)}–${fmt2(g.endMin)}　${durTxt}`;
+      rowGap.appendChild(ruleEl);rowGap.appendChild(lblEl);
+      rows.appendChild(rowGap);
+    }
   });
 }
 
