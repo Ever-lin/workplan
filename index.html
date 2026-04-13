@@ -229,11 +229,43 @@ body{font-family:var(--ss);background:var(--paper);color:var(--ink);min-height:1
 .oti:focus{outline:none;border-color:#6b3fa0}
 .otnote{font-size:11px;color:var(--ink);border:1px solid var(--bdr);background:white;padding:3px 5px;border-radius:2px;width:100%;resize:none;font-family:var(--ss);min-height:28px;line-height:1.5}
 .otnote:focus{outline:none;border-color:#6b3fa0}
-/* reflection */
-.refbox{border:1px solid #b8c8e8;border-radius:2px;padding:9px 11px;background:var(--bl-l)}
-.reftitle{font-family:var(--sf);font-size:10px;color:var(--bl);margin-bottom:5px;letter-spacing:1px}
-.refta{width:100%;border:none;background:transparent;color:var(--ink);font-family:var(--sf);font-size:12px;resize:none;line-height:1.8;min-height:62px}
+/* reflection — bigger, extends below timeline */
+.refbox{border:1px solid #b8c8e8;border-radius:2px;padding:9px 11px;background:var(--bl-l);flex:1;display:flex;flex-direction:column}
+.reftitle{font-family:var(--sf);font-size:10px;color:var(--bl);margin-bottom:5px;letter-spacing:1px;flex-shrink:0}
+.refta{width:100%;border:none;background:transparent;color:var(--ink);font-family:var(--sf);font-size:12px;resize:none;line-height:1.8;min-height:120px;flex:1}
 .refta:focus{outline:none}
+
+/* WEATHER PICKER */
+.wx-row{display:flex;align-items:center;gap:6px;margin-top:2px}
+.wx-lbl{font-size:10px;color:var(--ink-m);white-space:nowrap}
+.wx-opts{display:flex;gap:3px;flex-wrap:wrap}
+.wx-btn{background:none;border:1px solid var(--bdr);border-radius:3px;font-size:15px;width:28px;height:28px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all var(--t);position:relative}
+.wx-btn:hover{border-color:var(--am);background:var(--am-l)}
+.wx-btn.selected{border-color:var(--am);background:var(--am-l);box-shadow:0 0 0 1.5px var(--am)}
+.wx-btn title{display:none}
+.wx-clear{font-size:11px;color:var(--ink-m);background:none;border:none;cursor:pointer;padding:0 2px;opacity:.5}
+.wx-clear:hover{opacity:1;color:var(--ac)}
+
+/* DRAG AND DROP */
+.dragging{opacity:.4;cursor:grabbing !important}
+.drag-over{border-top:2px solid var(--ac) !important}
+.drag-handle{cursor:grab;color:var(--ink-m);font-size:12px;padding:2px 3px;flex-shrink:0;opacity:.4;transition:opacity var(--t);user-select:none;line-height:1}
+.drag-handle:hover{opacity:.9}
+.tcard:hover .drag-handle{opacity:.7}
+.otask:hover .drag-handle{opacity:.7}
+
+/* MEMO SECTION */
+.memo-section{display:flex;flex-direction:column;gap:5px}
+.memo-list{display:flex;flex-direction:column;gap:4px}
+.memo-item{display:flex;align-items:flex-start;gap:5px;border:1px solid var(--bdr);border-radius:2px;background:white;padding:5px 8px;position:relative;transition:all var(--t)}
+.memo-item:hover{border-color:var(--am)}
+.memo-item-drag{cursor:grab;color:var(--ink-m);font-size:11px;padding-top:1px;opacity:.4;flex-shrink:0;user-select:none}
+.memo-item:hover .memo-item-drag{opacity:.8}
+.memo-ta{flex:1;border:none;background:transparent;font-family:var(--ss);font-size:12px;color:var(--ink);resize:none;min-height:16px;line-height:1.5;padding:0}
+.memo-ta:focus{outline:none}
+.memo-del{background:none;border:none;cursor:pointer;color:var(--ink-m);font-size:11px;opacity:0;transition:opacity var(--t);flex-shrink:0;padding:0 2px}
+.memo-item:hover .memo-del{opacity:1}
+.memo-del:hover{color:var(--ac)}
 
 /* views */
 .vw{display:none}.vw.active{display:block}
@@ -338,6 +370,20 @@ body{font-family:var(--ss);background:var(--paper);color:var(--ink);min-height:1
     <div class="dd">
       <div class="dm" id="dm"></div>
       <div class="ds" id="ds"></div>
+      <div class="wx-row">
+        <span class="wx-lbl">天气</span>
+        <div class="wx-opts" id="wx-opts">
+          <button class="wx-btn" data-wx="☀️" title="晴天" onclick="setWeather('☀️',this)">☀️</button>
+          <button class="wx-btn" data-wx="⛅" title="多云" onclick="setWeather('⛅',this)">⛅</button>
+          <button class="wx-btn" data-wx="☁️" title="阴天" onclick="setWeather('☁️',this)">☁️</button>
+          <button class="wx-btn" data-wx="🌧️" title="雨天" onclick="setWeather('🌧️',this)">🌧️</button>
+          <button class="wx-btn" data-wx="⛈️" title="雷雨" onclick="setWeather('⛈️',this)">⛈️</button>
+          <button class="wx-btn" data-wx="🌨️" title="雪天" onclick="setWeather('🌨️',this)">🌨️</button>
+          <button class="wx-btn" data-wx="🌬️" title="大风" onclick="setWeather('🌬️',this)">🌬️</button>
+          <button class="wx-btn" data-wx="🌫️" title="雾霾" onclick="setWeather('🌫️',this)">🌫️</button>
+        </div>
+        <button class="wx-clear" onclick="clearWeather()" title="清除">✕</button>
+      </div>
     </div>
     <select class="nav-sel" id="sel-year" onchange="onSelDate()"></select>
     <select class="nav-sel" id="sel-month" onchange="onSelDate()"></select>
@@ -360,6 +406,12 @@ body{font-family:var(--ss);background:var(--paper);color:var(--ink);min-height:1
         <div class="otask-list" id="otask-list"></div>
         <div style="margin-top:5px">
           <button class="addbtn" onclick="addOtask()">＋ 添加其他安排</button>
+        </div>
+        <!-- 备忘工作事项（时间轴补充） -->
+        <div class="ptitle" style="margin-top:14px;margin-bottom:8px">备忘工作事项 <span style="font-size:9px;color:var(--ink-m);font-weight:400;letter-spacing:.5px">· 时间轴补充</span></div>
+        <div class="memo-list" id="memo-list"></div>
+        <div style="margin-top:5px">
+          <button class="addbtn" onclick="addMemo()">＋ 添加备忘事项</button>
         </div>
         <!-- 复盘 -->
         <div class="refbox" style="margin-top:14px">
@@ -500,7 +552,13 @@ function saveEditName(){
 function fmt(d){return`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`}
 function gkey(d){return'plan_'+fmt(d)}
 function load(d){try{const r=localStorage.getItem(gkey(d));return r?JSON.parse(r):null}catch{return null}}
-function saveDayData(){localStorage.setItem(gkey(currentDate),JSON.stringify(gather()));showSaved()}
+function saveDayData(){
+  const data=gather();
+  // preserve weather from existing saved data
+  const existing=load(currentDate);
+  if(existing?.weather)data.weather=existing.weather;
+  localStorage.setItem(gkey(currentDate),JSON.stringify(data));showSaved()
+}
 function gather(){
   const todos=[];
   document.querySelectorAll('.tcard').forEach((c,i)=>{
@@ -521,10 +579,15 @@ function gather(){
     const exec=el.querySelector('.otask-exec');
     if(v)otasks.push({text:v,done:el.classList.contains('ck'),actualStart:el.querySelector('.oas')?.value||'',actualEnd:el.querySelector('.oae')?.value||'',note:el.querySelector('.otnote')?.value||'',execOpen:exec?exec.style.display!=='none':false,movedToNext:el.dataset.movedToNext||'',deferredFrom:el.dataset.deferredFrom||''});
   });
+  const memos=[];
+  document.querySelectorAll('.memo-item').forEach(el=>{
+    const v=el.querySelector('.memo-ta')?.value||'';
+    if(v)memos.push({text:v});
+  });
   return{
     date:fmt(currentDate),
     reflection:document.getElementById('reflection')?.value||'',
-    todos,otasks
+    todos,otasks,memos
   };
 }
 function showSaved(){clearTimeout(saveT);const e=document.getElementById('saved');e.classList.add('show');saveT=setTimeout(()=>e.classList.remove('show'),1400)}
@@ -585,6 +648,10 @@ function renderDaily(){
   const ol=document.getElementById('otask-list');ol.innerHTML='';
   (d.otasks||[]).forEach(o=>addOtask(o));
 
+  const ml=document.getElementById('memo-list');ml.innerHTML='';
+  (d.memos||[]).forEach(m=>addMemo(m));
+
+  renderWeather(d.weather||'');
   updateStats();
   renderUnifiedTimeline();
 }
@@ -829,6 +896,7 @@ function buildCard(pre){
 
   c.innerHTML=`
 <div class="ttop">
+  <span class="drag-handle" draggable="true" onmousedown="initTodoDrag(event,this)">⠿</span>
   <div class="tpri${pc}">${priority}</div>
   <div class="tchk ${pre?.done?'ck':''}" title="请在执行区点击已完成来勾选">${pre?.done?'✓':''}</div>
   <div class="tbody">
@@ -929,6 +997,11 @@ function addOtask(pre){
   const list=document.getElementById('otask-list');
   const div=document.createElement('div');
   div.className='otask'+(pre?.done?' ck':'');
+  div.draggable=true;
+  div.addEventListener('dragstart',e=>otaskListDragStart(e,div));
+  div.addEventListener('dragover',e=>otaskListDragOver(e,div));
+  div.addEventListener('drop',e=>otaskListDrop(e,div));
+  div.addEventListener('dragend',()=>otaskListDragEnd());
   if(pre?.deferredFrom)div.dataset.deferredFrom=pre.deferredFrom;
   const execOpen=pre?.execOpen||false;
 
@@ -976,7 +1049,8 @@ function addOtask(pre){
     setTimeout(()=>applyOtaskDeferredStyle(div,pre.movedToNext),0);
   }
 
-  topRow.appendChild(chk);topRow.appendChild(inp);topRow.appendChild(mv);topRow.appendChild(toggle);topRow.appendChild(del);
+  const drag=document.createElement('span');drag.className='drag-handle';drag.title='拖动排序';drag.textContent='⠿';
+  topRow.appendChild(drag);topRow.appendChild(chk);topRow.appendChild(inp);topRow.appendChild(mv);topRow.appendChild(toggle);topRow.appendChild(del);
 
   // exec section: times + note (collapsible)
   const execSec=document.createElement('div');execSec.className='otask-exec';
@@ -1226,6 +1300,100 @@ function handleImport(e){
   r.onload=ev=>{try{const arr=JSON.parse(ev.target.result);(Array.isArray(arr)?arr:[arr]).forEach(d=>{if(d.date)localStorage.setItem('plan_'+d.date,JSON.stringify(d))});alert(`导入成功！共恢复 ${Array.isArray(arr)?arr.length:1} 天数据。`);renderDaily()}catch{alert('格式有误，请确认是本系统导出的 JSON 文件。')}};
   r.readAsText(file);e.target.value='';
 }
+
+// ── WEATHER ──
+function setWeather(wx,btn){
+  const d=load(currentDate)||{};
+  if(d.weather===wx){d.weather='';btn.classList.remove('selected')}
+  else{d.weather=wx}
+  const data=gather();data.weather=d.weather===wx?'':wx;
+  localStorage.setItem(gkey(currentDate),JSON.stringify(data));
+  renderWeather(data.weather||'');showSaved();
+}
+function clearWeather(){
+  const data=gather();data.weather='';
+  localStorage.setItem(gkey(currentDate),JSON.stringify(data));
+  renderWeather('');showSaved();
+}
+function renderWeather(wx){
+  document.querySelectorAll('.wx-btn').forEach(b=>{
+    b.classList.toggle('selected',b.dataset.wx===wx);
+  });
+}
+
+// ── MEMO ──
+function addMemo(pre){
+  const list=document.getElementById('memo-list');
+  const div=document.createElement('div');
+  div.className='memo-item';
+  div.draggable=true;
+  div.innerHTML=`<span class="memo-item-drag" title="拖动排序">⠿</span>
+<textarea class="memo-ta" rows="1" placeholder="备忘事项或补充记录…" oninput="ar(this);saveDayData()">${pre?.text||''}</textarea>
+<button class="memo-del" onclick="this.closest('.memo-item').remove();saveDayData()" title="删除">×</button>`;
+  const ta=div.querySelector('.memo-ta');
+  div.addEventListener('dragstart',e=>memoListDragStart(e,div));
+  div.addEventListener('dragover',e=>memoListDragOver(e,div));
+  div.addEventListener('drop',e=>memoListDrop(e,div));
+  div.addEventListener('dragend',()=>memoListDragEnd());
+  list.appendChild(div);
+  setTimeout(()=>ar(ta),0);
+}
+
+// ── DRAG: TODO LIST ──
+let dragSrcTodo=null;
+function initTodoDrag(e,handle){
+  const card=handle.closest('.tcard');
+  card.setAttribute('draggable','true');
+  card.ondragstart=ev=>todoDragStart(ev,card);
+  card.ondragover=ev=>todoDragOver(ev,card);
+  card.ondrop=ev=>todoDrop(ev,card);
+  card.ondragend=()=>todoDragEnd(card);
+}
+function todoDragStart(e,card){dragSrcTodo=card;card.classList.add('dragging');e.dataTransfer.effectAllowed='move'}
+function todoDragOver(e,card){e.preventDefault();document.querySelectorAll('.tcard').forEach(c=>c.classList.remove('drag-over'));if(card!==dragSrcTodo)card.classList.add('drag-over')}
+function todoDrop(e,card){
+  e.preventDefault();
+  if(!dragSrcTodo||dragSrcTodo===card)return;
+  const list=card.parentElement;
+  const cards=[...list.children];
+  const srcIdx=cards.indexOf(dragSrcTodo),tgtIdx=cards.indexOf(card);
+  if(srcIdx<tgtIdx)list.insertBefore(dragSrcTodo,card.nextSibling);
+  else list.insertBefore(dragSrcTodo,card);
+  reindex();saveDayData();renderUnifiedTimeline();
+}
+function todoDragEnd(card){card.classList.remove('dragging');document.querySelectorAll('.tcard').forEach(c=>c.classList.remove('drag-over'))}
+
+// ── DRAG: OTASK LIST ──
+let dragSrcOtask=null;
+function otaskListDragStart(e,el){dragSrcOtask=el;el.classList.add('dragging');e.dataTransfer.effectAllowed='move'}
+function otaskListDragOver(e,el){e.preventDefault();document.querySelectorAll('.otask').forEach(c=>c.classList.remove('drag-over'));if(el!==dragSrcOtask)el.classList.add('drag-over')}
+function otaskListDrop(e,el){
+  e.preventDefault();
+  if(!dragSrcOtask||dragSrcOtask===el)return;
+  const list=el.parentElement;
+  const items=[...list.children];
+  const srcIdx=items.indexOf(dragSrcOtask),tgtIdx=items.indexOf(el);
+  if(srcIdx<tgtIdx)list.insertBefore(dragSrcOtask,el.nextSibling);
+  else list.insertBefore(dragSrcOtask,el);
+  saveDayData();
+}
+function otaskListDragEnd(){dragSrcOtask=null;document.querySelectorAll('.otask').forEach(c=>c.classList.remove('dragging','drag-over'))}
+
+// ── DRAG: MEMO LIST ──
+let dragSrcMemo=null;
+function memoListDragStart(e,el){dragSrcMemo=el;el.classList.add('dragging');e.dataTransfer.effectAllowed='move'}
+function memoListDragOver(e,el){e.preventDefault();document.querySelectorAll('.memo-item').forEach(c=>c.classList.remove('drag-over'));if(el!==dragSrcMemo)el.classList.add('drag-over')}
+function memoListDrop(e,el){
+  e.preventDefault();
+  if(!dragSrcMemo||dragSrcMemo===el)return;
+  const list=el.parentElement;
+  const items=[...list.children];
+  const srcIdx=items.indexOf(dragSrcMemo),tgtIdx=items.indexOf(el);
+  if(srcIdx<tgtIdx)list.insertBefore(dragSrcMemo,el.nextSibling);
+  else list.insertBefore(dragSrcMemo,el);
+  saveDayData();
+}
+function memoListDragEnd(){dragSrcMemo=null;document.querySelectorAll('.memo-item').forEach(c=>c.classList.remove('dragging','drag-over'))}
 
 // ── INIT ──
 initTitle();
