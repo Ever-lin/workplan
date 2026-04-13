@@ -387,20 +387,7 @@ body{font-family:var(--ss);background:var(--paper);color:var(--ink);min-height:1
     <div class="dd">
       <div class="dm" id="dm"></div>
       <div class="ds" id="ds"></div>
-      <div class="wx-row">
-        <span class="wx-lbl">天气</span>
-        <div class="wx-opts" id="wx-opts">
-          <button class="wx-btn" data-wx="☀️" title="晴天" onclick="setWeather('☀️',this)">☀️</button>
-          <button class="wx-btn" data-wx="⛅" title="多云" onclick="setWeather('⛅',this)">⛅</button>
-          <button class="wx-btn" data-wx="☁️" title="阴天" onclick="setWeather('☁️',this)">☁️</button>
-          <button class="wx-btn" data-wx="🌧️" title="雨天" onclick="setWeather('🌧️',this)">🌧️</button>
-          <button class="wx-btn" data-wx="⛈️" title="雷雨" onclick="setWeather('⛈️',this)">⛈️</button>
-          <button class="wx-btn" data-wx="🌨️" title="雪天" onclick="setWeather('🌨️',this)">🌨️</button>
-          <button class="wx-btn" data-wx="🌬️" title="大风" onclick="setWeather('🌬️',this)">🌬️</button>
-          <button class="wx-btn" data-wx="🌫️" title="雾霾" onclick="setWeather('🌫️',this)">🌫️</button>
-        </div>
-        <button class="wx-clear" onclick="clearWeather()" title="清除">✕</button>
-      </div>
+
     </div>
     <select class="nav-sel" id="sel-year" onchange="onSelDate()"></select>
     <select class="nav-sel" id="sel-month" onchange="onSelDate()"></select>
@@ -430,11 +417,7 @@ body{font-family:var(--ss);background:var(--paper);color:var(--ink);min-height:1
         <div style="margin-top:5px">
           <button class="addbtn" onclick="addMemo()">＋ 添加备忘事项</button>
         </div>
-        <!-- 复盘 -->
-        <div class="refbox" style="margin-top:14px">
-          <div class="reftitle">· 今日复盘</div>
-          <textarea class="refta" id="reflection" placeholder="今天做到了什么？有什么收获？明天需要改进什么？" oninput="saveDayData()"></textarea>
-        </div>
+
       </div>
     </div>
 
@@ -572,9 +555,6 @@ function gkey(d){return'plan_'+fmt(d)}
 function load(d){try{const r=localStorage.getItem(gkey(d));return r?JSON.parse(r):null}catch{return null}}
 function saveDayData(){
   const data=gather();
-  // preserve weather from existing saved data
-  const existing=load(currentDate);
-  if(existing?.weather)data.weather=existing.weather;
   localStorage.setItem(gkey(currentDate),JSON.stringify(data));showSaved()
 }
 function gather(){
@@ -605,7 +585,6 @@ function gather(){
   });
   return{
     date:fmt(currentDate),
-    reflection:document.getElementById('reflection')?.value||'',
     todos,otasks,memos
   };
 }
@@ -659,8 +638,6 @@ function renderDaily(){
   updateDD();
   const d=load(currentDate)||{};
 
-  document.getElementById('reflection').value=d.reflection||'';
-
   const tlist=document.getElementById('tlist');tlist.innerHTML='';
   (d.todos||[]).forEach(t=>buildCard(t));
 
@@ -670,7 +647,6 @@ function renderDaily(){
   const ml=document.getElementById('memo-list');ml.innerHTML='';
   (d.memos||[]).forEach(m=>addMemo(m));
 
-  renderWeather(d.weather||'');
   updateStats();
   renderUnifiedTimeline();
 }
@@ -832,7 +808,9 @@ function renderUnifiedTimeline(){
         const planSlot=document.createElement('div');planSlot.className='utl-plan-slot';
         if(t.isPlan){
           const badge=document.createElement('span');badge.className='utl-time-badge plan';
-          badge.textContent=t.ps+(t.pe?'–'+t.pe:'');
+          let planTxt=t.ps+(t.pe?'–'+t.pe:'');
+          if(t.ps&&t.pe){const dur=timeToMin(t.pe)-timeToMin(t.ps);if(dur>0)planTxt+='（'+dur+'分钟）';}
+          badge.textContent=planTxt;
           planSlot.appendChild(badge);
         }
         colPlan.appendChild(planSlot);
@@ -842,7 +820,9 @@ function renderUnifiedTimeline(){
           const badge=document.createElement('span');
           const cls=t.atype==='done'?'actual-done':t.atype==='deviation'?'actual-deviation':'actual-same';
           badge.className=`utl-time-badge ${cls}`;
-          badge.textContent=t.as+(t.ae?'–'+t.ae:'');
+          let actTxt=t.as+(t.ae?'–'+t.ae:'');
+          if(t.as&&t.ae){const dur=timeToMin(t.ae)-timeToMin(t.as);if(dur>0)actTxt+='（'+dur+'分钟）';}
+          badge.textContent=actTxt;
           actSlot.appendChild(badge);
           if(t.atype==='deviation'&&t.ps&&t.pe&&t.as&&t.ae){
             const planDur=timeToMin(t.pe)-timeToMin(t.ps);
@@ -875,7 +855,9 @@ function renderUnifiedTimeline(){
 
         const actSlot=document.createElement('div');actSlot.className='utl-actual-slot';
         const badge=document.createElement('span');badge.className='utl-time-badge actual-extra';
-        badge.textContent=t.as+(t.ae?'–'+t.ae:'');
+        let otaskTxt=t.as+(t.ae?'–'+t.ae:'');
+        if(t.as&&t.ae){const dur=timeToMin(t.ae)-timeToMin(t.as);if(dur>0)otaskTxt+='（'+dur+'分钟）';}
+        badge.textContent=otaskTxt;
         actSlot.appendChild(badge);
         colActual.appendChild(actSlot);
       } else {
@@ -893,7 +875,9 @@ function renderUnifiedTimeline(){
 
         const actSlot=document.createElement('div');actSlot.className='utl-actual-slot';
         const badge=document.createElement('span');badge.className='utl-time-badge actual-partial';
-        badge.textContent=t.as+(t.ae?'–'+t.ae:'');
+        let memoTxt=t.as+(t.ae?'–'+t.ae:'');
+        if(t.as&&t.ae){const dur=timeToMin(t.ae)-timeToMin(t.as);if(dur>0)memoTxt+='（'+dur+'分钟）';}
+        badge.textContent=memoTxt;
         actSlot.appendChild(badge);
         colActual.appendChild(actSlot);
       }
