@@ -256,15 +256,32 @@ body{font-family:var(--ss);background:var(--paper);color:var(--ink);min-height:1
 
 /* MEMO SECTION */
 .memo-section{display:flex;flex-direction:column;gap:5px}
-.memo-list{display:flex;flex-direction:column;gap:4px}
-.memo-item{display:flex;align-items:flex-start;gap:5px;border:1px solid var(--bdr);border-radius:2px;background:white;padding:5px 8px;position:relative;transition:all var(--t)}
+.memo-list{display:flex;flex-direction:column;gap:5px}
+.memo-item{display:flex;flex-direction:column;gap:0;border:1px solid var(--bdr);border-radius:2px;background:white;overflow:hidden;transition:all var(--t)}
 .memo-item:hover{border-color:var(--am)}
-.memo-item-drag{cursor:grab;color:var(--ink-m);font-size:11px;padding-top:1px;opacity:.4;flex-shrink:0;user-select:none}
-.memo-item:hover .memo-item-drag{opacity:.8}
-.memo-ta{flex:1;border:none;background:transparent;font-family:var(--ss);font-size:12px;color:var(--ink);resize:none;min-height:16px;line-height:1.5;padding:0}
+.memo-item.ck{background:var(--gr-l);border-color:#b8d8c0}
+.memo-item-top{display:flex;align-items:center;gap:6px;padding:5px 8px}
+.memo-item-drag{cursor:grab;color:var(--ink-m);font-size:12px;padding:2px 3px;opacity:.4;flex-shrink:0;user-select:none;line-height:1}
+.memo-item:hover .memo-item-drag{opacity:.7}
+.memo-chk{width:15px;height:15px;border:1.5px solid var(--bdr);border-radius:2px;cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center;background:white;transition:all var(--t);font-size:9px}
+.memo-chk.ck{background:var(--gr);border-color:var(--gr);color:white}
+.memo-ta{flex:1;border:none;background:transparent;font-family:var(--ss);font-size:12px;color:var(--ink);padding:0;line-height:1.5}
 .memo-ta:focus{outline:none}
+.memo-item.ck .memo-ta{text-decoration:line-through;color:var(--ink-m)}
 .memo-del{background:none;border:none;cursor:pointer;color:var(--ink-m);font-size:11px;opacity:0;transition:opacity var(--t);flex-shrink:0;padding:0 2px}
 .memo-item:hover .memo-del{opacity:1}
+.memo-toggle{font-size:9px;color:var(--ink-m);cursor:pointer;padding:1px 6px;border:1px solid var(--paper-l);border-radius:2px;background:none;font-family:var(--ss);transition:all var(--t);flex-shrink:0}
+.memo-toggle:hover{border-color:var(--am);color:var(--am)}
+.memo-mv{font-size:9px;color:var(--ink-m);cursor:pointer;padding:1px 6px;border:1px solid var(--paper-l);border-radius:2px;background:none;font-family:var(--ss);transition:all var(--t);flex-shrink:0}
+.memo-mv:hover{border-color:var(--am);color:var(--am);background:var(--am-l)}
+/* memo exec section */
+.memo-exec{border-top:1px dashed var(--paper-l);padding:6px 8px;background:rgba(139,105,20,.04);display:flex;flex-direction:column;gap:5px}
+.memo-times{display:flex;gap:8px;align-items:center}
+.mtl{font-size:9px;color:var(--ink-m);white-space:nowrap}
+.mti{font-family:var(--mo);font-size:10px;color:var(--ink);border:1px solid var(--bdr);background:white;padding:2px 4px;border-radius:2px;width:62px}
+.mti:focus{outline:none;border-color:var(--am)}
+.mnote{font-size:11px;color:var(--ink);border:1px solid var(--bdr);background:white;padding:3px 5px;border-radius:2px;width:100%;resize:none;font-family:var(--ss);min-height:28px;line-height:1.5}
+.mnote:focus{outline:none;border-color:var(--am)}
 .memo-del:hover{color:var(--ac)}
 
 /* views */
@@ -431,6 +448,7 @@ body{font-family:var(--ss);background:var(--paper);color:var(--ink);min-height:1
             <span><span style="display:inline-block;padding:1px 5px;background:rgba(42,92,63,.2);color:#1a4830;border-radius:3px;font-size:9px;font-family:var(--mo)">完成/准时</span></span>
             <span><span style="display:inline-block;padding:1px 5px;background:rgba(139,58,58,.18);color:#7a1a1a;border-radius:3px;font-size:9px;font-family:var(--mo)">有偏差</span></span>
             <span><span style="display:inline-block;padding:1px 5px;background:rgba(107,63,160,.18);color:#3d1878;border-radius:3px;font-size:9px;font-family:var(--mo)">临时</span></span>
+            <span><span style="display:inline-block;padding:1px 5px;background:rgba(139,105,20,.2);color:#6b5000;border-radius:3px;font-size:9px;font-family:var(--mo)">备忘</span></span>
           </div>
         </div>
         <div class="utl-wrap" style="flex:1">
@@ -582,7 +600,8 @@ function gather(){
   const memos=[];
   document.querySelectorAll('.memo-item').forEach(el=>{
     const v=el.querySelector('.memo-ta')?.value||'';
-    if(v)memos.push({text:v});
+    const exec=el.querySelector('.memo-exec');
+    if(v)memos.push({text:v,done:el.classList.contains('ck'),actualStart:el.querySelector('.mas')?.value||'',actualEnd:el.querySelector('.mae')?.value||'',note:el.querySelector('.mnote')?.value||'',execOpen:exec?exec.style.display!=='none':false,movedToNext:el.dataset.movedToNext||''});
   });
   return{
     date:fmt(currentDate),
@@ -718,6 +737,18 @@ function renderUnifiedTimeline(){
     events.push({type:'otask',sortMin,endMin,data:{txt,as,ae,note,done}});
   });
 
+  document.querySelectorAll('.memo-item').forEach(el=>{
+    const txt=el.querySelector('.memo-ta')?.value||'';
+    const as=el.querySelector('.mas')?.value||'';
+    const ae=el.querySelector('.mae')?.value||'';
+    const note=el.querySelector('.mnote')?.value||'';
+    const done=el.classList.contains('ck');
+    if(!txt||!as)return;
+    const sortMin=timeToMin(as);
+    const endMin=ae?timeToMin(ae):sortMin+1;
+    events.push({type:'memo',sortMin,endMin,data:{txt,as,ae,note,done}});
+  });
+
   // Sort by actual/plan start time
   events.sort((a,b)=>a.sortMin-b.sortMin);
 
@@ -777,8 +808,11 @@ function renderUnifiedTimeline(){
       if(ev.type==='todo'){
         row.classList.add('has-plan');
         if(t.atype==='deviation') row.classList.add('is-deviation');
+      } else if(ev.type==='otask') {
+        row.classList.add('has-extra','no-plan');
       } else {
         row.classList.add('has-extra','no-plan');
+        row.style.background='linear-gradient(to right,rgba(139,105,20,.04),transparent)';
       }
 
       const colName=document.createElement('div');colName.className='utl-col-name';
@@ -826,7 +860,7 @@ function renderUnifiedTimeline(){
         }
         colActual.appendChild(actSlot);
 
-      } else {
+      } else if(ev.type==='otask') {
         // otask
         const nameEntry=document.createElement('div');nameEntry.className='utl-name-entry';
         const tag=document.createElement('span');tag.className='utl-extra-tag';tag.textContent='临时';
@@ -841,6 +875,24 @@ function renderUnifiedTimeline(){
 
         const actSlot=document.createElement('div');actSlot.className='utl-actual-slot';
         const badge=document.createElement('span');badge.className='utl-time-badge actual-extra';
+        badge.textContent=t.as+(t.ae?'–'+t.ae:'');
+        actSlot.appendChild(badge);
+        colActual.appendChild(actSlot);
+      } else {
+        // memo
+        const nameEntry=document.createElement('div');nameEntry.className='utl-name-entry';
+        const tag=document.createElement('span');tag.className='utl-extra-tag';tag.style.background='var(--am)';tag.textContent='备忘';
+        const txt3=document.createElement('span');txt3.className='utl-plan-txt'+(t.done?' is-done':'');
+        if(t.done)txt3.style.textDecoration='line-through';
+        txt3.textContent=t.txt;
+        nameEntry.appendChild(tag);nameEntry.appendChild(txt3);
+        colName.appendChild(nameEntry);
+        if(t.note){const note=document.createElement('div');note.className='utl-note';note.textContent='↳ '+t.note;colName.appendChild(note);}
+
+        colPlan.appendChild(document.createElement('div')); // empty
+
+        const actSlot=document.createElement('div');actSlot.className='utl-actual-slot';
+        const badge=document.createElement('span');badge.className='utl-time-badge actual-partial';
         badge.textContent=t.as+(t.ae?'–'+t.ae:'');
         actSlot.appendChild(badge);
         colActual.appendChild(actSlot);
@@ -1325,18 +1377,101 @@ function renderWeather(wx){
 function addMemo(pre){
   const list=document.getElementById('memo-list');
   const div=document.createElement('div');
-  div.className='memo-item';
+  div.className='memo-item'+(pre?.done?' ck':'');
   div.draggable=true;
-  div.innerHTML=`<span class="memo-item-drag" title="拖动排序">⠿</span>
-<textarea class="memo-ta" rows="1" placeholder="备忘事项或补充记录…" oninput="ar(this);saveDayData()">${pre?.text||''}</textarea>
-<button class="memo-del" onclick="this.closest('.memo-item').remove();saveDayData()" title="删除">×</button>`;
-  const ta=div.querySelector('.memo-ta');
   div.addEventListener('dragstart',e=>memoListDragStart(e,div));
   div.addEventListener('dragover',e=>memoListDragOver(e,div));
   div.addEventListener('drop',e=>memoListDrop(e,div));
   div.addEventListener('dragend',()=>memoListDragEnd());
+  if(pre?.movedToNext)div.dataset.movedToNext=pre.movedToNext;
+  const execOpen=pre?.execOpen||false;
+
+  const topRow=document.createElement('div');topRow.className='memo-item-top';
+
+  const drag=document.createElement('span');drag.className='memo-item-drag';drag.title='拖动排序';drag.textContent='⠿';
+
+  const chk=document.createElement('div');chk.className='memo-chk'+(pre?.done?' ck':'');chk.textContent=pre?.done?'✓':'';
+  chk.onclick=()=>{
+    div.classList.toggle('ck');chk.classList.toggle('ck');chk.textContent=chk.classList.contains('ck')?'✓':'';
+    saveDayData();renderUnifiedTimeline();
+  };
+
+  const inp=document.createElement('input');inp.type='text';inp.className='memo-ta';inp.placeholder='备忘事项…';inp.value=pre?.text||'';
+  inp.addEventListener('input',()=>{saveDayData();renderUnifiedTimeline()});
+
+  const mv=document.createElement('button');mv.className='memo-mv';mv.title='推迟到明天';mv.textContent='→明';
+  mv.onclick=()=>moveMemoToNextDay(div);
+  if(pre?.movedToNext){
+    setTimeout(()=>applyMemoDeferredStyle(div,pre.movedToNext),0);
+  }
+
+  const toggle=document.createElement('button');toggle.className='memo-toggle';
+  toggle.textContent='执行 '+(execOpen?'▴':'▾');
+  toggle.onclick=()=>{
+    const exec=div.querySelector('.memo-exec');
+    const open=exec.style.display==='none';
+    exec.style.display=open?'':'none';
+    toggle.textContent='执行 '+(open?'▴':'▾');
+    saveDayData();
+  };
+
+  const del=document.createElement('button');del.className='memo-del';del.textContent='×';
+  del.onclick=()=>{div.remove();saveDayData();renderUnifiedTimeline()};
+
+  topRow.appendChild(drag);topRow.appendChild(chk);topRow.appendChild(inp);topRow.appendChild(mv);topRow.appendChild(toggle);topRow.appendChild(del);
+
+  const execSec=document.createElement('div');execSec.className='memo-exec';
+  execSec.style.display=execOpen?'':'none';
+
+  const timeRow=document.createElement('div');timeRow.className='memo-times';
+  timeRow.innerHTML=`<span class="mtl">实际开始</span><input class="mti mas" list="dl-t" type="text" placeholder="09:00" value="${pre?.actualStart||''}"><span class="mtl" style="margin-left:6px">实际结束</span><input class="mti mae" list="dl-t" type="text" placeholder="10:00" value="${pre?.actualEnd||''}">`;
+  timeRow.querySelectorAll('input').forEach(i=>i.addEventListener('input',()=>{
+    const as=div.querySelector('.mas')?.value||'';
+    const ae=div.querySelector('.mae')?.value||'';
+    if(as&&ae&&!div.classList.contains('ck')){
+      div.classList.add('ck');chk.classList.add('ck');chk.textContent='✓';
+    }
+    saveDayData();renderUnifiedTimeline();
+  }));
+
+  const noteTA=document.createElement('textarea');noteTA.className='mnote';
+  noteTA.placeholder='备注：遇到什么问题？如何解决？';noteTA.value=pre?.note||'';
+  noteTA.addEventListener('input',()=>{saveDayData();renderUnifiedTimeline()});
+
+  execSec.appendChild(timeRow);execSec.appendChild(noteTA);
+  div.appendChild(topRow);div.appendChild(execSec);
   list.appendChild(div);
-  setTimeout(()=>ar(ta),0);
+}
+
+function moveMemoToNextDay(div){
+  const text=div.querySelector('.memo-ta')?.value||'';
+  const note=div.querySelector('.mnote')?.value||'';
+  if(!text)return;
+  const tomorrow=new Date(currentDate.getTime()+86400000);
+  const tomorrowKey='plan_'+fmt(tomorrow);
+  let tData={};try{const r=localStorage.getItem(tomorrowKey);if(r)tData=JSON.parse(r)}catch{}
+  if(!tData.memos)tData.memos=[];
+  if(!tData.memos.some(m=>m.text===text)){
+    tData.memos.push({text,done:false,note,actualStart:'',actualEnd:'',execOpen:false});
+    localStorage.setItem(tomorrowKey,JSON.stringify(tData));
+    const dateStr=(tomorrow.getMonth()+1)+'/'+(tomorrow.getDate());
+    div.dataset.movedToNext=dateStr;
+    saveDayData();
+    applyMemoDeferredStyle(div,dateStr);
+  } else {
+    alert('明天已有相同备忘');
+  }
+}
+
+function applyMemoDeferredStyle(div,dateStr){
+  const inp=div.querySelector('.memo-ta');
+  if(inp){inp.style.textDecoration='line-through';inp.style.color='var(--ink-m)'}
+  const mv=div.querySelector('.memo-mv');
+  if(mv){
+    mv.textContent='→'+dateStr;
+    mv.style.color='var(--am)';mv.style.borderColor='var(--am)';mv.style.background='var(--am-l)';
+    mv.disabled=true;mv.style.cursor='default';
+  }
 }
 
 // ── DRAG: TODO LIST ──
@@ -1391,7 +1526,7 @@ function memoListDrop(e,el){
   const srcIdx=items.indexOf(dragSrcMemo),tgtIdx=items.indexOf(el);
   if(srcIdx<tgtIdx)list.insertBefore(dragSrcMemo,el.nextSibling);
   else list.insertBefore(dragSrcMemo,el);
-  saveDayData();
+  saveDayData();renderUnifiedTimeline();
 }
 function memoListDragEnd(){dragSrcMemo=null;document.querySelectorAll('.memo-item').forEach(c=>c.classList.remove('dragging','drag-over'))}
 
