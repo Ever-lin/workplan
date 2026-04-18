@@ -132,7 +132,20 @@ body{font-family:var(--ss);background:var(--paper);color:var(--ink);min-height:1
 .utl-row.is-cont::before{opacity:.2 !important}
 
 /* note line */
-.utl-note{font-size:9px;color:var(--ink-m);padding-left:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-family:var(--ss)}
+.utl-note{font-size:9px;color:var(--ink-m);padding-left:12px;white-space:normal;overflow:visible;word-break:break-word;font-family:var(--ss);line-height:1.5}
+
+/* ── MINI TASKS BOTTOM SECTION ── */
+.utl-mini-section{margin-top:10px;border-top:2px dashed rgba(42,92,63,.25);padding-top:8px}
+.utl-mini-title{font-size:10px;color:rgba(42,92,63,.8);font-family:var(--ss);font-weight:500;letter-spacing:.8px;margin-bottom:6px;display:flex;align-items:center;gap:6px}
+.utl-mini-title::after{content:'';flex:1;height:1px;background:rgba(42,92,63,.15)}
+.utl-mini-row{display:flex;align-items:center;gap:7px;padding:4px 7px;border-radius:2px;background:rgba(42,92,63,.04);border:1px dashed rgba(42,92,63,.18);margin-bottom:4px}
+.utl-mini-check{color:var(--gr);font-size:11px;flex-shrink:0}
+.utl-mini-tag{font-size:8px;padding:1px 5px;border-radius:2px;flex-shrink:0;white-space:nowrap}
+.utl-mini-tag.tag-todo{background:rgba(44,74,124,.12);color:#2c4a7c}
+.utl-mini-tag.tag-otask{background:rgba(107,63,160,.12);color:#3d1878}
+.utl-mini-tag.tag-memo{background:rgba(139,105,20,.18);color:#6b5000}
+.utl-mini-txt{font-size:11px;color:var(--ink-m);text-decoration:line-through;flex:1;font-family:var(--ss)}
+.utl-mini-note{font-size:9px;color:var(--ink-m);font-style:italic;white-space:normal;word-break:break-word}
 
 /* legacy compat */
 .utl-item{display:flex;align-items:center;min-height:20px}
@@ -148,6 +161,16 @@ body{font-family:var(--ss);background:var(--paper);color:var(--ink);min-height:1
 .utl-extra-time{display:none}
 .utl-plan-time{display:none}
 .utl-connector{display:none}
+
+/* ── MULTI-SEGMENT TIME BLOCKS ── */
+.time-segs{display:flex;flex-direction:column;gap:4px;margin-bottom:5px}
+.time-seg{display:grid;grid-template-columns:1fr 1fr auto;gap:5px;align-items:end;background:rgba(44,74,124,.04);border:1px dashed var(--bdr);border-radius:2px;padding:5px 7px}
+.time-seg.otask-seg{background:rgba(107,63,160,.04)}
+.time-seg-lbl{font-size:9px;color:var(--ink-m);margin-bottom:2px}
+.time-seg-del{background:none;border:none;cursor:pointer;color:var(--ink-m);font-size:13px;padding:0 3px;line-height:1;opacity:.5;transition:opacity var(--t);align-self:flex-end;padding-bottom:3px}
+.time-seg-del:hover{opacity:1;color:var(--ac)}
+.add-seg-btn{background:none;border:1px dashed var(--bdr);color:var(--ink-m);font-family:var(--ss);font-size:10px;padding:3px 9px;cursor:pointer;border-radius:2px;transition:all var(--t);width:100%}
+.add-seg-btn:hover{border-color:var(--bl);color:var(--bl)}
 
 /* ── COMBO (hour dropdown + type) ── */
 .tfields{display:grid;grid-template-columns:1fr 1fr;gap:7px}
@@ -411,11 +434,11 @@ body{font-family:var(--ss);background:var(--paper);color:var(--ink);min-height:1
         <div style="margin-top:5px">
           <button class="addbtn" onclick="addOtask()">＋ 添加其他安排</button>
         </div>
-        <!-- 备忘工作事项（时间轴补充） -->
-        <div class="ptitle" style="margin-top:14px;margin-bottom:8px">备忘工作事项 <span style="font-size:9px;color:var(--ink-m);font-weight:400;letter-spacing:.5px">· 时间轴补充</span></div>
+        <!-- 小任务 -->
+        <div class="ptitle" style="margin-top:14px;margin-bottom:8px">小任务</div>
         <div class="memo-list" id="memo-list"></div>
         <div style="margin-top:5px">
-          <button class="addbtn" onclick="addMemo()">＋ 添加备忘事项</button>
+          <button class="addbtn" onclick="addMemo()">＋ 添加小任务</button>
         </div>
 
       </div>
@@ -561,12 +584,12 @@ function gather(){
   const todos=[];
   document.querySelectorAll('.tcard').forEach((c,i)=>{
     const esec=c.querySelector('.esec');
+    const actualSegs=[...c.querySelectorAll('.todo-segs .time-seg')].map(s=>({start:s.querySelector('.seg-s')?.value||'',end:s.querySelector('.seg-e')?.value||''})).filter(s=>s.start||s.end);
     todos.push({
       id:c.dataset.id,text:c.querySelector('.ttxt')?.value||'',
       planStart:c.querySelector('.eps')?.value||'',planEnd:c.querySelector('.epe')?.value||'',
-      actualStart:c.querySelector('.eas')?.value||'',actualEnd:c.querySelector('.eae')?.value||'',
+      actualSegs,
       priority:parseInt(c.dataset.priority)||i+1,done:c.classList.contains('done'),
-      execStatus:c.querySelector('.estat')?.dataset.status||'pending',
       note:c.querySelector('.enote')?.value||'',
       execOpen:esec?esec.style.display!=='none':true
     });
@@ -575,7 +598,8 @@ function gather(){
   document.querySelectorAll('.otask').forEach(el=>{
     const v=el.querySelector('.otask-txt')?.value||'';
     const exec=el.querySelector('.otask-exec');
-    if(v)otasks.push({text:v,done:el.classList.contains('ck'),actualStart:el.querySelector('.oas')?.value||'',actualEnd:el.querySelector('.oae')?.value||'',note:el.querySelector('.otnote')?.value||'',execOpen:exec?exec.style.display!=='none':false,movedToNext:el.dataset.movedToNext||'',deferredFrom:el.dataset.deferredFrom||''});
+    const actualSegs=[...el.querySelectorAll('.otask-segs-wrap .time-seg')].map(s=>({start:s.querySelector('.seg-s')?.value||'',end:s.querySelector('.seg-e')?.value||''})).filter(s=>s.start||s.end);
+    if(v)otasks.push({text:v,done:el.classList.contains('ck'),actualSegs,note:el.querySelector('.otnote')?.value||'',execOpen:exec?exec.style.display!=='none':false,movedToNext:el.dataset.movedToNext||'',deferredFrom:el.dataset.deferredFrom||''});
   });
   const memos=[];
   document.querySelectorAll('.memo-item').forEach(el=>{
@@ -676,41 +700,54 @@ function renderUnifiedTimeline(){
   document.querySelectorAll('.tcard').forEach(c=>{
     const ps=c.querySelector('.eps')?.value||'';
     const pe=c.querySelector('.epe')?.value||'';
-    const as=c.querySelector('.eas')?.value||'';
-    const ae=c.querySelector('.eae')?.value||'';
     const txt=c.querySelector('.ttxt')?.value||'';
-    const status=c.querySelector('.estat')?.dataset.status||'pending';
     const done=c.classList.contains('done');
     const note=c.querySelector('.enote')?.value||'';
     if(!txt)return;
-    function getAtype(){
-      if(ps&&pe&&as&&ae){
-        const durDiff=timeToMin(ae)-timeToMin(as)-(timeToMin(pe)-timeToMin(ps));
-        const startDiff=timeToMin(as)-timeToMin(ps);
-        if(Math.abs(durDiff)>=1||Math.abs(startDiff)>=1) return 'deviation';
-      }
-      if(done||status==='done') return 'done';
-      return 'same';
+    // Collect all actual segments
+    const segs=[...c.querySelectorAll('.todo-segs .time-seg')].map(s=>({as:s.querySelector('.seg-s')?.value||'',ae:s.querySelector('.seg-e')?.value||''})).filter(s=>s.as||s.ae);
+    const hasActual=segs.some(s=>s.as);
+    if(!hasActual&&!ps)return; // nothing to show
+    if(hasActual){
+      segs.forEach((seg,si)=>{
+        const as=seg.as,ae=seg.ae;
+        if(!as)return;
+        function getAtype(){
+          if(si===0&&ps&&pe&&as&&ae){
+            const durDiff=timeToMin(ae)-timeToMin(as)-(timeToMin(pe)-timeToMin(ps));
+            const startDiff=timeToMin(as)-timeToMin(ps);
+            if(Math.abs(durDiff)>=1||Math.abs(startDiff)>=1) return 'deviation';
+          }
+          if(done) return 'done';
+          return 'same';
+        }
+        const sortMin=timeToMin(as);
+        const endMin=ae?timeToMin(ae):sortMin+1;
+        const segLabel=segs.length>1?` (第${si+1}段)`:'';
+        events.push({type:'todo',sortMin,endMin,data:{txt:txt+segLabel,ps:si===0?ps:'',pe:si===0?pe:'',as,ae,done,note:si===0?note:'',isPlan:si===0&&!!ps,isActual:true,atype:getAtype(),segIndex:si,totalSegs:segs.length}});
+      });
+    } else {
+      // Plan-only (no actual), show once anchored to plan start
+      const sortMin=timeToMin(ps);
+      const endMin=pe?timeToMin(pe):sortMin+1;
+      events.push({type:'todo',sortMin,endMin,data:{txt,ps,pe,as:'',ae:'',done,note,isPlan:true,isActual:false,atype:'same',segIndex:0,totalSegs:0}});
     }
-    const sortKey=as||ps; // prefer actual start for sorting
-    if(!sortKey)return;
-    const sortMin=timeToMin(sortKey);
-    // endMin for gap calc: actual end > plan end > sortMin+1
-    const endStr=ae||pe;
-    const endMin=endStr?timeToMin(endStr):sortMin+1;
-    events.push({type:'todo',sortMin,endMin,data:{txt,ps,pe,as,ae,status,done,note,isPlan:!!ps,isActual:!!as,atype:getAtype()}});
   });
 
   document.querySelectorAll('.otask').forEach(el=>{
     const txt=el.querySelector('.otask-txt')?.value||'';
-    const as=el.querySelector('.oas')?.value||'';
-    const ae=el.querySelector('.oae')?.value||'';
     const note=el.querySelector('.otnote')?.value||'';
     const done=el.classList.contains('ck');
-    if(!txt||!as)return;
-    const sortMin=timeToMin(as);
-    const endMin=ae?timeToMin(ae):sortMin+1;
-    events.push({type:'otask',sortMin,endMin,data:{txt,as,ae,note,done}});
+    if(!txt)return;
+    const segs=[...el.querySelectorAll('.otask-segs-wrap .time-seg')].map(s=>({as:s.querySelector('.seg-s')?.value||'',ae:s.querySelector('.seg-e')?.value||''})).filter(s=>s.as);
+    if(!segs.length)return;
+    segs.forEach((seg,si)=>{
+      const as=seg.as,ae=seg.ae;
+      const sortMin=timeToMin(as);
+      const endMin=ae?timeToMin(ae):sortMin+1;
+      const segLabel=segs.length>1?` (第${si+1}段)`:'';
+      events.push({type:'otask',sortMin,endMin,data:{txt:txt+segLabel,as,ae,note:si===0?note:'',done}});
+    });
   });
 
   document.querySelectorAll('.memo-item').forEach(el=>{
@@ -905,6 +942,57 @@ function renderUnifiedTimeline(){
       rows.appendChild(rowGap);
     }
   });
+
+  // ── 6. Mini completed tasks section (done, no time on timeline) ──
+  const miniItems=[];
+
+  document.querySelectorAll('.tcard').forEach(c=>{
+    const ps=c.querySelector('.eps')?.value||'';
+    const segs=[...c.querySelectorAll('.todo-segs .time-seg')].map(s=>s.querySelector('.seg-s')?.value||'').filter(Boolean);
+    const done=c.classList.contains('done');
+    const txt=c.querySelector('.ttxt')?.value||'';
+    const note=c.querySelector('.enote')?.value||'';
+    if(!txt)return;
+    if(!segs.length&&!ps&&done) miniItems.push({type:'todo',txt,note});
+  });
+
+  document.querySelectorAll('.otask').forEach(el=>{
+    const segs=[...el.querySelectorAll('.otask-segs-wrap .time-seg')].map(s=>s.querySelector('.seg-s')?.value||'').filter(Boolean);
+    const done=el.classList.contains('ck');
+    const txt=el.querySelector('.otask-txt')?.value||'';
+    const note=el.querySelector('.otnote')?.value||'';
+    if(!txt)return;
+    if(!segs.length&&done) miniItems.push({type:'otask',txt,note});
+  });
+
+  document.querySelectorAll('.memo-item').forEach(el=>{
+    const as=el.querySelector('.mas')?.value||'';
+    const done=el.classList.contains('ck');
+    const txt=el.querySelector('.memo-ta')?.value||'';
+    const note=el.querySelector('.mnote')?.value||'';
+    if(!txt)return;
+    if(!as&&done) miniItems.push({type:'memo',txt,note});
+  });
+
+  if(miniItems.length>0){
+    const miniSec=document.createElement('div');miniSec.className='utl-mini-section';
+    const miniTitle=document.createElement('div');miniTitle.className='utl-mini-title';
+    miniTitle.textContent='已完成小任务 '+miniItems.length+'项';
+    miniSec.appendChild(miniTitle);
+    miniItems.forEach(item=>{
+      const row=document.createElement('div');row.className='utl-mini-row';
+      const chk=document.createElement('span');chk.className='utl-mini-check';chk.textContent='✓';
+      const tagMap={todo:'待办',otask:'临时',memo:'备忘'};
+      const tag=document.createElement('span');tag.className='utl-mini-tag tag-'+item.type;tag.textContent=tagMap[item.type];
+      const inner=document.createElement('div');inner.style.cssText='flex:1;display:flex;flex-direction:column;gap:2px;min-width:0';
+      const txtEl=document.createElement('span');txtEl.className='utl-mini-txt';txtEl.textContent=item.txt;
+      inner.appendChild(txtEl);
+      if(item.note){const noteEl=document.createElement('span');noteEl.className='utl-mini-note';noteEl.textContent='↳ '+item.note;inner.appendChild(noteEl);}
+      row.appendChild(chk);row.appendChild(tag);row.appendChild(inner);
+      miniSec.appendChild(row);
+    });
+    rows.appendChild(miniSec);
+  }
 }
 
 function timeToMin(s){if(!s)return 0;const[h,m]=s.split(':').map(Number);return h*60+(m||0)}
@@ -934,7 +1022,7 @@ function buildCard(pre){
 <div class="ttop">
   <span class="drag-handle" draggable="true" onmousedown="initTodoDrag(event,this)">⠿</span>
   <div class="tpri${pc}">${priority}</div>
-  <div class="tchk ${pre?.done?'ck':''}" title="请在执行区点击已完成来勾选">${pre?.done?'✓':''}</div>
+  <div class="tchk ${pre?.done?'ck':''}">\${pre?.done?'✓':''}</div>
   <div class="tbody">
     <textarea class="ttxt" rows="1" placeholder="待办事项…" oninput="ar(this);saveDayData();renderUnifiedTimeline()">${pre?.text||''}</textarea>
     <div class="tmeta">
@@ -950,20 +1038,21 @@ function buildCard(pre){
   </div>
 </div>
 <div class="esec" style="${execOpen?'':'display:none'}">
-  <div class="erow">
-    <span class="elbl">状态</span>
-    <span class="estat ${status}" data-status="${status}" onclick="cycleStatus(this)">${SL[status]}</span>
-  </div>
-  <div class="etimes">
+  <div class="etimes" style="grid-template-columns:1fr 1fr;margin-bottom:4px">
     <div class="etf"><div class="etl">计划开始</div><input class="eti eps" list="dl-t" type="text" placeholder="09:00" value="${pre?.planStart||''}" oninput="onPlanTimeChange(this);saveDayData();renderUnifiedTimeline()"></div>
     <div class="etf"><div class="etl">计划结束</div><input class="eti epe" list="dl-t" type="text" placeholder="10:00" value="${pre?.planEnd||''}" oninput="saveDayData();renderUnifiedTimeline()"></div>
-    <div class="etf"><div class="etl">实际开始</div><input class="eti eas" list="dl-t" type="text" placeholder="09:15" value="${pre?.actualStart||''}" oninput="saveDayData();renderUnifiedTimeline()"></div>
-    <div class="etf"><div class="etl">实际结束</div><input class="eti eae" list="dl-t" type="text" placeholder="10:30" value="${pre?.actualEnd||''}" oninput="saveDayData();renderUnifiedTimeline()"></div>
   </div>
-  <textarea class="enote" placeholder="备注：遇到什么问题？如何解决？" oninput="saveDayData();renderUnifiedTimeline()">${pre?.note||''}</textarea>
+  <div class="time-segs todo-segs"></div>
+  <button class="add-seg-btn" onclick="addTodoSeg(this)">＋ 添加实际时间段</button>
+  <textarea class="enote" placeholder="备注：遇到什么问题？如何解决？" oninput="saveDayData();renderUnifiedTimeline()" style="margin-top:5px">${pre?.note||''}</textarea>
 </div>`;
   list.appendChild(c);
   ar(c.querySelector('.ttxt'));
+  // Restore saved segments
+  const segsContainer=c.querySelector('.todo-segs');
+  const segs=pre?.actualSegs||(pre?.actualStart?[{start:pre.actualStart,end:pre.actualEnd||''}]:[]);
+  if(segs.length===0) segs.push({start:'',end:''});
+  segs.forEach(s=>addTodoSegRow(segsContainer,s.start,s.end));
 }
 
 // when plan start is typed, sync time label on todo card
@@ -986,6 +1075,24 @@ function toggleExec(btn){
   btn.textContent='执行 '+(open?'▴':'▾');
   saveDayData();
 }
+function addTodoSeg(btn){
+  const segs=btn.closest('.esec').querySelector('.todo-segs');
+  addTodoSegRow(segs,'','');
+  saveDayData();renderUnifiedTimeline();
+}
+function addTodoSegRow(container,startVal,endVal){
+  const seg=document.createElement('div');seg.className='time-seg';
+  seg.innerHTML=`<div class="etf"><div class="time-seg-lbl">实际开始</div><input class="eti seg-s" list="dl-t" type="text" placeholder="09:15" value="${startVal}"></div><div class="etf"><div class="time-seg-lbl">实际结束</div><input class="eti seg-e" list="dl-t" type="text" placeholder="10:30" value="${endVal}"></div><button class="time-seg-del" title="删除此段">×</button>`;
+  seg.querySelectorAll('input').forEach(i=>i.addEventListener('input',()=>{onTodoActualTimeChange(i);saveDayData();renderUnifiedTimeline();}));
+  seg.querySelector('.time-seg-del').onclick=()=>{
+    const segs=container;
+    if(segs.children.length<=1){seg.querySelectorAll('input').forEach(i=>i.value='');}
+    else{seg.remove();}
+    onTodoActualTimeChange(container.closest('.esec').querySelector('.seg-s'));
+    saveDayData();renderUnifiedTimeline();
+  };
+  container.appendChild(seg);
+}
 function cycleStatus(el){
   const cur=el.dataset.status;const next=SCYCLE[(SCYCLE.indexOf(cur)+1)%SCYCLE.length];
   el.dataset.status=next;el.className='estat '+next;el.textContent=SL[next];
@@ -997,9 +1104,22 @@ function cycleStatus(el){
 function toggleDone(chk){
   const c=chk.closest('.tcard');const done=!c.classList.contains('done');
   c.classList.toggle('done',done);chk.classList.toggle('ck',done);chk.textContent=done?'✓':'';
-  const st=c.querySelector('.estat');
-  if(st){const ns=done?'done':'pending';st.dataset.status=ns;st.className='estat '+ns;st.textContent=SL[ns]}
   saveDayData();updateStats();renderUnifiedTimeline();
+}
+function onTodoActualTimeChange(inp){
+  const c=inp?.closest('.tcard');
+  if(!c)return;
+  // Check if any segment has both start and end filled
+  const segs=[...c.querySelectorAll('.todo-segs .time-seg')];
+  const anyComplete=segs.some(s=>s.querySelector('.seg-s')?.value&&s.querySelector('.seg-e')?.value);
+  if(anyComplete&&!c.classList.contains('done')){
+    c.classList.add('done');
+    const chk=c.querySelector('.tchk');chk.classList.add('ck');chk.textContent='✓';
+  } else if(!anyComplete&&c.classList.contains('done')){
+    c.classList.remove('done');
+    const chk=c.querySelector('.tchk');chk.classList.remove('ck');chk.textContent='';
+  }
+  updateStats();
 }
 function cyclePri(el){
   const c=el.closest('.tcard');let p=parseInt(c.dataset.priority)||1;p=p>=3?1:p+1;
@@ -1092,24 +1212,39 @@ function addOtask(pre){
   const execSec=document.createElement('div');execSec.className='otask-exec';
   execSec.style.display=execOpen?'':'none';
 
-  const timeRow=document.createElement('div');timeRow.className='otask-times';
-  timeRow.innerHTML=`<span class="otl">实际开始</span><input class="oti oas" list="dl-t" type="text" placeholder="09:00" value="${pre?.actualStart||''}"><span class="otl" style="margin-left:6px">实际结束</span><input class="oti oae" list="dl-t" type="text" placeholder="10:00" value="${pre?.actualEnd||''}">`;
-  timeRow.querySelectorAll('input').forEach(i=>i.addEventListener('input',()=>{
-    const as=div.querySelector('.oas')?.value||'';
-    const ae=div.querySelector('.oae')?.value||'';
-    if(as&&ae&&!div.classList.contains('ck')){
-      div.classList.add('ck');chk.classList.add('ck');chk.textContent='✓';
-    }
-    saveDayData();renderUnifiedTimeline();
-  }));
+  const segsWrap=document.createElement('div');segsWrap.className='time-segs otask-segs-wrap';
+  const addSegBtn=document.createElement('button');addSegBtn.className='add-seg-btn';addSegBtn.textContent='＋ 添加实际时间段';
+  addSegBtn.onclick=()=>{addOtaskSegRow(segsWrap,div,chk,'','');saveDayData();renderUnifiedTimeline();};
+
+  const oSegs=pre?.actualSegs||(pre?.actualStart?[{start:pre.actualStart,end:pre.actualEnd||''}]:[]);
+  if(oSegs.length===0)oSegs.push({start:'',end:''});
+  oSegs.forEach(s=>addOtaskSegRow(segsWrap,div,chk,s.start,s.end));
 
   const noteTA=document.createElement('textarea');noteTA.className='otnote';
   noteTA.placeholder='备注：遇到什么问题？如何解决？';noteTA.value=pre?.note||'';
   noteTA.addEventListener('input',()=>{saveDayData();renderUnifiedTimeline()});
 
-  execSec.appendChild(timeRow);execSec.appendChild(noteTA);
+  execSec.appendChild(segsWrap);execSec.appendChild(addSegBtn);execSec.appendChild(noteTA);
   div.appendChild(topRow);div.appendChild(execSec);
   list.appendChild(div);
+}
+
+function addOtaskSegRow(container,div,chk,startVal,endVal){
+  const seg=document.createElement('div');seg.className='time-seg otask-seg';
+  seg.innerHTML=`<div class="etf"><div class="time-seg-lbl">实际开始</div><input class="oti seg-s" list="dl-t" type="text" placeholder="09:00" value="${startVal}"></div><div class="etf"><div class="time-seg-lbl">实际结束</div><input class="oti seg-e" list="dl-t" type="text" placeholder="10:00" value="${endVal}"></div><button class="time-seg-del" title="删除此段">×</button>`;
+  seg.querySelectorAll('input').forEach(i=>i.addEventListener('input',()=>{
+    const segs=[...container.querySelectorAll('.time-seg')];
+    const anyComplete=segs.some(s=>s.querySelector('.seg-s')?.value&&s.querySelector('.seg-e')?.value);
+    if(anyComplete&&!div.classList.contains('ck')){div.classList.add('ck');chk.classList.add('ck');chk.textContent='✓';}
+    else if(!anyComplete&&div.classList.contains('ck')){div.classList.remove('ck');chk.classList.remove('ck');chk.textContent='';}
+    saveDayData();renderUnifiedTimeline();
+  }));
+  seg.querySelector('.time-seg-del').onclick=()=>{
+    if(container.children.length<=1){seg.querySelectorAll('input').forEach(i=>i.value='');}
+    else{seg.remove();}
+    saveDayData();renderUnifiedTimeline();
+  };
+  container.appendChild(seg);
 }
 
 function moveOtaskToNextDay(div){
@@ -1121,7 +1256,7 @@ function moveOtaskToNextDay(div){
   let tData={};try{const r=localStorage.getItem(tomorrowKey);if(r)tData=JSON.parse(r)}catch{}
   if(!tData.otasks)tData.otasks=[];
   if(!tData.otasks.some(o=>o.text===text)){
-    tData.otasks.push({text,done:false,note,actualStart:'',actualEnd:'',execOpen:false,deferredFrom:fmt(currentDate)});
+    tData.otasks.push({text,done:false,note,actualSegs:[],execOpen:false,deferredFrom:fmt(currentDate)});
     localStorage.setItem(tomorrowKey,JSON.stringify(tData));
     const dateStr=(tomorrow.getMonth()+1)+'/'+(tomorrow.getDate());
     div.dataset.movedToNext=dateStr;
@@ -1168,7 +1303,7 @@ function moveTdToNextDay(btn){
   let data={};try{const r=localStorage.getItem(key);if(r)data=JSON.parse(r)}catch{}
   if(!data.todos)data.todos=[];
   if(!data.todos.some(t=>t.text===text)){
-    data.todos.push({id:'t_'+fmt(tomorrow)+'_'+Math.random().toString(36).slice(2,6),text,planStart:ps,planEnd:pe,note,done:false,execStatus:'pending',execOpen:true,priority:data.todos.length+1});
+    data.todos.push({id:'t_'+fmt(tomorrow)+'_'+Math.random().toString(36).slice(2,6),text,planStart:ps,planEnd:pe,note,done:false,actualSegs:[],execOpen:true,priority:data.todos.length+1});
     localStorage.setItem(key,JSON.stringify(data));
     // visual: just update button label to confirm, no strikethrough
     btn.textContent='→'+(tomorrow.getMonth()+1)+'/'+(tomorrow.getDate());
