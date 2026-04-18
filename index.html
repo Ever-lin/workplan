@@ -1022,7 +1022,7 @@ function buildCard(pre){
 <div class="ttop">
   <span class="drag-handle" draggable="true" onmousedown="initTodoDrag(event,this)">⠿</span>
   <div class="tpri${pc}">${priority}</div>
-  <div class="tchk ${pre?.done?'ck':''}">\${pre?.done?'✓':''}</div>
+  <div class="tchk ${pre?.done?'ck':''}">${pre?.done?'✓':''}</div>
   <div class="tbody">
     <textarea class="ttxt" rows="1" placeholder="待办事项…" oninput="ar(this);saveDayData();renderUnifiedTimeline()">${pre?.text||''}</textarea>
     <div class="tmeta">
