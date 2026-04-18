@@ -454,7 +454,7 @@ body{font-family:var(--ss);background:var(--paper);color:var(--ink);min-height:1
             <span><span style="display:inline-block;padding:1px 5px;background:rgba(42,92,63,.2);color:#1a4830;border-radius:3px;font-size:9px;font-family:var(--mo)">完成/准时</span></span>
             <span><span style="display:inline-block;padding:1px 5px;background:rgba(139,58,58,.18);color:#7a1a1a;border-radius:3px;font-size:9px;font-family:var(--mo)">有偏差</span></span>
             <span><span style="display:inline-block;padding:1px 5px;background:rgba(107,63,160,.18);color:#3d1878;border-radius:3px;font-size:9px;font-family:var(--mo)">临时</span></span>
-            <span><span style="display:inline-block;padding:1px 5px;background:rgba(139,105,20,.2);color:#6b5000;border-radius:3px;font-size:9px;font-family:var(--mo)">备忘</span></span>
+
           </div>
         </div>
         <div class="utl-wrap" style="flex:1">
@@ -604,8 +604,7 @@ function gather(){
   const memos=[];
   document.querySelectorAll('.memo-item').forEach(el=>{
     const v=el.querySelector('.memo-ta')?.value||'';
-    const exec=el.querySelector('.memo-exec');
-    if(v)memos.push({text:v,done:el.classList.contains('ck'),actualStart:el.querySelector('.mas')?.value||'',actualEnd:el.querySelector('.mae')?.value||'',note:el.querySelector('.mnote')?.value||'',execOpen:exec?exec.style.display!=='none':false,movedToNext:el.dataset.movedToNext||''});
+    if(v)memos.push({text:v,done:el.classList.contains('ck'),movedToNext:el.dataset.movedToNext||''});
   });
   return{
     date:fmt(currentDate),
@@ -750,17 +749,7 @@ function renderUnifiedTimeline(){
     });
   });
 
-  document.querySelectorAll('.memo-item').forEach(el=>{
-    const txt=el.querySelector('.memo-ta')?.value||'';
-    const as=el.querySelector('.mas')?.value||'';
-    const ae=el.querySelector('.mae')?.value||'';
-    const note=el.querySelector('.mnote')?.value||'';
-    const done=el.classList.contains('ck');
-    if(!txt||!as)return;
-    const sortMin=timeToMin(as);
-    const endMin=ae?timeToMin(ae):sortMin+1;
-    events.push({type:'memo',sortMin,endMin,data:{txt,as,ae,note,done}});
-  });
+  // 小任务不出现在时间轴主体，只显示在底部已完成区
 
   // Sort by actual/plan start time
   events.sort((a,b)=>a.sortMin-b.sortMin);
@@ -897,26 +886,6 @@ function renderUnifiedTimeline(){
         badge.textContent=otaskTxt;
         actSlot.appendChild(badge);
         colActual.appendChild(actSlot);
-      } else {
-        // memo
-        const nameEntry=document.createElement('div');nameEntry.className='utl-name-entry';
-        const tag=document.createElement('span');tag.className='utl-extra-tag';tag.style.background='var(--am)';tag.textContent='备忘';
-        const txt3=document.createElement('span');txt3.className='utl-plan-txt'+(t.done?' is-done':'');
-        if(t.done)txt3.style.textDecoration='line-through';
-        txt3.textContent=t.txt;
-        nameEntry.appendChild(tag);nameEntry.appendChild(txt3);
-        colName.appendChild(nameEntry);
-        if(t.note){const note=document.createElement('div');note.className='utl-note';note.textContent='↳ '+t.note;colName.appendChild(note);}
-
-        colPlan.appendChild(document.createElement('div')); // empty
-
-        const actSlot=document.createElement('div');actSlot.className='utl-actual-slot';
-        const badge=document.createElement('span');badge.className='utl-time-badge actual-partial';
-        let memoTxt=t.as+(t.ae?'–'+t.ae:'');
-        if(t.as&&t.ae){const dur=timeToMin(t.ae)-timeToMin(t.as);if(dur>0)memoTxt+='（'+dur+'分钟）';}
-        badge.textContent=memoTxt;
-        actSlot.appendChild(badge);
-        colActual.appendChild(actSlot);
       }
 
       row.appendChild(colName);row.appendChild(colPlan);row.appendChild(colActual);
@@ -966,12 +935,10 @@ function renderUnifiedTimeline(){
   });
 
   document.querySelectorAll('.memo-item').forEach(el=>{
-    const as=el.querySelector('.mas')?.value||'';
     const done=el.classList.contains('ck');
     const txt=el.querySelector('.memo-ta')?.value||'';
-    const note=el.querySelector('.mnote')?.value||'';
-    if(!txt)return;
-    if(!as&&done) miniItems.push({type:'memo',txt,note});
+    if(!txt||!done)return;
+    miniItems.push({type:'memo',txt,note:''});
   });
 
   if(miniItems.length>0){
@@ -982,7 +949,7 @@ function renderUnifiedTimeline(){
     miniItems.forEach(item=>{
       const row=document.createElement('div');row.className='utl-mini-row';
       const chk=document.createElement('span');chk.className='utl-mini-check';chk.textContent='✓';
-      const tagMap={todo:'待办',otask:'临时',memo:'备忘'};
+      const tagMap={todo:'待办',otask:'临时',memo:'小任务'};
       const tag=document.createElement('span');tag.className='utl-mini-tag tag-'+item.type;tag.textContent=tagMap[item.type];
       const inner=document.createElement('div');inner.style.cssText='flex:1;display:flex;flex-direction:column;gap:2px;min-width:0';
       const txtEl=document.createElement('span');txtEl.className='utl-mini-txt';txtEl.textContent=item.txt;
@@ -1020,7 +987,7 @@ function buildCard(pre){
 
   c.innerHTML=`
 <div class="ttop">
-  <span class="drag-handle" draggable="true" onmousedown="initTodoDrag(event,this)">⠿</span>
+  <span class="drag-handle">⠿</span>
   <div class="tpri${pc}">${priority}</div>
   <div class="tchk ${pre?.done?'ck':''}">${pre?.done?'✓':''}</div>
   <div class="tbody">
@@ -1048,6 +1015,12 @@ function buildCard(pre){
 </div>`;
   list.appendChild(c);
   ar(c.querySelector('.ttxt'));
+  // Bind drag events directly
+  c.setAttribute('draggable','true');
+  c.ondragstart=ev=>todoDragStart(ev,c);
+  c.ondragover=ev=>todoDragOver(ev,c);
+  c.ondrop=ev=>todoDrop(ev,c);
+  c.ondragend=()=>todoDragEnd(c);
   // Restore saved segments
   const segsContainer=c.querySelector('.todo-segs');
   const segs=pre?.actualSegs||(pre?.actualStart?[{start:pre.actualStart,end:pre.actualEnd||''}]:[]);
@@ -1492,7 +1465,7 @@ function renderWeather(wx){
   });
 }
 
-// ── MEMO ──
+// ── MEMO (小任务：只需打勾，无实际时间) ──
 function addMemo(pre){
   const list=document.getElementById('memo-list');
   const div=document.createElement('div');
@@ -1503,7 +1476,6 @@ function addMemo(pre){
   div.addEventListener('drop',e=>memoListDrop(e,div));
   div.addEventListener('dragend',()=>memoListDragEnd());
   if(pre?.movedToNext)div.dataset.movedToNext=pre.movedToNext;
-  const execOpen=pre?.execOpen||false;
 
   const topRow=document.createElement('div');topRow.className='memo-item-top';
 
@@ -1515,7 +1487,7 @@ function addMemo(pre){
     saveDayData();renderUnifiedTimeline();
   };
 
-  const inp=document.createElement('input');inp.type='text';inp.className='memo-ta';inp.placeholder='备忘事项…';inp.value=pre?.text||'';
+  const inp=document.createElement('input');inp.type='text';inp.className='memo-ta';inp.placeholder='小任务…';inp.value=pre?.text||'';
   inp.addEventListener('input',()=>{saveDayData();renderUnifiedTimeline()});
 
   const mv=document.createElement('button');mv.className='memo-mv';mv.title='推迟到明天';mv.textContent='→明';
@@ -1524,41 +1496,11 @@ function addMemo(pre){
     setTimeout(()=>applyMemoDeferredStyle(div,pre.movedToNext),0);
   }
 
-  const toggle=document.createElement('button');toggle.className='memo-toggle';
-  toggle.textContent='执行 '+(execOpen?'▴':'▾');
-  toggle.onclick=()=>{
-    const exec=div.querySelector('.memo-exec');
-    const open=exec.style.display==='none';
-    exec.style.display=open?'':'none';
-    toggle.textContent='执行 '+(open?'▴':'▾');
-    saveDayData();
-  };
-
   const del=document.createElement('button');del.className='memo-del';del.textContent='×';
   del.onclick=()=>{div.remove();saveDayData();renderUnifiedTimeline()};
 
-  topRow.appendChild(drag);topRow.appendChild(chk);topRow.appendChild(inp);topRow.appendChild(mv);topRow.appendChild(toggle);topRow.appendChild(del);
-
-  const execSec=document.createElement('div');execSec.className='memo-exec';
-  execSec.style.display=execOpen?'':'none';
-
-  const timeRow=document.createElement('div');timeRow.className='memo-times';
-  timeRow.innerHTML=`<span class="mtl">实际开始</span><input class="mti mas" list="dl-t" type="text" placeholder="09:00" value="${pre?.actualStart||''}"><span class="mtl" style="margin-left:6px">实际结束</span><input class="mti mae" list="dl-t" type="text" placeholder="10:00" value="${pre?.actualEnd||''}">`;
-  timeRow.querySelectorAll('input').forEach(i=>i.addEventListener('input',()=>{
-    const as=div.querySelector('.mas')?.value||'';
-    const ae=div.querySelector('.mae')?.value||'';
-    if(as&&ae&&!div.classList.contains('ck')){
-      div.classList.add('ck');chk.classList.add('ck');chk.textContent='✓';
-    }
-    saveDayData();renderUnifiedTimeline();
-  }));
-
-  const noteTA=document.createElement('textarea');noteTA.className='mnote';
-  noteTA.placeholder='备注：遇到什么问题？如何解决？';noteTA.value=pre?.note||'';
-  noteTA.addEventListener('input',()=>{saveDayData();renderUnifiedTimeline()});
-
-  execSec.appendChild(timeRow);execSec.appendChild(noteTA);
-  div.appendChild(topRow);div.appendChild(execSec);
+  topRow.appendChild(drag);topRow.appendChild(chk);topRow.appendChild(inp);topRow.appendChild(mv);topRow.appendChild(del);
+  div.appendChild(topRow);
   list.appendChild(div);
 }
 
@@ -1571,14 +1513,14 @@ function moveMemoToNextDay(div){
   let tData={};try{const r=localStorage.getItem(tomorrowKey);if(r)tData=JSON.parse(r)}catch{}
   if(!tData.memos)tData.memos=[];
   if(!tData.memos.some(m=>m.text===text)){
-    tData.memos.push({text,done:false,note,actualStart:'',actualEnd:'',execOpen:false});
+    tData.memos.push({text,done:false});
     localStorage.setItem(tomorrowKey,JSON.stringify(tData));
     const dateStr=(tomorrow.getMonth()+1)+'/'+(tomorrow.getDate());
     div.dataset.movedToNext=dateStr;
     saveDayData();
     applyMemoDeferredStyle(div,dateStr);
   } else {
-    alert('明天已有相同备忘');
+    alert('明天已有相同小任务');
   }
 }
 
