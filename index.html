@@ -1226,7 +1226,7 @@ function moveOtaskToNextDay(div){
   let tData={};try{const r=localStorage.getItem(tomorrowKey);if(r)tData=JSON.parse(r)}catch{}
   if(!tData.otasks)tData.otasks=[];
   if(!tData.otasks.some(o=>o.text===text)){
-    tData.otasks.push({text,done:false,note,actualSegs:[],execOpen:false,deferredFrom:fmt(currentDate)});
+    tData.otasks.push({text,done:false,note,actualSegs:[],execOpen:!!note,deferredFrom:fmt(currentDate)});
     localStorage.setItem(tomorrowKey,JSON.stringify(tData));
     const dateStr=(tomorrow.getMonth()+1)+'/'+(tomorrow.getDate());
     div.dataset.movedToNext=dateStr;
@@ -1273,7 +1273,7 @@ function moveTdToNextDay(btn){
   let data={};try{const r=localStorage.getItem(key);if(r)data=JSON.parse(r)}catch{}
   if(!data.todos)data.todos=[];
   if(!data.todos.some(t=>t.text===text)){
-    data.todos.push({id:'t_'+fmt(tomorrow)+'_'+Math.random().toString(36).slice(2,6),text,planStart:ps,planEnd:pe,note,done:false,actualSegs:[],execOpen:true,priority:data.todos.length+1});
+    data.todos.push({id:'t_'+fmt(tomorrow)+'_'+Math.random().toString(36).slice(2,6),text,planStart:ps,planEnd:pe,note,done:false,actualSegs:[],execOpen:!!note,priority:data.todos.length+1});
     localStorage.setItem(key,JSON.stringify(data));
     // visual: just update button label to confirm, no strikethrough
     btn.textContent='→'+(tomorrow.getMonth()+1)+'/'+(tomorrow.getDate());
