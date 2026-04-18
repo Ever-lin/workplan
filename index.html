@@ -233,7 +233,7 @@ body{font-family:var(--ss);background:var(--paper);color:var(--ink);min-height:1
 .otask{display:flex;flex-direction:column;gap:0;border:1px solid var(--bdr);border-radius:2px;background:white;overflow:hidden}
 .otask.ck{background:var(--gr-l);border-color:#b8d8c0}
 .otask-top{display:flex;align-items:center;gap:6px;padding:5px 8px}
-.otask-chk{width:15px;height:15px;border:1.5px solid var(--bdr);border-radius:2px;cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center;background:white;transition:all var(--t);font-size:9px}
+.otask-chk{width:15px;height:15px;border:1.5px solid var(--bdr);border-radius:2px;cursor:default;flex-shrink:0;display:flex;align-items:center;justify-content:center;background:white;transition:all var(--t);font-size:9px}
 .otask-chk.ck{background:var(--gr);border-color:var(--gr);color:white}
 .otask-txt{flex:1;border:none;background:transparent;font-family:var(--ss);font-size:12px;color:var(--ink);padding:0}
 .otask-txt:focus{outline:none}
@@ -428,11 +428,11 @@ body{font-family:var(--ss);background:var(--paper);color:var(--ink);min-height:1
         <div style="margin-top:6px">
           <button class="addbtn" onclick="addTodo()">＋ 添加待办事项</button>
         </div>
-        <!-- 其他工作安排 -->
-        <div class="ptitle" style="margin-top:14px;margin-bottom:8px">其他工作安排</div>
+        <!-- 其他事项 -->
+        <div class="ptitle" style="margin-top:14px;margin-bottom:8px">其他事项</div>
         <div class="otask-list" id="otask-list"></div>
         <div style="margin-top:5px">
-          <button class="addbtn" onclick="addOtask()">＋ 添加其他安排</button>
+          <button class="addbtn" onclick="addOtask()">＋ 添加其他事项</button>
         </div>
         <!-- 小任务 -->
         <div class="ptitle" style="margin-top:14px;margin-bottom:8px">小任务</div>
@@ -829,7 +829,7 @@ function renderUnifiedTimeline(){
         txt2.textContent=t.txt;
         nameEntry.appendChild(dot);nameEntry.appendChild(txt2);
         colName.appendChild(nameEntry);
-        if(t.note){const note=document.createElement('div');note.className='utl-note';note.textContent='↳ '+t.note;colName.appendChild(note);}
+        if(t.note){const note=document.createElement('div');note.className='utl-note';note.style.whiteSpace='pre-wrap';note.textContent='↳ '+t.note;colName.appendChild(note);}
 
         const planSlot=document.createElement('div');planSlot.className='utl-plan-slot';
         if(t.isPlan){
@@ -875,7 +875,7 @@ function renderUnifiedTimeline(){
         txt3.textContent=t.txt;
         nameEntry.appendChild(tag);nameEntry.appendChild(txt3);
         colName.appendChild(nameEntry);
-        if(t.note){const note=document.createElement('div');note.className='utl-note';note.textContent='↳ '+t.note;colName.appendChild(note);}
+        if(t.note){const note=document.createElement('div');note.className='utl-note';note.style.whiteSpace='pre-wrap';note.textContent='↳ '+t.note;colName.appendChild(note);}
 
         colPlan.appendChild(document.createElement('div')); // empty
 
@@ -1137,11 +1137,8 @@ function addOtask(pre){
   // top row: checkbox + text + toggle + delete
   const topRow=document.createElement('div');topRow.className='otask-top';
   const chk=document.createElement('div');chk.className='otask-chk'+(pre?.done?' ck':'');chk.textContent=pre?.done?'✓':'';
-  chk.onclick=()=>{
-    div.classList.toggle('ck');chk.classList.toggle('ck');chk.textContent=chk.classList.contains('ck')?'✓':'';
-    saveDayData();renderUnifiedTimeline();
-  };
-  const inp=document.createElement('input');inp.type='text';inp.className='otask-txt';inp.placeholder='其他安排…';inp.value=pre?.text||'';
+  // 不支持手动打勾，只能通过填写实际时间段自动打勾
+  const inp=document.createElement('input');inp.type='text';inp.className='otask-txt';inp.placeholder='其他事项…';inp.value=pre?.text||'';
   inp.addEventListener('input',()=>{saveDayData();renderUnifiedTimeline()});
 
   const toggle=document.createElement('button');toggle.className='otask-toggle';
@@ -1372,7 +1369,7 @@ function doExport(f){
         txt+='\n';
         if(t.note)txt+=`     备注：${t.note}\n`;
       });
-      if(d.otasks?.length){txt+='\n【其他安排】\n';d.otasks.forEach(o=>txt+=`  [${o.done?'✓':' '}] ${o.text}\n`)}
+      if(d.otasks?.length){txt+='\n【其他事项】\n';d.otasks.forEach(o=>txt+=`  [${o.done?'✓':' '}] ${o.text}\n`)}
       if(d.reflection)txt+=`\n【复盘】\n${d.reflection}\n`;txt+='\n';
     });
     dl(n+'_'+fmt(new Date())+'.txt',txt,'text/plain');
@@ -1415,7 +1412,7 @@ h1.r{color:#2c4a7c}h2{font-size:8px;color:#4a4a4a;margin:5px 0 3px;border-bottom
 <div class="tev">${HOURS.map(h=>{const e=data.timeline?.[h];const txt=e?(typeof e==='object'?e.text:e):'';const dn=e&&typeof e==='object'&&e.done;return`<div class="te${dn?' dn':''}">${dn?'<span class="te-chk">✓</span>':''}<span>${txt}</span></div>`}).join('')}</div></div>
 <h2>待办事项</h2>
 ${(data.todos||[]).map((t,i)=>`<div class="ti"><div class="tn">${i+1}</div><div>[${t.done?'✓':' '}] ${t.text}${t.planStart?' <span style="color:#888">('+t.planStart+(t.planEnd?'–'+t.planEnd:'')+')</span>':''}</div></div>`).join('')}
-${data.otasks?.length?`<h2>其他安排</h2>${data.otasks.map(o=>`<div class="ti"><div>[${o.done?'✓':' '}] ${o.text}</div></div>`).join('')}`:''}</div>
+${data.otasks?.length?`<h2>其他事项</h2>${data.otasks.map(o=>`<div class="ti"><div>[${o.done?'✓':' '}] ${o.text}</div></div>`).join('')}`:''}</div>
 <div class="col">
 <h1 class="r">实施区</h1>
 <div style="font-size:7px;color:#888;margin-bottom:4px">${data.date} · 执行记录</div>
