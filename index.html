@@ -276,14 +276,24 @@ body{font-family:var(--ss);background:var(--paper);color:var(--ink);min-height:1
 .tbtn-incomplete{font-size:9px;color:#92400e;cursor:pointer;padding:1px 6px;border:1px solid #f59e0b;border-radius:2px;background:#fef3c7;font-family:var(--ss);transition:all var(--t);flex-shrink:0;white-space:nowrap}
 .tbtn-incomplete:hover{background:#fde68a;border-color:#d97706}
 .tbtn-incomplete.marked{background:#f59e0b;color:white;border-color:#d97706}
+.tbtn-makeup{font-size:9px;color:#1a4830;cursor:pointer;padding:1px 6px;border:1px solid #b0d4bc;border-radius:2px;background:#e8f2ec;font-family:var(--ss);transition:all var(--t);flex-shrink:0;white-space:nowrap;display:none}
+.tbtn-makeup:hover{background:#c8e6d0;border-color:#2a5c3f}
+.tcard.is-incomplete .tbtn-makeup{display:inline-flex}
+.tcard.is-makeup{border-color:#2a5c3f;background:linear-gradient(135deg,rgba(232,242,236,.6),white)}
 .incomplete-tag{font-size:8px;padding:1px 5px;background:#fef3c7;color:#92400e;border:1px solid #f59e0b;border-radius:2px;white-space:nowrap;font-family:var(--ss)}
+.makeup-tag{font-size:8px;padding:1px 5px;background:#e8f2ec;color:#1a4830;border:1px solid #b0d4bc;border-radius:2px;white-space:nowrap;font-family:var(--ss)}
 /* timeline incomplete row */
 .utl-row.is-incomplete{background:linear-gradient(to right,rgba(245,158,11,.08),transparent) !important}
 .utl-row.is-incomplete::before{background:#f59e0b !important;opacity:.9}
 .utl-time-badge.plan-incomplete{background:rgba(245,158,11,.18);color:#78350f}
-/* mini section incomplete */
+/* timeline makeup row */
+.utl-row.is-makeup{background:linear-gradient(to right,rgba(42,92,63,.06),transparent) !important}
+.utl-row.is-makeup::before{background:#2a5c3f !important;opacity:.7}
+.utl-time-badge.actual-makeup{background:rgba(42,92,63,.2);color:#1a4830}
+/* mini section incomplete / makeup */
 .utl-mini-tag.tag-incomplete{background:rgba(245,158,11,.15);color:#92400e}
 .utl-mini-txt.is-incomplete-txt{text-decoration:none !important;color:#78350f;font-style:italic}
+.utl-mini-tag.tag-makeup{background:rgba(42,92,63,.15);color:#1a4830}
 
 /* DRAG AND DROP */
 .dragging{opacity:.4;cursor:grabbing !important}
@@ -471,6 +481,7 @@ body{font-family:var(--ss);background:var(--paper);color:var(--ink);min-height:1
             <span><span style="display:inline-block;padding:1px 5px;background:rgba(139,58,58,.18);color:#7a1a1a;border-radius:3px;font-size:9px;font-family:var(--mo)">有偏差</span></span>
             <span><span style="display:inline-block;padding:1px 5px;background:rgba(107,63,160,.18);color:#3d1878;border-radius:3px;font-size:9px;font-family:var(--mo)">临时</span></span>
             <span><span style="display:inline-block;padding:1px 5px;background:rgba(245,158,11,.18);color:#78350f;border-radius:3px;font-size:9px;font-family:var(--mo)">未完成</span></span>
+            <span><span style="display:inline-block;padding:1px 5px;background:rgba(42,92,63,.2);color:#1a4830;border-radius:3px;font-size:9px;font-family:var(--mo)">补完</span></span>
 
           </div>
         </div>
@@ -609,7 +620,9 @@ function gather(){
       priority:parseInt(c.dataset.priority)||i+1,done:c.classList.contains('done'),
       note:c.querySelector('.enote')?.value||'',
       execOpen:esec?esec.style.display!=='none':true,
-      isIncomplete:c.dataset.isIncomplete==='1'
+      isIncomplete:c.dataset.isIncomplete==='1',
+      isMakeup:c.dataset.isMakeup==='1',
+      completedDate:c.dataset.completedDate||''
     });
   });
   const otasks=[];
@@ -720,6 +733,8 @@ function renderUnifiedTimeline(){
     const txt=c.querySelector('.ttxt')?.value||'';
     const done=c.classList.contains('done');
     const isIncomplete=c.dataset.isIncomplete==='1'&&!done;
+    const isMakeup=c.dataset.isMakeup==='1';
+    const completedDate=c.dataset.completedDate||'';
     const note=c.querySelector('.enote')?.value||'';
     if(!txt)return;
     // Collect all actual segments
@@ -742,7 +757,7 @@ function renderUnifiedTimeline(){
         const sortMin=timeToMin(as);
         const endMin=ae?timeToMin(ae):sortMin+1;
         const segLabel=segs.length>1?` (第${si+1}段)`:'';
-        events.push({type:'todo',sortMin,endMin,data:{txt:txt+segLabel,ps:si===0?ps:'',pe:si===0?pe:'',as,ae,done,note:si===0?note:'',isPlan:si===0&&!!ps,isActual:true,atype:getAtype(),segIndex:si,totalSegs:segs.length,isIncomplete:false}});
+        events.push({type:'todo',sortMin,endMin,data:{txt:txt+segLabel,ps:si===0?ps:'',pe:si===0?pe:'',as,ae,done,note:si===0?note:'',isPlan:si===0&&!!ps,isActual:true,atype:getAtype(),segIndex:si,totalSegs:segs.length,isIncomplete:false,isMakeup:si===0?isMakeup:false,completedDate}});
       });
     } else {
       // Plan-only (no actual)
@@ -750,7 +765,7 @@ function renderUnifiedTimeline(){
       // KEY FIX: if incomplete, the slot is FREE from plan-start (not occupied till plan-end)
       // We still render the row, but for gap-calculation the occupied interval is zero-width (point at ps)
       const endMin=isIncomplete?sortMin:( pe?timeToMin(pe):sortMin+1 );
-      events.push({type:'todo',sortMin,endMin,data:{txt,ps,pe,as:'',ae:'',done,note,isPlan:true,isActual:false,atype:isIncomplete?'incomplete':'same',segIndex:0,totalSegs:0,isIncomplete}});
+      events.push({type:'todo',sortMin,endMin,data:{txt,ps,pe,as:'',ae:'',done,note,isPlan:true,isActual:false,atype:isIncomplete?'incomplete':'same',segIndex:0,totalSegs:0,isIncomplete,isMakeup,completedDate}});
     }
   });
 
@@ -775,8 +790,11 @@ function renderUnifiedTimeline(){
   // Sort by actual/plan start time
   events.sort((a,b)=>a.sortMin-b.sortMin);
 
-  // ── 2. Merge intervals to find gaps ──
-  const intervals=events.map(e=>({s:e.sortMin,e:e.endMin}));
+  // ── 2. Merge intervals to find gaps (exclude incomplete & makeup from occupying time) ──
+  const intervals=events
+    .filter(e=>!(e.data.isIncomplete)||e.data.isActual) // incomplete plan-only = zero width already
+    .filter(e=>!e.data.isMakeup)                        // makeup = not counted as today's work
+    .map(e=>({s:e.sortMin,e:e.endMin}));
   const merged=[];
   intervals.forEach(iv=>{
     if(!merged.length||iv.s>=merged[merged.length-1].e) merged.push({...iv});
@@ -832,6 +850,7 @@ function renderUnifiedTimeline(){
         row.classList.add('has-plan');
         if(t.atype==='deviation') row.classList.add('is-deviation');
         else if(t.atype==='incomplete') row.classList.add('is-incomplete');
+        if(t.isMakeup) row.classList.add('is-makeup');
       } else if(ev.type==='otask') {
         row.classList.add('has-extra','no-plan');
       } else {
@@ -873,24 +892,17 @@ function renderUnifiedTimeline(){
         const actSlot=document.createElement('div');actSlot.className='utl-actual-slot';
         if(t.isActual){
           const badge=document.createElement('span');
-          const cls=t.atype==='done'?'actual-done':t.atype==='deviation'?'actual-deviation':'actual-same';
+          const cls=t.isMakeup?'actual-makeup':t.atype==='done'?'actual-done':t.atype==='deviation'?'actual-deviation':'actual-same';
           badge.className=`utl-time-badge ${cls}`;
           let actTxt=t.as+(t.ae?'–'+t.ae:'');
           if(t.as&&t.ae){const dur=timeToMin(t.ae)-timeToMin(t.as);if(dur>0)actTxt+='（'+dur+'分钟）';}
           badge.textContent=actTxt;
           actSlot.appendChild(badge);
-          if(t.atype==='deviation'&&t.ps&&t.pe&&t.as&&t.ae){
-            const planDur=timeToMin(t.pe)-timeToMin(t.ps);
-            const actDur=timeToMin(t.ae)-timeToMin(t.as);
-            const durDiff=actDur-planDur;
-            const startDiff=timeToMin(t.as)-timeToMin(t.ps);
-            const showDiff=Math.abs(durDiff)>=1?durDiff:startDiff;
-            if(showDiff!==0){
-              const db=document.createElement('span');
-              db.className='utl-diff-badge '+(showDiff>0?'over':'under');
-              db.textContent=(showDiff>0?'+':'')+showDiff+'分';
-              actSlot.appendChild(db);
-            }
+          if(t.isMakeup){
+            const mkBadge=document.createElement('span');
+            mkBadge.style.cssText='font-size:8px;padding:1px 5px;background:#e8f2ec;color:#1a4830;border:1px solid #b0d4bc;border-radius:3px;white-space:nowrap;font-family:var(--ss);margin-left:4px';
+            mkBadge.textContent='✅ 补完'+(t.completedDate?' ('+t.completedDate+')':'');
+            actSlot.appendChild(mkBadge);
           }
         }
         colActual.appendChild(actSlot);
@@ -952,10 +964,12 @@ function renderUnifiedTimeline(){
     const txt=c.querySelector('.ttxt')?.value||'';
     const note=c.querySelector('.enote')?.value||'';
     const isIncomplete=c.dataset.isIncomplete==='1'&&!done;
+    const isMakeup=c.dataset.isMakeup==='1';
+    const completedDate=c.dataset.completedDate||'';
     if(!txt)return;
-    // No plan AND no actual time → appears in mini section
     if(!segs.length&&!ps){
-      if(done) miniDone.push({type:'todo',txt,note});
+      if(done&&isMakeup) miniDone.push({type:'makeup',txt,note,completedDate});
+      else if(done) miniDone.push({type:'todo',txt,note});
       else if(isIncomplete) miniIncomplete.push({type:'todo',txt,note});
     }
   });
@@ -1005,9 +1019,12 @@ function renderUnifiedTimeline(){
     miniSec.appendChild(miniTitle);
     miniDone.forEach(item=>{
       const row=document.createElement('div');row.className='utl-mini-row';
+      if(item.type==='makeup') row.style.background='rgba(42,92,63,.04)';
       const chk=document.createElement('span');chk.className='utl-mini-check';chk.textContent='✓';
-      const tagMap={todo:'待办',otask:'临时',memo:'小任务'};
-      const tag=document.createElement('span');tag.className='utl-mini-tag tag-'+item.type;tag.textContent=tagMap[item.type];
+      const tagMap={todo:'待办',otask:'临时',memo:'小任务',makeup:'补完'};
+      const tagCls=item.type==='makeup'?'tag-makeup':'tag-'+item.type;
+      const tag=document.createElement('span');tag.className='utl-mini-tag '+tagCls;
+      tag.textContent=tagMap[item.type]+(item.completedDate?' ('+item.completedDate+')':'');
       const inner=document.createElement('div');inner.style.cssText='flex:1;display:flex;flex-direction:column;gap:2px;min-width:0';
       const txtEl=document.createElement('span');txtEl.className='utl-mini-txt';txtEl.textContent=item.txt;
       inner.appendChild(txtEl);
@@ -1038,9 +1055,11 @@ function buildCard(pre){
   const execOpen=pre?.execOpen!==false;
 
   const c=document.createElement('div');
-  c.className='tcard'+(pre?.done?' done':'')+(pre?.isIncomplete&&!pre?.done?' is-incomplete':'');
+  c.className='tcard'+(pre?.done?' done':'')+(pre?.isIncomplete&&!pre?.done?' is-incomplete':'')+(pre?.isMakeup?' is-makeup':'');
   c.dataset.id=id;c.dataset.priority=priority;
   if(pre?.isIncomplete&&!pre?.done) c.dataset.isIncomplete='1';
+  if(pre?.isMakeup) c.dataset.isMakeup='1';
+  if(pre?.completedDate) c.dataset.completedDate=pre.completedDate;
   const pc=priority===1?'':(priority===2?' p2':' p3');
 
   c.innerHTML=`
@@ -1053,6 +1072,7 @@ function buildCard(pre){
     <div class="tmeta">
       ${pre?.planStart?`<span class="ttime">${pre.planStart}${pre.planEnd?'–'+pre.planEnd:''}</span>`:''}
       ${(pre?.isIncomplete&&!pre?.done)?'<span class="incomplete-tag">⏳ 未完成</span>':''}
+      ${pre?.isMakeup?`<span class="makeup-tag">✅ 补完${pre.completedDate?' ('+pre.completedDate+')':''}</span>`:''}
     </div>
   </div>
   <div class="tacts">
@@ -1060,6 +1080,7 @@ function buildCard(pre){
     <button class="ib" onclick="moveTd(this,1)" title="下移">↓</button>
     <button class="otask-mv" onclick="moveTdToNextDay(this)" title="挪到明天" style="font-size:9px;padding:1px 6px">→明</button>
     <button class="tbtn-incomplete${(pre?.isIncomplete&&!pre?.done)?' marked':''}" onclick="toggleIncomplete(this)" title="标记为未完成">${(pre?.isIncomplete&&!pre?.done)?'未完成✓':'未完成'}</button>
+    <button class="tbtn-makeup" onclick="markMakeup(this)" title="标记为今日补完">补完</button>
     <button class="etoggle" onclick="toggleExec(this)">执行 ${execOpen?'▴':'▾'}</button>
     <button class="ib" onclick="removeTd(this)" title="删除">×</button>
   </div>
@@ -1137,42 +1158,85 @@ function cycleStatus(el){
 function toggleDone(chk){
   const c=chk.closest('.tcard');const done=!c.classList.contains('done');
   c.classList.toggle('done',done);chk.classList.toggle('ck',done);chk.textContent=done?'✓':'';
-  // When marked done, clear incomplete state
   if(done){
+    // Clear incomplete and makeup when manually marked done
     c.classList.remove('is-incomplete');
     delete c.dataset.isIncomplete;
-    const btn=c.querySelector('.tbtn-incomplete');
-    if(btn){btn.classList.remove('marked');btn.textContent='未完成';}
-    const tag=c.querySelector('.incomplete-tag');if(tag)tag.remove();
+    const ibtn=c.querySelector('.tbtn-incomplete');
+    if(ibtn){ibtn.classList.remove('marked');ibtn.textContent='未完成';}
+    const itag=c.querySelector('.incomplete-tag');if(itag)itag.remove();
+  } else {
+    // Undone: also clear makeup
+    c.classList.remove('is-makeup');
+    delete c.dataset.isMakeup;
+    delete c.dataset.completedDate;
+    const mkbtn=c.querySelector('.tbtn-makeup');if(mkbtn)mkbtn.textContent='补完';
+    const mktag=c.querySelector('.makeup-tag');if(mktag)mktag.remove();
   }
   saveDayData();updateStats();renderUnifiedTimeline();
 }
 
 function toggleIncomplete(btn){
   const c=btn.closest('.tcard');
-  if(c.classList.contains('done')) return; // already done, ignore
+  if(c.classList.contains('done')) return;
   const isMarked=c.dataset.isIncomplete==='1';
   if(isMarked){
-    // Unmark
     c.classList.remove('is-incomplete');
     delete c.dataset.isIncomplete;
     btn.classList.remove('marked');
     btn.textContent='未完成';
     const tag=c.querySelector('.incomplete-tag');if(tag)tag.remove();
+    // Also hide makeup button
+    const mkBtn=c.querySelector('.tbtn-makeup');if(mkBtn)mkBtn.style.display='none';
   } else {
-    // Mark as incomplete
     c.dataset.isIncomplete='1';
     c.classList.add('is-incomplete');
     btn.classList.add('marked');
     btn.textContent='未完成✓';
-    // Add tag to meta if not already there
     const meta=c.querySelector('.tmeta');
     if(meta&&!meta.querySelector('.incomplete-tag')){
       const tag=document.createElement('span');tag.className='incomplete-tag';tag.textContent='⏳ 未完成';
       meta.appendChild(tag);
     }
+    // Makeup button visibility is handled by CSS (.tcard.is-incomplete .tbtn-makeup)
   }
   saveDayData();renderUnifiedTimeline();
+}
+
+function markMakeup(btn){
+  const c=btn.closest('.tcard');
+  if(c.dataset.isMakeup==='1'){
+    // Toggle off makeup
+    c.classList.remove('is-makeup','done');
+    delete c.dataset.isMakeup;
+    delete c.dataset.completedDate;
+    const chk=c.querySelector('.tchk');chk.classList.remove('ck');chk.textContent='';
+    const tag=c.querySelector('.makeup-tag');if(tag)tag.remove();
+    btn.textContent='补完';
+    saveDayData();updateStats();renderUnifiedTimeline();
+    return;
+  }
+  // Mark as makeup-done: record today as completedDate
+  const today=fmt(currentDate);
+  c.dataset.isMakeup='1';
+  c.dataset.completedDate=today;
+  // Also mark as done and clear incomplete
+  c.classList.add('done','is-makeup');
+  c.classList.remove('is-incomplete');
+  delete c.dataset.isIncomplete;
+  const chk=c.querySelector('.tchk');chk.classList.add('ck');chk.textContent='✓';
+  const incBtn=c.querySelector('.tbtn-incomplete');
+  if(incBtn){incBtn.classList.remove('marked');incBtn.textContent='未完成';}
+  const incTag=c.querySelector('.incomplete-tag');if(incTag)incTag.remove();
+  // Add makeup tag to meta
+  const meta=c.querySelector('.tmeta');
+  if(meta&&!meta.querySelector('.makeup-tag')){
+    const tag=document.createElement('span');tag.className='makeup-tag';
+    const d=currentDate;tag.textContent=`✅ 补完 (${d.getMonth()+1}/${d.getDate()})`;
+    meta.appendChild(tag);
+  }
+  btn.textContent='撤销补完';
+  saveDayData();updateStats();renderUnifiedTimeline();
 }
 function onTodoActualTimeChange(inp){
   const c=inp?.closest('.tcard');
@@ -1181,11 +1245,12 @@ function onTodoActualTimeChange(inp){
   const anyComplete=segs.some(s=>s.querySelector('.seg-s')?.value&&s.querySelector('.seg-e')?.value);
   if(anyComplete&&!c.classList.contains('done')){
     c.classList.add('done');
-    // Clear incomplete
-    c.classList.remove('is-incomplete');
-    delete c.dataset.isIncomplete;
-    const btn=c.querySelector('.tbtn-incomplete');if(btn){btn.classList.remove('marked');btn.textContent='未完成';}
-    const tag=c.querySelector('.incomplete-tag');if(tag)tag.remove();
+    c.classList.remove('is-incomplete','is-makeup');
+    delete c.dataset.isIncomplete;delete c.dataset.isMakeup;delete c.dataset.completedDate;
+    const ibtn=c.querySelector('.tbtn-incomplete');if(ibtn){ibtn.classList.remove('marked');ibtn.textContent='未完成';}
+    const itag=c.querySelector('.incomplete-tag');if(itag)itag.remove();
+    const mktag=c.querySelector('.makeup-tag');if(mktag)mktag.remove();
+    const mkbtn=c.querySelector('.tbtn-makeup');if(mkbtn)mkbtn.textContent='补完';
     const chk=c.querySelector('.tchk');chk.classList.add('ck');chk.textContent='✓';
   } else if(!anyComplete&&c.classList.contains('done')){
     c.classList.remove('done');
