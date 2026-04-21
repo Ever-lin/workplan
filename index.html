@@ -269,6 +269,22 @@ body{font-family:var(--ss);background:var(--paper);color:var(--ink);min-height:1
 .wx-clear{font-size:11px;color:var(--ink-m);background:none;border:none;cursor:pointer;padding:0 2px;opacity:.5}
 .wx-clear:hover{opacity:1;color:var(--ac)}
 
+/* ── INCOMPLETE TASK STYLES ── */
+.tcard.is-incomplete{border-color:#d97706;background:linear-gradient(135deg,rgba(254,243,199,.5),white)}
+.tcard.is-incomplete::before{content:'';position:absolute;left:0;top:0;bottom:0;width:3px;background:#f59e0b;border-radius:2px 0 0 2px}
+.tcard{position:relative;overflow:visible}
+.tbtn-incomplete{font-size:9px;color:#92400e;cursor:pointer;padding:1px 6px;border:1px solid #f59e0b;border-radius:2px;background:#fef3c7;font-family:var(--ss);transition:all var(--t);flex-shrink:0;white-space:nowrap}
+.tbtn-incomplete:hover{background:#fde68a;border-color:#d97706}
+.tbtn-incomplete.marked{background:#f59e0b;color:white;border-color:#d97706}
+.incomplete-tag{font-size:8px;padding:1px 5px;background:#fef3c7;color:#92400e;border:1px solid #f59e0b;border-radius:2px;white-space:nowrap;font-family:var(--ss)}
+/* timeline incomplete row */
+.utl-row.is-incomplete{background:linear-gradient(to right,rgba(245,158,11,.08),transparent) !important}
+.utl-row.is-incomplete::before{background:#f59e0b !important;opacity:.9}
+.utl-time-badge.plan-incomplete{background:rgba(245,158,11,.18);color:#78350f}
+/* mini section incomplete */
+.utl-mini-tag.tag-incomplete{background:rgba(245,158,11,.15);color:#92400e}
+.utl-mini-txt.is-incomplete-txt{text-decoration:none !important;color:#78350f;font-style:italic}
+
 /* DRAG AND DROP */
 .dragging{opacity:.4;cursor:grabbing !important}
 .drag-over{border-top:2px solid var(--ac) !important}
@@ -454,6 +470,7 @@ body{font-family:var(--ss);background:var(--paper);color:var(--ink);min-height:1
             <span><span style="display:inline-block;padding:1px 5px;background:rgba(42,92,63,.2);color:#1a4830;border-radius:3px;font-size:9px;font-family:var(--mo)">完成/准时</span></span>
             <span><span style="display:inline-block;padding:1px 5px;background:rgba(139,58,58,.18);color:#7a1a1a;border-radius:3px;font-size:9px;font-family:var(--mo)">有偏差</span></span>
             <span><span style="display:inline-block;padding:1px 5px;background:rgba(107,63,160,.18);color:#3d1878;border-radius:3px;font-size:9px;font-family:var(--mo)">临时</span></span>
+            <span><span style="display:inline-block;padding:1px 5px;background:rgba(245,158,11,.18);color:#78350f;border-radius:3px;font-size:9px;font-family:var(--mo)">未完成</span></span>
 
           </div>
         </div>
@@ -591,7 +608,8 @@ function gather(){
       actualSegs,
       priority:parseInt(c.dataset.priority)||i+1,done:c.classList.contains('done'),
       note:c.querySelector('.enote')?.value||'',
-      execOpen:esec?esec.style.display!=='none':true
+      execOpen:esec?esec.style.display!=='none':true,
+      isIncomplete:c.dataset.isIncomplete==='1'
     });
   });
   const otasks=[];
@@ -701,6 +719,7 @@ function renderUnifiedTimeline(){
     const pe=c.querySelector('.epe')?.value||'';
     const txt=c.querySelector('.ttxt')?.value||'';
     const done=c.classList.contains('done');
+    const isIncomplete=c.dataset.isIncomplete==='1'&&!done;
     const note=c.querySelector('.enote')?.value||'';
     if(!txt)return;
     // Collect all actual segments
@@ -723,13 +742,15 @@ function renderUnifiedTimeline(){
         const sortMin=timeToMin(as);
         const endMin=ae?timeToMin(ae):sortMin+1;
         const segLabel=segs.length>1?` (第${si+1}段)`:'';
-        events.push({type:'todo',sortMin,endMin,data:{txt:txt+segLabel,ps:si===0?ps:'',pe:si===0?pe:'',as,ae,done,note:si===0?note:'',isPlan:si===0&&!!ps,isActual:true,atype:getAtype(),segIndex:si,totalSegs:segs.length}});
+        events.push({type:'todo',sortMin,endMin,data:{txt:txt+segLabel,ps:si===0?ps:'',pe:si===0?pe:'',as,ae,done,note:si===0?note:'',isPlan:si===0&&!!ps,isActual:true,atype:getAtype(),segIndex:si,totalSegs:segs.length,isIncomplete:false}});
       });
     } else {
-      // Plan-only (no actual), show once anchored to plan start
+      // Plan-only (no actual)
       const sortMin=timeToMin(ps);
-      const endMin=pe?timeToMin(pe):sortMin+1;
-      events.push({type:'todo',sortMin,endMin,data:{txt,ps,pe,as:'',ae:'',done,note,isPlan:true,isActual:false,atype:'same',segIndex:0,totalSegs:0}});
+      // KEY FIX: if incomplete, the slot is FREE from plan-start (not occupied till plan-end)
+      // We still render the row, but for gap-calculation the occupied interval is zero-width (point at ps)
+      const endMin=isIncomplete?sortMin:( pe?timeToMin(pe):sortMin+1 );
+      events.push({type:'todo',sortMin,endMin,data:{txt,ps,pe,as:'',ae:'',done,note,isPlan:true,isActual:false,atype:isIncomplete?'incomplete':'same',segIndex:0,totalSegs:0,isIncomplete}});
     }
   });
 
@@ -810,6 +831,7 @@ function renderUnifiedTimeline(){
       if(ev.type==='todo'){
         row.classList.add('has-plan');
         if(t.atype==='deviation') row.classList.add('is-deviation');
+        else if(t.atype==='incomplete') row.classList.add('is-incomplete');
       } else if(ev.type==='otask') {
         row.classList.add('has-extra','no-plan');
       } else {
@@ -833,11 +855,18 @@ function renderUnifiedTimeline(){
 
         const planSlot=document.createElement('div');planSlot.className='utl-plan-slot';
         if(t.isPlan){
-          const badge=document.createElement('span');badge.className='utl-time-badge plan';
+          const badge=document.createElement('span');
+          badge.className='utl-time-badge '+(t.isIncomplete?'plan-incomplete':'plan');
           let planTxt=t.ps+(t.pe?'–'+t.pe:'');
           if(t.ps&&t.pe){const dur=timeToMin(t.pe)-timeToMin(t.ps);if(dur>0)planTxt+='（'+dur+'分钟）';}
           badge.textContent=planTxt;
           planSlot.appendChild(badge);
+          if(t.isIncomplete){
+            const itag=document.createElement('span');
+            itag.style.cssText='font-size:8px;padding:1px 5px;background:#fef3c7;color:#92400e;border:1px solid #f59e0b;border-radius:3px;white-space:nowrap;font-family:var(--ss);margin-left:4px';
+            itag.textContent='⏳ 未完成';
+            planSlot.appendChild(itag);
+          }
         }
         colPlan.appendChild(planSlot);
 
@@ -912,8 +941,9 @@ function renderUnifiedTimeline(){
     }
   });
 
-  // ── 6. Mini completed tasks section (done, no time on timeline) ──
-  const miniItems=[];
+  // ── 6. Mini sections ──
+  const miniDone=[];
+  const miniIncomplete=[];
 
   document.querySelectorAll('.tcard').forEach(c=>{
     const ps=c.querySelector('.eps')?.value||'';
@@ -921,8 +951,13 @@ function renderUnifiedTimeline(){
     const done=c.classList.contains('done');
     const txt=c.querySelector('.ttxt')?.value||'';
     const note=c.querySelector('.enote')?.value||'';
+    const isIncomplete=c.dataset.isIncomplete==='1'&&!done;
     if(!txt)return;
-    if(!segs.length&&!ps&&done) miniItems.push({type:'todo',txt,note});
+    // No plan AND no actual time → appears in mini section
+    if(!segs.length&&!ps){
+      if(done) miniDone.push({type:'todo',txt,note});
+      else if(isIncomplete) miniIncomplete.push({type:'todo',txt,note});
+    }
   });
 
   document.querySelectorAll('.otask').forEach(el=>{
@@ -931,22 +966,44 @@ function renderUnifiedTimeline(){
     const txt=el.querySelector('.otask-txt')?.value||'';
     const note=el.querySelector('.otnote')?.value||'';
     if(!txt)return;
-    if(!segs.length&&done) miniItems.push({type:'otask',txt,note});
+    if(!segs.length&&done) miniDone.push({type:'otask',txt,note});
   });
 
   document.querySelectorAll('.memo-item').forEach(el=>{
     const done=el.classList.contains('ck');
     const txt=el.querySelector('.memo-ta')?.value||'';
     if(!txt||!done)return;
-    miniItems.push({type:'memo',txt,note:''});
+    miniDone.push({type:'memo',txt,note:''});
   });
 
-  if(miniItems.length>0){
+  // Render incomplete mini-section (above done section)
+  if(miniIncomplete.length>0){
+    const incSec=document.createElement('div');incSec.className='utl-mini-section';
+    incSec.style.borderTopColor='rgba(245,158,11,.4)';
+    const incTitle=document.createElement('div');incTitle.className='utl-mini-title';
+    incTitle.style.color='#92400e';incTitle.textContent='⏳ 未完成（无时间段）'+miniIncomplete.length+'项';
+    incSec.appendChild(incTitle);
+    miniIncomplete.forEach(item=>{
+      const row=document.createElement('div');row.className='utl-mini-row';
+      row.style.cssText='background:rgba(245,158,11,.06);border-color:rgba(245,158,11,.3)';
+      const icon=document.createElement('span');icon.style.cssText='color:#f59e0b;font-size:11px;flex-shrink:0';icon.textContent='○';
+      const tag=document.createElement('span');tag.className='utl-mini-tag tag-incomplete';tag.textContent='未完成';
+      const inner=document.createElement('div');inner.style.cssText='flex:1;display:flex;flex-direction:column;gap:2px;min-width:0';
+      const txtEl=document.createElement('span');txtEl.className='utl-mini-txt is-incomplete-txt';txtEl.textContent=item.txt;
+      inner.appendChild(txtEl);
+      if(item.note){const noteEl=document.createElement('span');noteEl.className='utl-mini-note';noteEl.textContent='↳ '+item.note;inner.appendChild(noteEl);}
+      row.appendChild(icon);row.appendChild(tag);row.appendChild(inner);
+      incSec.appendChild(row);
+    });
+    rows.appendChild(incSec);
+  }
+
+  if(miniDone.length>0){
     const miniSec=document.createElement('div');miniSec.className='utl-mini-section';
     const miniTitle=document.createElement('div');miniTitle.className='utl-mini-title';
-    miniTitle.textContent='已完成小任务 '+miniItems.length+'项';
+    miniTitle.textContent='已完成小任务 '+miniDone.length+'项';
     miniSec.appendChild(miniTitle);
-    miniItems.forEach(item=>{
+    miniDone.forEach(item=>{
       const row=document.createElement('div');row.className='utl-mini-row';
       const chk=document.createElement('span');chk.className='utl-mini-check';chk.textContent='✓';
       const tagMap={todo:'待办',otask:'临时',memo:'小任务'};
@@ -981,8 +1038,9 @@ function buildCard(pre){
   const execOpen=pre?.execOpen!==false;
 
   const c=document.createElement('div');
-  c.className='tcard'+(pre?.done?' done':'');
+  c.className='tcard'+(pre?.done?' done':'')+(pre?.isIncomplete&&!pre?.done?' is-incomplete':'');
   c.dataset.id=id;c.dataset.priority=priority;
+  if(pre?.isIncomplete&&!pre?.done) c.dataset.isIncomplete='1';
   const pc=priority===1?'':(priority===2?' p2':' p3');
 
   c.innerHTML=`
@@ -994,12 +1052,14 @@ function buildCard(pre){
     <textarea class="ttxt" rows="1" placeholder="待办事项…" oninput="ar(this);saveDayData();renderUnifiedTimeline()">${pre?.text||''}</textarea>
     <div class="tmeta">
       ${pre?.planStart?`<span class="ttime">${pre.planStart}${pre.planEnd?'–'+pre.planEnd:''}</span>`:''}
+      ${(pre?.isIncomplete&&!pre?.done)?'<span class="incomplete-tag">⏳ 未完成</span>':''}
     </div>
   </div>
   <div class="tacts">
     <button class="ib" onclick="moveTd(this,-1)" title="上移">↑</button>
     <button class="ib" onclick="moveTd(this,1)" title="下移">↓</button>
     <button class="otask-mv" onclick="moveTdToNextDay(this)" title="挪到明天" style="font-size:9px;padding:1px 6px">→明</button>
+    <button class="tbtn-incomplete${(pre?.isIncomplete&&!pre?.done)?' marked':''}" onclick="toggleIncomplete(this)" title="标记为未完成">${(pre?.isIncomplete&&!pre?.done)?'未完成✓':'未完成'}</button>
     <button class="etoggle" onclick="toggleExec(this)">执行 ${execOpen?'▴':'▾'}</button>
     <button class="ib" onclick="removeTd(this)" title="删除">×</button>
   </div>
@@ -1077,16 +1137,55 @@ function cycleStatus(el){
 function toggleDone(chk){
   const c=chk.closest('.tcard');const done=!c.classList.contains('done');
   c.classList.toggle('done',done);chk.classList.toggle('ck',done);chk.textContent=done?'✓':'';
+  // When marked done, clear incomplete state
+  if(done){
+    c.classList.remove('is-incomplete');
+    delete c.dataset.isIncomplete;
+    const btn=c.querySelector('.tbtn-incomplete');
+    if(btn){btn.classList.remove('marked');btn.textContent='未完成';}
+    const tag=c.querySelector('.incomplete-tag');if(tag)tag.remove();
+  }
   saveDayData();updateStats();renderUnifiedTimeline();
+}
+
+function toggleIncomplete(btn){
+  const c=btn.closest('.tcard');
+  if(c.classList.contains('done')) return; // already done, ignore
+  const isMarked=c.dataset.isIncomplete==='1';
+  if(isMarked){
+    // Unmark
+    c.classList.remove('is-incomplete');
+    delete c.dataset.isIncomplete;
+    btn.classList.remove('marked');
+    btn.textContent='未完成';
+    const tag=c.querySelector('.incomplete-tag');if(tag)tag.remove();
+  } else {
+    // Mark as incomplete
+    c.dataset.isIncomplete='1';
+    c.classList.add('is-incomplete');
+    btn.classList.add('marked');
+    btn.textContent='未完成✓';
+    // Add tag to meta if not already there
+    const meta=c.querySelector('.tmeta');
+    if(meta&&!meta.querySelector('.incomplete-tag')){
+      const tag=document.createElement('span');tag.className='incomplete-tag';tag.textContent='⏳ 未完成';
+      meta.appendChild(tag);
+    }
+  }
+  saveDayData();renderUnifiedTimeline();
 }
 function onTodoActualTimeChange(inp){
   const c=inp?.closest('.tcard');
   if(!c)return;
-  // Check if any segment has both start and end filled
   const segs=[...c.querySelectorAll('.todo-segs .time-seg')];
   const anyComplete=segs.some(s=>s.querySelector('.seg-s')?.value&&s.querySelector('.seg-e')?.value);
   if(anyComplete&&!c.classList.contains('done')){
     c.classList.add('done');
+    // Clear incomplete
+    c.classList.remove('is-incomplete');
+    delete c.dataset.isIncomplete;
+    const btn=c.querySelector('.tbtn-incomplete');if(btn){btn.classList.remove('marked');btn.textContent='未完成';}
+    const tag=c.querySelector('.incomplete-tag');if(tag)tag.remove();
     const chk=c.querySelector('.tchk');chk.classList.add('ck');chk.textContent='✓';
   } else if(!anyComplete&&c.classList.contains('done')){
     c.classList.remove('done');
