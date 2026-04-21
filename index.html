@@ -294,6 +294,11 @@ body{font-family:var(--ss);background:var(--paper);color:var(--ink);min-height:1
 .utl-mini-tag.tag-incomplete{background:rgba(245,158,11,.15);color:#92400e}
 .utl-mini-txt.is-incomplete-txt{text-decoration:none !important;color:#78350f;font-style:italic}
 .utl-mini-tag.tag-makeup{background:rgba(42,92,63,.15);color:#1a4830}
+.makeup-date-row{display:flex;align-items:center;gap:6px;padding:5px 9px;border-top:1px dashed #b0d4bc;background:rgba(42,92,63,.04)}
+.makeup-date-lbl{font-size:10px;color:#2a5c3f;white-space:nowrap}
+.makeup-date-inp{font-family:var(--mo);font-size:11px;color:var(--ink);border:1px solid #b0d4bc;background:white;padding:2px 6px;border-radius:2px;width:76px}
+.makeup-date-inp:focus{outline:none;border-color:#2a5c3f}
+.makeup-date-hint{font-size:9px;color:var(--ink-m)}
 
 /* DRAG AND DROP */
 .dragging{opacity:.4;cursor:grabbing !important}
@@ -904,6 +909,12 @@ function renderUnifiedTimeline(){
             mkBadge.textContent='✅ 补完'+(t.completedDate?' ('+t.completedDate+')':'');
             actSlot.appendChild(mkBadge);
           }
+        } else if(t.isMakeup){
+          // Plan-only but makeup: show badge in actual column
+          const mkBadge=document.createElement('span');
+          mkBadge.style.cssText='font-size:8px;padding:1px 5px;background:#e8f2ec;color:#1a4830;border:1px solid #b0d4bc;border-radius:3px;white-space:nowrap;font-family:var(--ss)';
+          mkBadge.textContent='✅ 补完'+(t.completedDate?' ('+t.completedDate+')':'');
+          actSlot.appendChild(mkBadge);
         }
         colActual.appendChild(actSlot);
 
@@ -1107,6 +1118,26 @@ function buildCard(pre){
   const segs=pre?.actualSegs||(pre?.actualStart?[{start:pre.actualStart,end:pre.actualEnd||''}]:[]);
   if(segs.length===0) segs.push({start:'',end:''});
   segs.forEach(s=>addTodoSegRow(segsContainer,s.start,s.end));
+
+  // Restore makeup date input row if isMakeup
+  if(pre?.isMakeup){
+    const esec=c.querySelector('.esec');
+    if(esec){
+      const dateRow=document.createElement('div');dateRow.className='makeup-date-row';
+      dateRow.innerHTML=`<span class="makeup-date-lbl">✅ 补完日期</span><input class="makeup-date-inp" type="text" placeholder="如 4/20" maxlength="10"><span class="makeup-date-hint">月/日</span>`;
+      const inp=dateRow.querySelector('.makeup-date-inp');
+      inp.value=pre.completedDate||'';
+      inp.addEventListener('input',()=>{
+        const v=inp.value.trim();
+        c.dataset.completedDate=v;
+        let tag=c.querySelector('.makeup-tag');
+        if(!tag){tag=document.createElement('span');tag.className='makeup-tag';c.querySelector('.tmeta').appendChild(tag);}
+        tag.textContent=v?`✅ 补完 (${v})`:'✅ 补完';
+        saveDayData();renderUnifiedTimeline();
+      });
+      esec.appendChild(dateRow);
+    }
+  }
 }
 
 // when plan start is typed, sync time label on todo card
@@ -1206,21 +1237,24 @@ function toggleIncomplete(btn){
 function markMakeup(btn){
   const c=btn.closest('.tcard');
   if(c.dataset.isMakeup==='1'){
-    // Toggle off makeup
+    // Undo makeup
     c.classList.remove('is-makeup','done');
     delete c.dataset.isMakeup;
     delete c.dataset.completedDate;
     const chk=c.querySelector('.tchk');chk.classList.remove('ck');chk.textContent='';
     const tag=c.querySelector('.makeup-tag');if(tag)tag.remove();
+    const row=c.querySelector('.makeup-date-row');if(row)row.remove();
     btn.textContent='补完';
+    // Re-add incomplete state visually if it was incomplete
+    if(c.dataset.isIncomplete==='1'){
+      c.classList.add('is-incomplete');
+    }
     saveDayData();updateStats();renderUnifiedTimeline();
     return;
   }
-  // Mark as makeup-done: record today as completedDate
-  const today=fmt(currentDate);
+  // Mark as makeup: clear incomplete, mark done
   c.dataset.isMakeup='1';
-  c.dataset.completedDate=today;
-  // Also mark as done and clear incomplete
+  c.dataset.completedDate='';
   c.classList.add('done','is-makeup');
   c.classList.remove('is-incomplete');
   delete c.dataset.isIncomplete;
@@ -1228,14 +1262,37 @@ function markMakeup(btn){
   const incBtn=c.querySelector('.tbtn-incomplete');
   if(incBtn){incBtn.classList.remove('marked');incBtn.textContent='未完成';}
   const incTag=c.querySelector('.incomplete-tag');if(incTag)incTag.remove();
-  // Add makeup tag to meta
+  btn.textContent='撤销补完';
+
+  // Inject date-input row into esec (if not already there)
+  const esec=c.querySelector('.esec');
+  if(esec&&!c.querySelector('.makeup-date-row')){
+    // Make esec visible
+    esec.style.display='';
+    const execToggle=c.querySelector('.etoggle');
+    if(execToggle)execToggle.textContent='执行 ▴';
+    const dateRow=document.createElement('div');dateRow.className='makeup-date-row';
+    dateRow.innerHTML=`<span class="makeup-date-lbl">✅ 补完日期</span><input class="makeup-date-inp" type="text" placeholder="如 4/20" maxlength="10"><span class="makeup-date-hint">月/日</span>`;
+    const inp=dateRow.querySelector('.makeup-date-inp');
+    inp.addEventListener('input',()=>{
+      const v=inp.value.trim();
+      c.dataset.completedDate=v;
+      // Update meta tag
+      let tag=c.querySelector('.makeup-tag');
+      if(!tag){tag=document.createElement('span');tag.className='makeup-tag';c.querySelector('.tmeta').appendChild(tag);}
+      tag.textContent=v?`✅ 补完 (${v})`:'✅ 补完';
+      saveDayData();renderUnifiedTimeline();
+    });
+    esec.appendChild(dateRow);
+    setTimeout(()=>inp.focus(),50);
+  }
+
+  // Add/update meta tag
   const meta=c.querySelector('.tmeta');
   if(meta&&!meta.querySelector('.makeup-tag')){
-    const tag=document.createElement('span');tag.className='makeup-tag';
-    const d=currentDate;tag.textContent=`✅ 补完 (${d.getMonth()+1}/${d.getDate()})`;
+    const tag=document.createElement('span');tag.className='makeup-tag';tag.textContent='✅ 补完';
     meta.appendChild(tag);
   }
-  btn.textContent='撤销补完';
   saveDayData();updateStats();renderUnifiedTimeline();
 }
 function onTodoActualTimeChange(inp){
