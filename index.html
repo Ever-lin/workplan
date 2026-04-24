@@ -228,6 +228,16 @@ body{font-family:var(--ss);background:var(--paper);color:var(--ink);min-height:1
 .addbtn{background:none;border:1px dashed var(--bdr);color:var(--ink-m);font-family:var(--ss);font-size:12px;padding:5px 14px;cursor:pointer;border-radius:2px;transition:all var(--t);width:100%}
 .addbtn:hover{border-color:var(--ac);color:var(--ac);background:var(--ac-p)}
 
+/* copy-all button next to section title */
+.copy-all-btn{background:none;border:1px solid var(--bdr);color:var(--ink-m);font-size:10px;padding:2px 8px;cursor:pointer;border-radius:2px;font-family:var(--ss);white-space:nowrap;transition:all var(--t);flex-shrink:0}
+.copy-all-btn:hover{background:var(--bl-l);color:var(--bl);border-color:#c8d8f0}
+.copy-all-btn.copied{color:var(--gr);border-color:#b0d4bc;background:var(--gr-l)}
+.copy-btn{background:none;border:1px solid var(--bdr);color:var(--ink-m);font-size:10px;padding:1px 6px;cursor:pointer;border-radius:2px;transition:all var(--t);font-family:var(--ss);white-space:nowrap}
+.copy-btn:hover{background:var(--bl-l);color:var(--bl);border-color:#c8d8f0}
+.copy-btn.copied{color:var(--gr);border-color:#b0d4bc;background:var(--gr-l)}
+.otask .copy-btn{opacity:0;transition:opacity var(--t)}
+.otask:hover .copy-btn{opacity:1}
+
 /* OTHER TASKS (no-time) */
 .otask-list{display:flex;flex-direction:column;gap:5px}
 .otask{display:flex;flex-direction:column;gap:0;border:1px solid var(--bdr);border-radius:2px;background:white;overflow:hidden}
@@ -454,13 +464,19 @@ body{font-family:var(--ss);background:var(--paper);color:var(--ink);min-height:1
     <!-- LEFT PANEL: 待办事项 -->
     <div class="pl" style="display:flex;flex-direction:column;padding:0">
       <div style="padding:14px 14px 10px 16px;flex:1;display:flex;flex-direction:column">
-        <div class="ptitle" style="margin-bottom:8px">待办事项</div>
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+          <div class="ptitle" style="margin-bottom:0;border:none;padding:0;flex:1">待办事项</div>
+          <button class="copy-all-btn" id="copy-todos-btn" onclick="copyAllTodos(this)" title="复制全部待办事项">⎘ 全部复制</button>
+        </div>
         <div class="tlist" id="tlist"></div>
         <div style="margin-top:6px">
           <button class="addbtn" onclick="addTodo()">＋ 添加待办事项</button>
         </div>
         <!-- 其他事项 -->
-        <div class="ptitle" style="margin-top:14px;margin-bottom:8px">其他事项</div>
+        <div style="display:flex;align-items:center;gap:8px;margin-top:14px;margin-bottom:8px">
+          <div class="ptitle" style="margin-bottom:0;border:none;padding:0;flex:1">其他事项</div>
+          <button class="copy-all-btn" id="copy-otasks-btn" onclick="copyAllOtasks(this)" title="复制全部其他事项">⎘ 全部复制</button>
+        </div>
         <div class="otask-list" id="otask-list"></div>
         <div style="margin-top:5px">
           <button class="addbtn" onclick="addOtask()">＋ 添加其他事项</button>
@@ -1092,6 +1108,7 @@ function buildCard(pre){
     <button class="otask-mv" onclick="moveTdToNextDay(this)" title="挪到明天" style="font-size:9px;padding:1px 6px">→明</button>
     <button class="tbtn-incomplete${(pre?.isIncomplete&&!pre?.done)?' marked':''}" onclick="toggleIncomplete(this)" title="标记为未完成">${(pre?.isIncomplete&&!pre?.done)?'未完成✓':'未完成'}</button>
     <button class="tbtn-makeup" onclick="markMakeup(this)" title="标记为今日补完">补完</button>
+    <button class="copy-btn" onclick="copyTodo(this)" title="复制">⎘ 复制</button>
     <button class="etoggle" onclick="toggleExec(this)">执行 ${execOpen?'▴':'▾'}</button>
     <button class="ib" onclick="removeTd(this)" title="删除">×</button>
   </div>
@@ -1397,7 +1414,11 @@ function addOtask(pre){
   }
 
   const drag=document.createElement('span');drag.className='drag-handle';drag.title='拖动排序';drag.textContent='⠿';
-  topRow.appendChild(drag);topRow.appendChild(chk);topRow.appendChild(inp);topRow.appendChild(mv);topRow.appendChild(toggle);topRow.appendChild(del);
+
+  const copyBtn=document.createElement('button');copyBtn.className='copy-btn';copyBtn.title='复制';copyBtn.textContent='⎘ 复制';
+  copyBtn.onclick=()=>copyOtask(copyBtn);
+
+  topRow.appendChild(drag);topRow.appendChild(chk);topRow.appendChild(inp);topRow.appendChild(mv);topRow.appendChild(toggle);topRow.appendChild(copyBtn);topRow.appendChild(del);
 
   // exec section: times + note (collapsible)
   const execSec=document.createElement('div');execSec.className='otask-exec';
@@ -1751,6 +1772,73 @@ function applyMemoDeferredStyle(div,dateStr){
     mv.style.color='var(--am)';mv.style.borderColor='var(--am)';mv.style.background='var(--am-l)';
     mv.disabled=true;mv.style.cursor='default';
   }
+}
+
+function copyAllTodos(btn){
+  const lines=[];
+  document.querySelectorAll('.tcard').forEach(c=>{
+    const title=c.querySelector('.ttxt')?.value||'';
+    const note=c.querySelector('.enote')?.value||'';
+    if(!title.trim())return;
+    lines.push(title.trim());
+    if(note.trim()){
+      note.trim().split('\n').filter(l=>l.trim()).forEach(l=>lines.push('· '+l.trim()));
+    }
+  });
+  if(!lines.length){alert('没有待办事项可复制');return;}
+  const text=lines.join('\n');
+  navigator.clipboard.writeText(text).then(()=>flashCopied(btn)).catch(()=>{
+    const ta=document.createElement('textarea');ta.value=text;document.body.appendChild(ta);ta.select();document.execCommand('copy');ta.remove();flashCopied(btn);
+  });
+}
+function copyAllOtasks(btn){
+  const lines=[];
+  document.querySelectorAll('.otask').forEach(el=>{
+    const title=el.querySelector('.otask-txt')?.value||'';
+    const note=el.querySelector('.otnote')?.value||'';
+    if(!title.trim())return;
+    lines.push(title.trim());
+    if(note.trim()){
+      note.trim().split('\n').filter(l=>l.trim()).forEach(l=>lines.push('· '+l.trim()));
+    }
+  });
+  if(!lines.length){alert('没有其他事项可复制');return;}
+  const text=lines.join('\n');
+  navigator.clipboard.writeText(text).then(()=>flashCopied(btn)).catch(()=>{
+    const ta=document.createElement('textarea');ta.value=text;document.body.appendChild(ta);ta.select();document.execCommand('copy');ta.remove();flashCopied(btn);
+  });
+}
+
+// ── COPY FUNCTIONS ──
+function buildCopyText(title, note){
+  let text = title;
+  if(note && note.trim()){
+    const lines = note.trim().split('\n').filter(l=>l.trim());
+    if(lines.length) text += '\n' + lines.map(l=>'· '+l.trim()).join('\n');
+  }
+  return text;
+}
+function flashCopied(btn){
+  btn.textContent='✓ 已复制';btn.classList.add('copied');
+  setTimeout(()=>{btn.textContent='⎘ 复制';btn.classList.remove('copied');},1500);
+}
+function copyTodo(btn){
+  const c=btn.closest('.tcard');
+  const title=c.querySelector('.ttxt')?.value||'';
+  const note=c.querySelector('.enote')?.value||'';
+  const text=buildCopyText(title,note);
+  navigator.clipboard.writeText(text).then(()=>flashCopied(btn)).catch(()=>{
+    const ta=document.createElement('textarea');ta.value=text;document.body.appendChild(ta);ta.select();document.execCommand('copy');ta.remove();flashCopied(btn);
+  });
+}
+function copyOtask(btn){
+  const div=btn.closest('.otask');
+  const title=div.querySelector('.otask-txt')?.value||'';
+  const note=div.querySelector('.otnote')?.value||'';
+  const text=buildCopyText(title,note);
+  navigator.clipboard.writeText(text).then(()=>flashCopied(btn)).catch(()=>{
+    const ta=document.createElement('textarea');ta.value=text;document.body.appendChild(ta);ta.select();document.execCommand('copy');ta.remove();flashCopied(btn);
+  });
 }
 
 // ── DRAG: TODO LIST ──
