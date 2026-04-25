@@ -1775,12 +1775,13 @@ function applyMemoDeferredStyle(div,dateStr){
 }
 
 function copyAllTodos(btn){
-  const lines=[];
+  const lines=[];let idx=0;
   document.querySelectorAll('.tcard').forEach(c=>{
     const title=c.querySelector('.ttxt')?.value||'';
     const note=c.querySelector('.enote')?.value||'';
     if(!title.trim())return;
-    lines.push(title.trim());
+    idx++;
+    lines.push(idx+'.'+title.trim());
     if(note.trim()){
       note.trim().split('\n').filter(l=>l.trim()).forEach(l=>lines.push('· '+l.trim()));
     }
@@ -1792,12 +1793,13 @@ function copyAllTodos(btn){
   });
 }
 function copyAllOtasks(btn){
-  const lines=[];
+  const lines=[];let idx=0;
   document.querySelectorAll('.otask').forEach(el=>{
     const title=el.querySelector('.otask-txt')?.value||'';
     const note=el.querySelector('.otnote')?.value||'';
     if(!title.trim())return;
-    lines.push(title.trim());
+    idx++;
+    lines.push(idx+'.'+title.trim());
     if(note.trim()){
       note.trim().split('\n').filter(l=>l.trim()).forEach(l=>lines.push('· '+l.trim()));
     }
