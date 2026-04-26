@@ -28,6 +28,7 @@ body.dark-mode .tcard,body.dark-mode .otask,body.dark-mode .memo-item{background
 body.dark-mode .esec,body.dark-mode .otask-exec,body.dark-mode .memo-exec{background:rgba(255,255,255,.04)}
 body.dark-mode .sc{background:var(--card-bg)}
 body.dark-mode .dnav,body.dark-mode .pgrid{background:var(--paper-w)}
+body.dark-mode #wgrid>div{background:var(--card-bg)!important;border-color:var(--bdr)!important}
 body.dark-mode .pl{background:var(--paper-w)}
 body.dark-mode .refbox{background:rgba(14,165,233,.08);border-color:#1e3a4a}
 body.dark-mode .expp{background:#1a1b2e;border-color:var(--bdr)}
@@ -709,11 +710,14 @@ body.dark-mode .apv-note-ta{background:var(--paper-l);color:var(--ink)}
     <button class="tb" onclick="goThisWeek()">本周</button>
     <button class="dnb" onclick="changeWeek(1)">›</button>
   </div>
-  <div class="sbar">
+  <div class="sbar" style="grid-template-columns:repeat(7,1fr)">
     <div class="sc a"><div class="sv" id="w-days">0</div><div class="sl">有记录天数</div></div>
-    <div class="sc b"><div class="sv" id="w-todos">0</div><div class="sl">本周待办</div></div>
-    <div class="sc g"><div class="sv" id="w-done">0</div><div class="sl">已完成</div></div>
-    <div class="sc"><div class="sv" id="w-rate">0%</div><div class="sl">完成率</div></div>
+    <div class="sc b"><div class="sv" id="w-todos">0</div><div class="sl">待办总数</div></div>
+    <div class="sc g"><div class="sv" id="w-done">0</div><div class="sl">待办完成</div></div>
+    <div class="sc"><div class="sv" id="w-rate">0%</div><div class="sl">待办完成率</div></div>
+    <div class="sc"><div class="sv" id="w-otasks">0</div><div class="sl">其他事项</div></div>
+    <div class="sc g"><div class="sv" id="w-otdone">0</div><div class="sl">其他已完成</div></div>
+    <div class="sc b"><div class="sv" id="w-memos">0</div><div class="sl">小任务完成</div></div>
   </div>
   <div id="wgrid" style="display:grid;grid-template-columns:repeat(7,1fr);gap:8px;margin-top:12px"></div>
 </div>
@@ -730,11 +734,14 @@ body.dark-mode .apv-note-ta{background:var(--paper-l);color:var(--ink)}
     <button class="tb" onclick="currentMonth=new Date().getMonth();currentYear=new Date().getFullYear();renderMonthly()">本月</button>
     <button class="dnb" onclick="changeMonth(1)">›</button>
   </div>
-  <div class="sbar">
+  <div class="sbar" style="grid-template-columns:repeat(7,1fr)">
     <div class="sc a"><div class="sv" id="m-days">0</div><div class="sl">记录天数</div></div>
-    <div class="sc b"><div class="sv" id="m-todos">0</div><div class="sl">本月待办</div></div>
-    <div class="sc g"><div class="sv" id="m-done">0</div><div class="sl">已完成</div></div>
-    <div class="sc"><div class="sv" id="m-rate">0%</div><div class="sl">完成率</div></div>
+    <div class="sc b"><div class="sv" id="m-todos">0</div><div class="sl">待办总数</div></div>
+    <div class="sc g"><div class="sv" id="m-done">0</div><div class="sl">待办完成</div></div>
+    <div class="sc"><div class="sv" id="m-rate">0%</div><div class="sl">待办完成率</div></div>
+    <div class="sc"><div class="sv" id="m-otasks">0</div><div class="sl">其他事项</div></div>
+    <div class="sc g"><div class="sv" id="m-otdone">0</div><div class="sl">其他已完成</div></div>
+    <div class="sc b"><div class="sv" id="m-memos">0</div><div class="sl">小任务完成</div></div>
   </div>
   <div class="mgrid" id="mgrid"></div>
 </div>
@@ -750,11 +757,14 @@ body.dark-mode .apv-note-ta{background:var(--paper-l);color:var(--ink)}
     <button class="tb" onclick="currentYear=new Date().getFullYear();renderYearly()">今年</button>
     <button class="dnb" onclick="changeYear(1)">›</button>
   </div>
-  <div class="sbar">
+  <div class="sbar" style="grid-template-columns:repeat(7,1fr)">
     <div class="sc a"><div class="sv" id="y-days">0</div><div class="sl">记录天数</div></div>
-    <div class="sc b"><div class="sv" id="y-todos">0</div><div class="sl">年度待办</div></div>
-    <div class="sc g"><div class="sv" id="y-done">0</div><div class="sl">已完成</div></div>
-    <div class="sc"><div class="sv" id="y-rate">0%</div><div class="sl">完成率</div></div>
+    <div class="sc b"><div class="sv" id="y-todos">0</div><div class="sl">待办总数</div></div>
+    <div class="sc g"><div class="sv" id="y-done">0</div><div class="sl">待办完成</div></div>
+    <div class="sc"><div class="sv" id="y-rate">0%</div><div class="sl">待办完成率</div></div>
+    <div class="sc"><div class="sv" id="y-otasks">0</div><div class="sl">其他事项</div></div>
+    <div class="sc g"><div class="sv" id="y-otdone">0</div><div class="sl">其他已完成</div></div>
+    <div class="sc b"><div class="sv" id="y-memos">0</div><div class="sl">小任务完成</div></div>
   </div>
   <div class="ygrid" id="ygrid"></div>
 </div>
@@ -822,6 +832,7 @@ body.dark-mode .apv-note-ta{background:var(--paper-l);color:var(--ink)}
         <div class="tpl-sidebar-head">我的模板</div>
         <div class="tpl-list" id="tpl-list"></div>
         <button class="tpl-new-btn" onclick="tplNew()">＋ 新建模板</button>
+        <button class="tpl-new-btn tpl-save-today-btn" onclick="tplSaveToday()" title="把当前日期的所有待办事项保存为新模板">📥 今日待办→模板</button>
       </div>
       <div class="tpl-content" id="tpl-content">
         <div class="tpl-empty" id="tpl-empty">
@@ -1996,51 +2007,74 @@ function renderWeekly(){
     `${ws.getFullYear()} 年 ${fmtShort(ws)} – ${fmtShort(we)}`;
   const grid=document.getElementById('wgrid');grid.innerHTML='';
   const today=fmt(new Date());
-  let wt=0,wd=0,wdy=0;
+  let wt=0,wd=0,wdy=0,wot=0,wod=0,wmd=0;
   for(let i=0;i<7;i++){
     const d=new Date(ws);d.setDate(d.getDate()+i);
     const ds=fmt(d);const data=load(d)||{};
     const todos=data.todos||[];
+    const otasks=data.otasks||[];
+    const memos=data.memos||[];
     const done=todos.filter(t=>t.done).length;
+    const otDone=otasks.filter(o=>o.done).length;
+    const memoDone=memos.filter(m=>m.done).length;
     const rate=todos.length?Math.round(done/todos.length*100):0;
-    if(todos.length)wdy++;
-    wt+=todos.length;wd+=done;
+    if(todos.length||otasks.length||memos.length)wdy++;
+    wt+=todos.length;wd+=done;wot+=otasks.length;wod+=otDone;wmd+=memoDone;
     const isToday=ds===today;
     const col=document.createElement('div');
-    col.style.cssText=`background:white;border:${isToday?'2px solid var(--ac)':'1px solid var(--bdr)'};border-radius:3px;padding:10px 8px;cursor:pointer;min-height:180px;display:flex;flex-direction:column;gap:5px;transition:border-color .15s`;
+    col.style.cssText=`background:white;border:${isToday?'2px solid var(--ac)':'1px solid var(--bdr)'};border-radius:3px;padding:10px 8px;cursor:pointer;min-height:180px;display:flex;flex-direction:column;gap:4px;transition:border-color .15s`;
     col.onclick=()=>{currentDate=d;document.querySelectorAll('.nb')[0].click()};
     col.onmouseenter=()=>{if(!isToday)col.style.borderColor='var(--ac-l)'};
     col.onmouseleave=()=>{if(!isToday)col.style.borderColor='var(--bdr)'};
     // Header
     const hdr=document.createElement('div');
-    hdr.style.cssText='display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;padding-bottom:5px;border-bottom:1px solid var(--paper-l)';
+    hdr.style.cssText='display:flex;justify-content:space-between;align-items:center;margin-bottom:3px;padding-bottom:5px;border-bottom:1px solid var(--paper-l)';
     hdr.innerHTML=`<span style="font-family:var(--sf);font-size:12px;font-weight:600;color:${isToday?'var(--ac)':'var(--ink)'}">${d.getDate()}</span><span style="font-size:10px;color:var(--ink-m)">${['日','一','二','三','四','五','六'][d.getDay()]}</span>`;
     col.appendChild(hdr);
     // Progress bar
     if(todos.length){
       const pb=document.createElement('div');
-      pb.style.cssText='height:3px;background:var(--paper-l);border-radius:2px;overflow:hidden;flex-shrink:0';
-      pb.innerHTML=`<div style="height:100%;width:${rate}%;background:var(--gr);border-radius:2px;transition:width .3s"></div>`;
+      pb.style.cssText='height:3px;background:var(--paper-l);border-radius:2px;overflow:hidden;flex-shrink:0;margin-bottom:2px';
+      pb.innerHTML=`<div style="height:100%;width:${rate}%;background:var(--gr);border-radius:2px"></div>`;
       col.appendChild(pb);
     }
-    // Todo items
-    todos.forEach(t=>{
-      const row=document.createElement('div');
-      row.style.cssText=`display:flex;align-items:flex-start;gap:5px;font-size:10px;color:${t.done?'var(--ink-m)':'var(--ink)'};line-height:1.4`;
-      row.innerHTML=`<span style="color:${t.done?'var(--gr)':'var(--bdr)'};flex-shrink:0;margin-top:1px">${t.done?'✓':'○'}</span><span style="${t.done?'text-decoration:line-through;':''} overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical">${t.text}</span>`;
-      col.appendChild(row);
-    });
-    if(!todos.length){
+    // Section helper
+    function addSection(items,label,color,doneColor,doneKey){
+      if(!items.length)return;
+      const sec=document.createElement('div');
+      sec.style.cssText='display:flex;flex-direction:column;gap:2px';
+      const lbl=document.createElement('div');
+      lbl.style.cssText=`font-size:8px;letter-spacing:.6px;color:${color};font-weight:500;margin-top:3px;padding-bottom:2px;border-bottom:1px dashed var(--paper-l)`;
+      lbl.textContent=label;
+      sec.appendChild(lbl);
+      items.forEach(t=>{
+        const isDone=t.done||t[doneKey];
+        const row=document.createElement('div');
+        row.style.cssText=`display:flex;align-items:flex-start;gap:4px;font-size:9.5px;color:${isDone?'var(--ink-m)':'var(--ink)'};line-height:1.35`;
+        row.innerHTML=`<span style="color:${isDone?doneColor:'var(--bdr)'};flex-shrink:0;margin-top:1px;font-size:8px">${isDone?'✓':'○'}</span><span style="${isDone?'text-decoration:line-through;':''}overflow:hidden;display:-webkit-box;-webkit-line-clamp:1;-webkit-box-orient:vertical">${t.text}</span>`;
+        sec.appendChild(row);
+      });
+      col.appendChild(sec);
+    }
+    addSection(todos,'待办','var(--ac)','var(--gr)','done');
+    addSection(otasks,'其他','var(--bl)','var(--bl)','done');
+    addSection(memos,'小任务','var(--am)','var(--am)','done');
+    const hasAny=todos.length||otasks.length||memos.length;
+    if(!hasAny){
       const empty=document.createElement('div');
       empty.style.cssText='font-size:10px;color:var(--ink-m);text-align:center;margin-top:20px;opacity:.5';
       empty.textContent='无记录';
       col.appendChild(empty);
     }
-    // Completion rate at bottom
-    if(todos.length){
+    // Footer stats
+    if(hasAny){
       const foot=document.createElement('div');
-      foot.style.cssText='margin-top:auto;font-family:var(--mo);font-size:10px;color:var(--ink-m);text-align:right;padding-top:4px;border-top:1px dashed var(--paper-l)';
-      foot.textContent=`${done}/${todos.length} · ${rate}%`;
+      foot.style.cssText='margin-top:auto;font-family:var(--mo);font-size:9px;color:var(--ink-m);padding-top:4px;border-top:1px dashed var(--paper-l);display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end';
+      const parts=[];
+      if(todos.length)parts.push(`<span style="color:var(--ac)">${done}/${todos.length}</span>`);
+      if(otasks.length)parts.push(`<span style="color:var(--bl)">${otDone}/${otasks.length}</span>`);
+      if(memos.length)parts.push(`<span style="color:var(--am)">${memoDone}/${memos.length}</span>`);
+      foot.innerHTML=parts.join('<span style="opacity:.3">·</span>');
       col.appendChild(foot);
     }
     grid.appendChild(col);
@@ -2050,6 +2084,9 @@ function renderWeekly(){
   document.getElementById('w-todos').textContent=wt;
   document.getElementById('w-done').textContent=wd;
   document.getElementById('w-rate').textContent=r+'%';
+  const wotEl=document.getElementById('w-otasks');if(wotEl)wotEl.textContent=wot;
+  const wodEl=document.getElementById('w-otdone');if(wodEl)wodEl.textContent=wod+'/'+wot;
+  const wmdEl=document.getElementById('w-memos');if(wmdEl)wmdEl.textContent=wmd;
 }
 
 // ── MONTHLY ──
@@ -2058,7 +2095,7 @@ function renderMonthly(){
   document.getElementById('m-main').textContent=`${y} 年 ${MCN[m]}`;
   buildYearOpts('m-sel-year',y);buildMonthOpts('m-sel-month',m);
   const first=new Date(y,m,1),sd=first.getDay(),dim=new Date(y,m+1,0).getDate();
-  let tt=0,td=0,rd=0;
+  let tt=0,td=0,rd=0,mot=0,mod=0,mmd=0;
   const g=document.getElementById('mgrid');g.innerHTML='';
   WD.forEach(d=>{const h=document.createElement('div');h.className='mhdr';h.textContent=d;g.appendChild(h)});
   const ts=fmt(new Date());
@@ -2068,14 +2105,34 @@ function renderMonthly(){
     const c=document.createElement('div');c.className='mc'+(ds===ts?' td':'');
     c.onclick=()=>{currentDate=date;document.querySelectorAll('.nb')[0].click()};
     let dots='',comp='';
-    if(data){rd++;const todos=data.todos||[];const dn=todos.filter(t=>t.done).length;tt+=todos.length;td+=dn;const r=todos.length?Math.round(dn/todos.length*100):0;todos.forEach(t=>{dots+=`<div class="mdot ${t.done?'dn':''}"></div>`});comp=todos.length?`${r}%`:''}
-    // Build tooltip text (first 3 todos)
+    if(data){
+      rd++;
+      const todos=data.todos||[];
+      const otasks=data.otasks||[];
+      const memos=data.memos||[];
+      const dn=todos.filter(t=>t.done).length;
+      const otDn=otasks.filter(o=>o.done).length;
+      const memDn=memos.filter(m=>m.done).length;
+      tt+=todos.length;td+=dn;mot+=otasks.length;mod+=otDn;mmd+=memDn;
+      const r=todos.length?Math.round(dn/todos.length*100):0;
+      // dots: todos=purple, otasks=blue, memos=amber
+      todos.forEach(t=>{dots+=`<div class="mdot ${t.done?'dn':''}" title="待办"></div>`});
+      otasks.forEach(o=>{dots+=`<div class="mdot" style="background:${o.done?'var(--bl)':'var(--bl-l)'}" title="其他"></div>`});
+      memos.forEach(m=>{dots+=`<div class="mdot" style="background:${m.done?'var(--am)':'var(--am-l)'}" title="小任务"></div>`});
+      comp=todos.length?`${r}%`:'';
+    }
+    // Tooltip
     let tipHtml='';
     if(data){
-      const todos=data.todos||[];
-      const top=todos.slice(0,3);
-      tipHtml=top.map(t=>`<div style="display:flex;align-items:center;gap:4px"><span style="color:${t.done?'#10b981':'#f59e0b'}">${t.done?'✓':'○'}</span><span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${t.text}</span></div>`).join('');
-      if(todos.length>3)tipHtml+=`<div style="color:var(--ink-m);font-size:9px;margin-top:2px">…还有 ${todos.length-3} 项</div>`;
+      const todos=data.todos||[];const otasks=data.otasks||[];const memos=data.memos||[];
+      const allItems=[
+        ...todos.slice(0,3).map(t=>({text:t.text,done:t.done,color:t.done?'#10b981':'#8b98fb',label:''})),
+        ...otasks.slice(0,2).map(o=>({text:o.text,done:o.done,color:o.done?'#38bdf8':'#94d4f7',label:''})),
+        ...memos.slice(0,2).map(m=>({text:m.text,done:m.done,color:m.done?'#f59e0b':'#fcd34d',label:''})),
+      ].slice(0,5);
+      tipHtml=allItems.map(i=>`<div style="display:flex;align-items:center;gap:4px"><span style="color:${i.color}">${i.done?'✓':'○'}</span><span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${i.text}</span></div>`).join('');
+      const total=todos.length+otasks.length+memos.length;
+      if(total>5)tipHtml+=`<div style="color:rgba(255,255,255,.5);font-size:9px;margin-top:2px">…还有 ${total-5} 项</div>`;
     }
     c.innerHTML=`<div class="mcd">${d}</div><div class="mdots">${dots}</div>${comp?`<div class="mcomp">${comp}</div>`:''}${tipHtml?`<div class="mc-tip">${tipHtml}</div>`:''}`;
     g.appendChild(c);
@@ -2083,6 +2140,9 @@ function renderMonthly(){
   const r=tt?Math.round(td/tt*100):0;
   document.getElementById('m-days').textContent=rd;document.getElementById('m-todos').textContent=tt;
   document.getElementById('m-done').textContent=td;document.getElementById('m-rate').textContent=r+'%';
+  const motEl=document.getElementById('m-otasks');if(motEl)motEl.textContent=mot;
+  const modEl=document.getElementById('m-otdone');if(modEl)modEl.textContent=mod+'/'+mot;
+  const mmdEl=document.getElementById('m-memos');if(mmdEl)mmdEl.textContent=mmd;
 }
 
 // ── YEARLY ──
@@ -2090,20 +2150,40 @@ function renderYearly(){
   document.getElementById('y-main').textContent=currentYear+' 年';
   buildYearOpts('y-sel-year',currentYear);
   const c=document.getElementById('ygrid');c.innerHTML='';
-  let yt=0,yd=0,ydy=0;
+  let yt=0,yd=0,ydy=0,yot=0,yod=0,ymd=0;
   for(let m=0;m<12;m++){
-    const dim=new Date(currentYear,m+1,0).getDate();let mt=0,md=0,mdy=0;
-    for(let d=1;d<=dim;d++){const data=load(new Date(currentYear,m,d));if(data&&(data.todos?.length||data.reflection)){mdy++;const todos=data.todos||[];mt+=todos.length;md+=todos.filter(t=>t.done).length}}
-    yt+=mt;yd+=md;ydy+=mdy;
+    const dim=new Date(currentYear,m+1,0).getDate();
+    let mt=0,md=0,mdy=0,mot=0,mod=0,mmd=0;
+    for(let d=1;d<=dim;d++){
+      const data=load(new Date(currentYear,m,d));
+      if(!data)continue;
+      const todos=data.todos||[];const otasks=data.otasks||[];const memos=data.memos||[];
+      if(todos.length||otasks.length||memos.length||data.reflection)mdy++;
+      mt+=todos.length;md+=todos.filter(t=>t.done).length;
+      mot+=otasks.length;mod+=otasks.filter(o=>o.done).length;
+      mmd+=memos.filter(m=>m.done).length;
+    }
+    yt+=mt;yd+=md;ydy+=mdy;yot+=mot;yod+=mod;ymd+=mmd;
     const r=mt?Math.round(md/mt*100):0;
     const card=document.createElement('div');card.className='ymc';
     card.onclick=()=>{currentMonth=m;document.querySelectorAll('.nb')[1].click()};
-    card.innerHTML=`<div class="ymn">${MCN[m]}</div><div class="ymst"><div style="display:flex;justify-content:space-between"><span>记录</span><span>${mdy} 天</span></div><div style="display:flex;justify-content:space-between"><span>待办</span><span>${mt} 项</span></div><div style="display:flex;justify-content:space-between"><span>完成</span><span>${md} 项</span></div></div><div class="pb"><div class="pf" style="width:${r}%"></div></div><div style="font-size:10px;color:var(--ink-m);text-align:right;margin-top:2px;font-family:var(--mo)">${r}%</div>`;
+    card.innerHTML=`<div class="ymn">${MCN[m]}</div>
+<div class="ymst">
+  <div style="display:flex;justify-content:space-between"><span>记录</span><span>${mdy} 天</span></div>
+  <div style="display:flex;justify-content:space-between"><span style="color:var(--ac)">待办</span><span>${md}/${mt}</span></div>
+  <div style="display:flex;justify-content:space-between"><span style="color:var(--bl)">其他</span><span>${mod}/${mot}</span></div>
+  <div style="display:flex;justify-content:space-between"><span style="color:var(--am)">小任务</span><span>✓${mmd}</span></div>
+</div>
+<div class="pb"><div class="pf" style="width:${r}%"></div></div>
+<div style="font-size:10px;color:var(--ink-m);text-align:right;margin-top:2px;font-family:var(--mo)">${r}%</div>`;
     c.appendChild(card);
   }
   const yr=yt?Math.round(yd/yt*100):0;
   document.getElementById('y-days').textContent=ydy;document.getElementById('y-todos').textContent=yt;
   document.getElementById('y-done').textContent=yd;document.getElementById('y-rate').textContent=yr+'%';
+  const yotEl=document.getElementById('y-otasks');if(yotEl)yotEl.textContent=yot;
+  const yodEl=document.getElementById('y-otdone');if(yodEl)yodEl.textContent=yod+'/'+yot;
+  const ymdEl=document.getElementById('y-memos');if(ymdEl)ymdEl.textContent=ymd;
 }
 
 // ── EXPORT ──
@@ -2782,6 +2862,41 @@ function apvConfirm() {
   toast.textContent = `✓ 已套用 ${added} 项待办`;
   toast.classList.add('show');
   setTimeout(() => { toast.classList.remove('show'); toast.textContent = '已保存'; toast.style.background = ''; }, 2200);
+}
+
+// ── SAVE TODAY AS TEMPLATE ──
+function tplSaveToday(){
+  const data=load(currentDate)||{};
+  const todos=(data.todos||[]).filter(t=>t.text&&t.text.trim());
+  const otasks=(data.otasks||[]).filter(o=>o.text&&o.text.trim());
+  const memos=(data.memos||[]).filter(m=>m.text&&m.text.trim());
+  if(!todos.length&&!otasks.length&&!memos.length){
+    alert('当前日期没有任何待办事项、其他事项或小任务，无法保存为模板');return;
+  }
+  const dateStr=`${currentDate.getMonth()+1}月${currentDate.getDate()}日`;
+  const name=prompt(`模板名称：`, `${dateStr}的工作模板`);
+  if(name===null)return; // cancelled
+  const finalName=name.trim()||`${dateStr}的工作模板`;
+
+  const tplTodos=[];
+  todos.forEach(t=>tplTodos.push({text:t.text,planStart:t.planStart||'',planEnd:t.planEnd||'',note:t.note||'',type:'todo'}));
+  otasks.forEach(o=>tplTodos.push({text:o.text,planStart:'',planEnd:'',note:o.note||'',type:'otask'}));
+  memos.forEach(m=>tplTodos.push({text:m.text,planStart:'',planEnd:'',note:'',type:'memo'}));
+
+  const id='tpl_'+Date.now();
+  const arr=tplLoadAll();
+  arr.push({id,name:finalName,todos:tplTodos,createdFrom:fmt(currentDate)});
+  tplSaveAll(arr);
+  tplCurrentId=id;
+  tplRenderList();
+  // Select and show the new template
+  tplShowEditor(arr[arr.length-1]);
+  // Show toast
+  const toast=document.getElementById('saved');
+  toast.style.background='var(--ac)';
+  toast.textContent=`✓ 已保存为模板「${finalName}」`;
+  toast.classList.add('show');
+  setTimeout(()=>{toast.classList.remove('show');toast.textContent='已保存';toast.style.background='';},2200);
 }
 
 // ── DARK MODE ──
