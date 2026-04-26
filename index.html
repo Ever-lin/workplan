@@ -460,6 +460,13 @@ body{font-family:var(--ss);background:var(--paper);color:var(--ink);min-height:1
     <button class="dnb" onclick="changeDay(1)">›</button>
   </div>
 
+  <div class="sbar" style="margin-bottom:10px">
+    <div class="sc"><div class="sv" id="s-tot">0</div><div class="sl">待办总数</div></div>
+    <div class="sc g"><div class="sv" id="s-done">0</div><div class="sl">已完成</div></div>
+    <div class="sc b"><div class="sv" id="s-rate">0%</div><div class="sl">完成率</div></div>
+    <div class="sc a"><div class="sv" id="s-other">0</div><div class="sl">其他事项</div></div>
+  </div>
+
   <div class="pgrid">
     <!-- LEFT PANEL: 待办事项 -->
     <div class="pl" style="display:flex;flex-direction:column;padding:0">
@@ -694,7 +701,8 @@ function onSelDate(){
   const y=parseInt(document.getElementById('sel-year').value);
   const m=parseInt(document.getElementById('sel-month').value);
   const d=parseInt(document.getElementById('sel-day').value);
-  buildDayOpts('sel-day',y,m,d);
+  // Rebuild day options to reflect correct days in this month
+  buildDayOpts('sel-day',y,m,Math.min(d,new Date(y,m+1,0).getDate()));
   currentDate=new Date(y,m,Math.min(d,new Date(y,m+1,0).getDate()));
   renderDaily();
 }
@@ -1063,7 +1071,22 @@ function renderUnifiedTimeline(){
   }
 }
 
-function timeToMin(s){if(!s)return 0;const[h,m]=s.split(':').map(Number);return h*60+(m||0)}
+function timeToMin(s){
+  if(!s)return 0;
+  // Normalize: accept "900", "9:5", "9:00", "09:00"
+  s=s.trim();
+  if(/^\d{3,4}$/.test(s)){const n=parseInt(s);const h=Math.floor(n/100),m=n%100;return h*60+m;}
+  const[h,m]=s.split(':').map(Number);
+  return (isNaN(h)?0:h)*60+(isNaN(m)?0:m);
+}
+function normalizeTime(s){
+  if(!s)return s;
+  s=s.trim();
+  if(/^\d{3,4}$/.test(s)){const n=parseInt(s);const h=Math.floor(n/100),m=n%100;return String(h).padStart(2,'0')+':'+String(m).padStart(2,'0');}
+  const parts=s.split(':');
+  if(parts.length===2){const h=parseInt(parts[0]),m=parseInt(parts[1]);if(!isNaN(h)&&!isNaN(m))return String(h).padStart(2,'0')+':'+String(m).padStart(2,'0');}
+  return s;
+}
 
 // stubs for backward compat
 function renderTL(){}
@@ -1115,8 +1138,8 @@ function buildCard(pre){
 </div>
 <div class="esec" style="${execOpen?'':'display:none'}">
   <div class="etimes" style="grid-template-columns:1fr 1fr;margin-bottom:4px">
-    <div class="etf"><div class="etl">计划开始</div><input class="eti eps" list="dl-t" type="text" placeholder="09:00" value="${pre?.planStart||''}" oninput="onPlanTimeChange(this);saveDayData();renderUnifiedTimeline()"></div>
-    <div class="etf"><div class="etl">计划结束</div><input class="eti epe" list="dl-t" type="text" placeholder="10:00" value="${pre?.planEnd||''}" oninput="saveDayData();renderUnifiedTimeline()"></div>
+    <div class="etf"><div class="etl">计划开始</div><input class="eti eps" list="dl-t" type="text" placeholder="09:00" value="${pre?.planStart||''}" oninput="onPlanTimeChange(this);saveDayData();renderUnifiedTimeline()" onblur="this.value=normalizeTime(this.value)||this.value;onPlanTimeChange(this);saveDayData();renderUnifiedTimeline()"></div>
+    <div class="etf"><div class="etl">计划结束</div><input class="eti epe" list="dl-t" type="text" placeholder="10:00" value="${pre?.planEnd||''}" oninput="onPlanEndChange(this);saveDayData();renderUnifiedTimeline()" onblur="this.value=normalizeTime(this.value)||this.value;onPlanEndChange(this);saveDayData();renderUnifiedTimeline()"></div>
   </div>
   <div class="time-segs todo-segs"></div>
   <button class="add-seg-btn" onclick="addTodoSeg(this)">＋ 添加实际时间段</button>
@@ -1170,6 +1193,15 @@ function onPlanTimeChange(inp){
   }
 }
 
+function onPlanEndChange(inp){
+  const c=inp.closest('.tcard');
+  const eps=c.querySelector('.eps')?.value||'';
+  const meta=c.querySelector('.tmeta');
+  if(meta){
+    const existing=meta.querySelector('.ttime');
+    if(existing&&eps){existing.textContent=eps+(inp.value?'–'+inp.value:'');}
+  }
+}
 function toggleExec(btn){
   const esec=btn.closest('.tcard').querySelector('.esec');
   const open=esec.style.display==='none';
@@ -1186,6 +1218,7 @@ function addTodoSegRow(container,startVal,endVal){
   const seg=document.createElement('div');seg.className='time-seg';
   seg.innerHTML=`<div class="etf"><div class="time-seg-lbl">实际开始</div><input class="eti seg-s" list="dl-t" type="text" placeholder="09:15" value="${startVal}"></div><div class="etf"><div class="time-seg-lbl">实际结束</div><input class="eti seg-e" list="dl-t" type="text" placeholder="10:30" value="${endVal}"></div><button class="time-seg-del" title="删除此段">×</button>`;
   seg.querySelectorAll('input').forEach(i=>i.addEventListener('input',()=>{onTodoActualTimeChange(i);saveDayData();renderUnifiedTimeline();}));
+  seg.querySelectorAll('input').forEach(i=>i.addEventListener('blur',()=>{i.value=normalizeTime(i.value)||i.value;saveDayData();renderUnifiedTimeline();}));
   seg.querySelector('.time-seg-del').onclick=()=>{
     const segs=container;
     if(segs.children.length<=1){seg.querySelectorAll('input').forEach(i=>i.value='');}
@@ -1352,10 +1385,22 @@ function reindex(){
   });
 }
 function updateStats(){
-  const cs=document.querySelectorAll('.tcard'),dn=document.querySelectorAll('.tcard.done');
-  const tot=document.getElementById('s-tot');const rate=document.getElementById('s-rate');
+  const cs=document.querySelectorAll('.tcard');
+  const dn=document.querySelectorAll('.tcard.done');
+  const otDone=document.querySelectorAll('.otask.ck').length;
+  const otTotal=document.querySelectorAll('.otask').length;
+  const memoDone=document.querySelectorAll('.memo-item.ck').length;
+  const memoTotal=document.querySelectorAll('.memo-item').length;
+  const tot=document.getElementById('s-tot');
+  const done=document.getElementById('s-done');
+  const rate=document.getElementById('s-rate');
+  const other=document.getElementById('s-other');
+  const allTot=cs.length+otTotal+memoTotal;
+  const allDone=dn.length+otDone+memoDone;
   if(tot)tot.textContent=cs.length;
+  if(done)done.textContent=dn.length;
   if(rate)rate.textContent=cs.length?Math.round(dn.length/cs.length*100)+'%':'0%';
+  if(other)other.textContent=otDone+'/'+otTotal+(memoTotal?' (+'+memoDone+'/'+memoTotal+')':'');
 }
 function ar(el){el.style.height='auto';el.style.height=el.scrollHeight+'px'}
 
@@ -1451,6 +1496,7 @@ function addOtaskSegRow(container,div,chk,startVal,endVal){
     else if(!anyComplete&&div.classList.contains('ck')){div.classList.remove('ck');chk.classList.remove('ck');chk.textContent='';}
     saveDayData();renderUnifiedTimeline();
   }));
+  seg.querySelectorAll('input').forEach(i=>i.addEventListener('blur',()=>{i.value=normalizeTime(i.value)||i.value;saveDayData();renderUnifiedTimeline();}));
   seg.querySelector('.time-seg-del').onclick=()=>{
     if(container.children.length<=1){seg.querySelectorAll('input').forEach(i=>i.value='');}
     else{seg.remove();}
@@ -1517,7 +1563,9 @@ function moveTdToNextDay(btn){
   if(!data.todos.some(t=>t.text===text)){
     data.todos.push({id:'t_'+fmt(tomorrow)+'_'+Math.random().toString(36).slice(2,6),text,planStart:ps,planEnd:pe,note,done:false,actualSegs:[],execOpen:!!note,priority:data.todos.length+1});
     localStorage.setItem(key,JSON.stringify(data));
-    // visual: just update button label to confirm, no strikethrough
+    // visual: strikethrough title + update button label
+    const tdTxt=c.querySelector('.ttxt');
+    if(tdTxt){tdTxt.style.textDecoration='line-through';tdTxt.style.color='var(--ink-m)';}
     btn.textContent='→'+(tomorrow.getMonth()+1)+'/'+(tomorrow.getDate());
     btn.style.color='var(--am)';btn.style.borderColor='var(--am)';btn.style.background='var(--am-l)';
     btn.disabled=true;btn.style.cursor='default';
@@ -1597,8 +1645,15 @@ function doExport(f){
   const n=localStorage.getItem('site_name')||'工作计划';
   if(f==='json'){dl(n+'_'+fmt(new Date())+'.json',JSON.stringify(all,null,2),'application/json')}
   else if(f==='csv'){
-    const rows=[['日期','序号','待办','完成','状态','计划开始','计划结束','实际开始','实际结束','备注','复盘']];
-    all.forEach(d=>(d.todos||[]).forEach((t,i)=>rows.push([d.date,i+1,t.text,t.done?'是':'否',SL[t.execStatus||'pending'],t.planStart||'',t.planEnd||'',t.actualStart||'',t.actualEnd||'',t.note||'',d.reflection||''])));
+    const rows=[['日期','序号','待办','完成','计划开始','计划结束','实际时间段','备注']];
+    all.forEach(d=>(d.todos||[]).forEach((t,i)=>{
+      const segsStr=(t.actualSegs||[]).filter(s=>s.start).map(s=>s.start+(s.end?'–'+s.end:'')).join(' / ');
+      rows.push([d.date,i+1,t.text,t.done?'是':'否',t.planStart||'',t.planEnd||'',segsStr,t.note||'']);
+    }));
+    all.forEach(d=>(d.otasks||[]).forEach(o=>{
+      const segsStr=(o.actualSegs||[]).filter(s=>s.start).map(s=>s.start+(s.end?'–'+s.end:'')).join(' / ');
+      rows.push([d.date,'其他',o.text,o.done?'是':'否','','',segsStr,o.note||'']);
+    }));
     dl(n+'_'+fmt(new Date())+'.csv','\uFEFF'+rows.map(r=>r.map(c=>`"${String(c).replace(/"/g,'""')}"`).join(',')).join('\n'),'text/csv');
   }else if(f==='txt'){
     let txt=`${n} · 导出\n${new Date().toLocaleString('zh-CN')}\n\n`;
@@ -1606,9 +1661,9 @@ function doExport(f){
       txt+=`═══ ${d.date} ═══\n计划：${d.planStudy||'—'} 可用：${d.planAvail||'—'} 实际：${d.actStudy||'—'} 专注：${d.actDeep||'—'}\n\n【待办】\n`;
       (d.todos||[]).forEach((t,i)=>{
         const tspan=t.planStart?(t.planStart+(t.planEnd?'–'+t.planEnd:'')):'';
-        txt+=`  ${i+1}. [${t.done?'✓':' '}] ${t.text}`+(tspan?' ('+tspan+')':'')+`\n     状态：`+SL[t.execStatus||'pending'];
-        if(t.actualStart)txt+=`  实际：${t.actualStart}–${t.actualEnd||'?'}`;
-        txt+='\n';
+        const segsStr=(t.actualSegs||[]).filter(s=>s.start).map(s=>s.start+(s.end?'–'+s.end:'')).join(' / ');
+        txt+=`  ${i+1}. [${t.done?'✓':' '}] ${t.text}`+(tspan?' ('+tspan+')':'')+'\n';
+        if(segsStr)txt+=`     实际：${segsStr}\n`;
         if(t.note)txt+=`     备注：${t.note}\n`;
       });
       if(d.otasks?.length){txt+='\n【其他事项】\n';d.otasks.forEach(o=>txt+=`  [${o.done?'✓':' '}] ${o.text}\n`)}
@@ -1651,7 +1706,18 @@ h1.r{color:#2c4a7c}h2{font-size:8px;color:#4a4a4a;margin:5px 0 3px;border-bottom
 </div>
 <h2>时间轴</h2>
 <div class="tl"><div class="tax">${HOURS.map(h=>`<div class="th">${h}</div>`).join('')}</div>
-<div class="tev">${HOURS.map(h=>{const e=data.timeline?.[h];const txt=e?(typeof e==='object'?e.text:e):'';const dn=e&&typeof e==='object'&&e.done;return`<div class="te${dn?' dn':''}">${dn?'<span class="te-chk">✓</span>':''}<span>${txt}</span></div>`}).join('')}</div></div>
+<div class="tev">${HOURS.map(h=>{
+  const hMin=parseInt(h)*60;
+  const match=(data.todos||[]).find(t=>{
+    const ps=t.planStart?timeToMin2(t.planStart):null;
+    const as=(t.actualSegs&&t.actualSegs[0]?.start)?timeToMin2(t.actualSegs[0].start):null;
+    const ref=as??ps;
+    return ref!==null&&ref>=hMin&&ref<hMin+60;
+  });
+  const txt=match?match.text:'';
+  const dn=match&&match.done;
+  return`<div class="te${dn?' dn':''}">${dn?'<span class="te-chk">✓</span>':''}<span>${txt}</span></div>`;
+}).join('')}</div></div>
 <h2>待办事项</h2>
 ${(data.todos||[]).map((t,i)=>`<div class="ti"><div class="tn">${i+1}</div><div>[${t.done?'✓':' '}] ${t.text}${t.planStart?' <span style="color:#888">('+t.planStart+(t.planEnd?'–'+t.planEnd:'')+')</span>':''}</div></div>`).join('')}
 ${data.otasks?.length?`<h2>其他事项</h2>${data.otasks.map(o=>`<div class="ti"><div>[${o.done?'✓':' '}] ${o.text}</div></div>`).join('')}`:''}</div>
@@ -1736,7 +1802,20 @@ function addMemo(pre){
   }
 
   const del=document.createElement('button');del.className='memo-del';del.textContent='×';
-  del.onclick=()=>{div.remove();saveDayData();renderUnifiedTimeline()};
+  del.onclick=()=>{
+    // If this memo was deferred FROM another day, clear that day's movedToNext mark
+    const deferredFrom=div.dataset.deferredFrom||'';
+    if(deferredFrom){
+      const srcKey='plan_'+deferredFrom;
+      let srcData={};try{const r=localStorage.getItem(srcKey);if(r)srcData=JSON.parse(r)}catch{}
+      if(srcData.memos){
+        const text=div.querySelector('.memo-ta')?.value||'';
+        srcData.memos=srcData.memos.map(m=>m.text===text?{...m,movedToNext:''}:m);
+        localStorage.setItem(srcKey,JSON.stringify(srcData));
+      }
+    }
+    div.remove();saveDayData();renderUnifiedTimeline();
+  };
 
   topRow.appendChild(drag);topRow.appendChild(chk);topRow.appendChild(inp);topRow.appendChild(mv);topRow.appendChild(del);
   div.appendChild(topRow);
