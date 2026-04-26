@@ -421,6 +421,122 @@ body{font-family:var(--ss);background:var(--paper);color:var(--ink);min-height:1
 .saved{position:fixed;bottom:18px;right:18px;background:var(--gr);color:white;font-size:11px;padding:4px 11px;border-radius:2px;opacity:0;transition:opacity .3s ease;pointer-events:none;font-family:var(--ss);z-index:400}
 .saved.show{opacity:1}
 
+/* ── TEMPLATE SYSTEM ── */
+.tpl-btn{background:none;border:1px solid rgba(255,255,255,.3);color:var(--paper);font-family:var(--ss);font-size:12px;padding:4px 11px;cursor:pointer;border-radius:2px;transition:var(--t);display:flex;align-items:center;gap:4px}
+.tpl-btn:hover{background:rgba(255,255,255,.15)}
+
+/* Template modal overlay */
+.tpl-modal{display:none;position:fixed;inset:0;z-index:500;background:rgba(10,10,30,.55);backdrop-filter:blur(4px);align-items:center;justify-content:center}
+.tpl-modal.open{display:flex}
+.tpl-box{background:var(--card-bg);border:1px solid var(--bdr);border-radius:6px;width:min(760px,96vw);max-height:88vh;display:flex;flex-direction:column;box-shadow:0 12px 48px rgba(0,0,0,.3);overflow:hidden}
+.tpl-head{display:flex;align-items:center;justify-content:space-between;padding:14px 18px 12px;border-bottom:1px solid var(--bdr);flex-shrink:0;background:linear-gradient(to right,var(--ac-p),transparent)}
+.tpl-head-title{font-family:var(--sf);font-size:15px;font-weight:600;color:var(--ink);display:flex;align-items:center;gap:8px}
+.tpl-head-badge{font-size:10px;background:var(--ac);color:white;padding:2px 7px;border-radius:10px;font-family:var(--ss);font-weight:400}
+.tpl-close{background:none;border:none;color:var(--ink-m);font-size:20px;cursor:pointer;padding:2px 6px;line-height:1;border-radius:3px;transition:all var(--t)}
+.tpl-close:hover{color:var(--ink);background:var(--paper-l)}
+.tpl-body{display:grid;grid-template-columns:210px 1fr;flex:1;overflow:hidden;min-height:0}
+.tpl-sidebar{border-right:1px solid var(--bdr);display:flex;flex-direction:column;background:var(--paper-w);overflow:hidden}
+.tpl-sidebar-head{padding:10px 12px;font-size:10px;color:var(--ink-m);letter-spacing:1.2px;font-weight:500;border-bottom:1px solid var(--bdr);display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+.tpl-list{flex:1;overflow-y:auto;padding:6px 6px}
+.tpl-item{padding:9px 10px;border-radius:4px;cursor:pointer;border:1px solid transparent;transition:all var(--t);margin-bottom:3px;display:flex;flex-direction:column;gap:2px}
+.tpl-item:hover{background:var(--paper);border-color:var(--bdr)}
+.tpl-item.active{background:var(--ac-p);border-color:var(--ac-l)}
+.tpl-item-name{font-size:12px;color:var(--ink);font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tpl-item.active .tpl-item-name{color:var(--ac)}
+.tpl-item-meta{font-size:10px;color:var(--ink-m)}
+.tpl-new-btn{margin:8px;padding:7px 10px;border:1px dashed var(--bdr);background:none;color:var(--ink-m);font-family:var(--ss);font-size:11px;border-radius:4px;cursor:pointer;transition:all var(--t)}
+.tpl-new-btn:hover{border-color:var(--ac);color:var(--ac);background:var(--ac-p)}
+
+/* Editor area */
+.tpl-content{flex:1;display:flex;flex-direction:column;overflow:hidden;padding:16px 18px;gap:10px}
+.tpl-empty{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;color:var(--ink-m);font-size:13px;gap:10px}
+.tpl-empty-icon{font-size:40px;opacity:.3}
+.tpl-name-row{display:flex;gap:8px;align-items:center;flex-shrink:0}
+.tpl-name-inp{flex:1;border:1px solid var(--bdr);background:var(--paper-w);color:var(--ink);font-family:var(--ss);font-size:13px;font-weight:500;padding:7px 10px;border-radius:4px;transition:border-color var(--t)}
+.tpl-name-inp:focus{outline:none;border-color:var(--ac);background:white}
+.tpl-label{font-size:10px;color:var(--ink-m);letter-spacing:.8px;font-weight:500;flex-shrink:0}
+.tpl-col-heads{display:grid;grid-template-columns:1fr 70px 70px 26px;gap:6px;padding:0 10px;flex-shrink:0}
+.tpl-col-head{font-size:9px;color:var(--ink-m);letter-spacing:.5px}
+.tpl-todo-list{display:flex;flex-direction:column;gap:5px;overflow-y:auto;flex:1;min-height:80px;padding-right:2px}
+
+/* Each template todo row */
+.tpl-todo-row{border:1px solid var(--bdr);border-radius:4px;background:var(--paper-w);overflow:hidden;transition:border-color var(--t)}
+.tpl-todo-row:hover{border-color:var(--ac-l)}
+.tpl-todo-main{display:grid;grid-template-columns:16px 1fr 70px 70px 26px;gap:6px;align-items:center;padding:7px 8px}
+.tpl-drag-handle{color:var(--ink-m);cursor:grab;font-size:12px;opacity:.4;user-select:none;text-align:center}
+.tpl-drag-handle:active{cursor:grabbing}
+.tpl-todo-inp{border:1px solid var(--bdr);background:white;color:var(--ink);font-family:var(--ss);font-size:11px;padding:4px 7px;border-radius:3px;width:100%;transition:border-color var(--t)}
+.tpl-todo-inp:focus{outline:none;border-color:var(--ac)}
+.tpl-note-row{padding:0 8px 7px 30px;display:flex;gap:5px;align-items:flex-start}
+.tpl-todo-ta{border:1px solid var(--bdr);background:white;color:var(--ink);font-family:var(--ss);font-size:10px;padding:4px 7px;border-radius:3px;width:100%;resize:none;min-height:30px;line-height:1.6;transition:border-color var(--t)}
+.tpl-todo-ta:focus{outline:none;border-color:var(--ac)}
+.tpl-note-lbl{font-size:9px;color:var(--ink-m);margin-bottom:3px;letter-spacing:.3px}
+.tpl-note-toggle{background:none;border:none;color:var(--ink-m);font-size:9px;cursor:pointer;padding:3px 0;white-space:nowrap;font-family:var(--ss);opacity:.7;transition:opacity var(--t);flex-shrink:0;margin-top:2px}
+.tpl-note-toggle:hover{opacity:1;color:var(--ac)}
+.tpl-del-row{background:none;border:none;color:var(--ink-m);cursor:pointer;font-size:15px;padding:0 3px;opacity:.4;transition:opacity var(--t);line-height:1}
+.tpl-del-row:hover{opacity:1;color:#ef4444}
+
+.tpl-add-row-btn{background:none;border:1px dashed var(--bdr);color:var(--ink-m);font-size:11px;padding:6px;border-radius:4px;cursor:pointer;transition:all var(--t);font-family:var(--ss);flex-shrink:0;text-align:center}
+.tpl-add-row-btn:hover{border-color:var(--ac);color:var(--ac);background:var(--ac-p)}
+.tpl-actions{display:flex;gap:7px;align-items:center;padding-top:10px;border-top:1px solid var(--bdr);flex-shrink:0}
+.tpl-save-btn{background:var(--ac);border:none;color:white;font-family:var(--ss);font-size:12px;padding:6px 15px;border-radius:3px;cursor:pointer;transition:all var(--t)}
+.tpl-save-btn:hover{opacity:.85}
+.tpl-apply-btn{background:var(--gr);border:none;color:white;font-family:var(--ss);font-size:12px;padding:6px 14px;border-radius:3px;cursor:pointer;transition:opacity var(--t);display:flex;align-items:center;gap:5px}
+.tpl-apply-btn:hover{opacity:.85}
+.tpl-del-tpl{background:none;border:1px solid #fca5a5;color:#ef4444;font-family:var(--ss);font-size:11px;padding:5px 12px;border-radius:3px;cursor:pointer;margin-left:auto;transition:all var(--t)}
+.tpl-del-tpl:hover{background:#fee2e2}
+
+/* dark mode */
+body.dark-mode .tpl-box{background:#1a1b2e}
+body.dark-mode .tpl-sidebar{background:var(--paper-w)}
+body.dark-mode .tpl-head{background:rgba(92,110,248,.1)}
+body.dark-mode .tpl-todo-inp,body.dark-mode .tpl-todo-ta,body.dark-mode .tpl-name-inp{background:var(--paper-l);color:var(--ink);border-color:var(--bdr)}
+body.dark-mode .tpl-todo-row{background:var(--paper-l)}
+body.dark-mode .tpl-item:hover{background:var(--paper-l)}
+body.dark-mode .tpl-item.active{background:var(--ac-p)}
+
+/* ── APPLY PREVIEW MODAL ── */
+.apv-modal{display:none;position:fixed;inset:0;z-index:600;background:rgba(10,10,30,.6);backdrop-filter:blur(4px);align-items:center;justify-content:center}
+.apv-modal.open{display:flex}
+.apv-box{background:var(--card-bg);border:1px solid var(--bdr);border-radius:6px;width:min(560px,95vw);max-height:85vh;display:flex;flex-direction:column;box-shadow:0 16px 56px rgba(0,0,0,.35);overflow:hidden}
+.apv-head{padding:14px 18px 12px;border-bottom:1px solid var(--bdr);display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+.apv-title{font-family:var(--sf);font-size:14px;font-weight:600;color:var(--ink)}
+.apv-subtitle{font-size:11px;color:var(--ink-m);margin-top:2px}
+.apv-body{flex:1;overflow-y:auto;padding:12px 16px;display:flex;flex-direction:column;gap:8px}
+.apv-item{border:1px solid var(--bdr);border-radius:4px;overflow:hidden}
+.apv-item.skip{opacity:.45;border-style:dashed}
+.apv-item-top{display:flex;align-items:center;gap:8px;padding:8px 11px;background:var(--paper-w);cursor:pointer;user-select:none}
+.apv-item-top:hover{background:var(--paper-l)}
+.apv-chk{width:16px;height:16px;border:1.5px solid var(--bdr);border-radius:3px;display:flex;align-items:center;justify-content:center;font-size:10px;flex-shrink:0;background:white;transition:all var(--t)}
+.apv-chk.on{background:var(--ac);border-color:var(--ac);color:white}
+.apv-item.skip .apv-chk{background:var(--paper-l)}
+.apv-item-title{flex:1;font-size:12px;font-weight:500;color:var(--ink)}
+.apv-item.skip .apv-item-title{text-decoration:line-through;color:var(--ink-m)}
+.apv-item-time{font-family:var(--mo);font-size:10px;color:var(--bl);background:var(--bl-l);padding:1px 6px;border-radius:2px;white-space:nowrap;flex-shrink:0}
+.apv-dup-tag{font-size:9px;color:var(--am);background:var(--am-l);padding:1px 6px;border-radius:2px;white-space:nowrap;flex-shrink:0}
+.apv-note-wrap{padding:6px 11px 9px 35px;background:var(--paper-w)}
+.apv-note-lbl{font-size:9px;color:var(--ink-m);margin-bottom:3px;letter-spacing:.4px}
+.apv-note-ta{width:100%;border:1px solid var(--bdr);background:var(--paper-w);color:var(--ink);font-family:var(--ss);font-size:11px;padding:5px 8px;border-radius:3px;resize:none;min-height:40px;line-height:1.6;transition:border-color var(--t)}
+.apv-note-ta:focus{outline:none;border-color:var(--ac);background:white}
+.apv-foot{padding:12px 16px;border-top:1px solid var(--bdr);display:flex;align-items:center;gap:8px;flex-shrink:0}
+.apv-confirm-btn{background:var(--gr);border:none;color:white;font-family:var(--ss);font-size:13px;padding:8px 20px;border-radius:4px;cursor:pointer;transition:opacity var(--t);font-weight:500}
+.apv-confirm-btn:hover{opacity:.85}
+.apv-cancel-btn{background:none;border:1px solid var(--bdr);color:var(--ink-m);font-family:var(--ss);font-size:12px;padding:7px 14px;border-radius:4px;cursor:pointer;transition:all var(--t)}
+.apv-cancel-btn:hover{border-color:var(--ac);color:var(--ac)}
+.apv-hint{font-size:10px;color:var(--ink-m);margin-left:auto}
+body.dark-mode .apv-box{background:#1a1b2e}
+body.dark-mode .apv-item-top{background:var(--paper-l)}
+body.dark-mode .apv-item-top:hover{background:var(--paper-w)}
+body.dark-mode .apv-note-wrap{background:var(--paper)}
+body.dark-mode .apv-chk{background:var(--paper)}
+body.dark-mode .apv-note-ta{background:var(--paper-l);color:var(--ink)}
+
+/* ── 待办区顶部工具条 ── */
+.todo-toolbar{display:flex;align-items:center;gap:6px;margin-bottom:8px}
+.todo-toolbar-left{flex:1;display:flex;align-items:center;gap:6px}
+.tpl-quick-btn{background:var(--ac-p);border:1px solid var(--ac-l);color:var(--ac);font-family:var(--ss);font-size:11px;padding:3px 10px;border-radius:2px;cursor:pointer;transition:all var(--t);white-space:nowrap;display:flex;align-items:center;gap:4px}
+.tpl-quick-btn:hover{background:var(--ac);color:white;border-color:var(--ac)}
+
 ::-webkit-scrollbar{width:5px;height:5px}
 ::-webkit-scrollbar-track{background:transparent}
 ::-webkit-scrollbar-thumb{background:var(--bdr);border-radius:3px}
@@ -486,6 +602,7 @@ body{font-family:var(--ss);background:var(--paper);color:var(--ink);min-height:1
   </nav>
   <div class="hdr-r">
     <button class="dark-toggle" id="dark-toggle-btn" onclick="toggleDarkMode()" title="切换深色模式">🌙</button>
+    <button class="tpl-btn" onclick="openTplModal()" title="待办模板">📋 模板</button>
     <button class="hbtn" onclick="toggleExport()">导出 ↓</button>
   </div>
 </header>
@@ -527,8 +644,11 @@ body{font-family:var(--ss);background:var(--paper);color:var(--ink);min-height:1
     <!-- LEFT PANEL: 待办事项 -->
     <div class="pl" style="display:flex;flex-direction:column;padding:0">
       <div style="padding:14px 14px 10px 16px;flex:1;display:flex;flex-direction:column">
-        <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
-          <div class="ptitle" style="margin-bottom:0;border:none;padding:0;flex:1">待办事项</div>
+        <div class="todo-toolbar">
+          <div class="todo-toolbar-left">
+            <div class="ptitle" style="margin-bottom:0;border:none;padding:0">待办事项</div>
+            <button class="tpl-quick-btn" onclick="openTplModal()" title="打开模板管理">📋 套用模板</button>
+          </div>
           <button class="copy-all-btn" id="copy-todos-btn" onclick="copyAllTodos(this)" title="复制全部待办事项">⎘ 全部复制</button>
         </div>
         <div class="tlist" id="tlist"></div>
@@ -681,8 +801,74 @@ body{font-family:var(--ss);background:var(--paper);color:var(--ink);min-height:1
       <div><kbd style="background:var(--paper-l);padding:1px 5px;border-radius:2px;font-family:inherit">Ctrl+Enter</kbd> 添加待办</div>
       <div><kbd style="background:var(--paper-l);padding:1px 5px;border-radius:2px;font-family:inherit">Ctrl+T</kbd> 跳到今天</div>
       <div><kbd style="background:var(--paper-l);padding:1px 5px;border-radius:2px;font-family:inherit">Ctrl+E</kbd> 打开导出</div>
+      <div><kbd style="background:var(--paper-l);padding:1px 5px;border-radius:2px;font-family:inherit">Ctrl+L</kbd> 打开模板</div>
       <div><kbd style="background:var(--paper-l);padding:1px 5px;border-radius:2px;font-family:inherit">1 / 2 / 3 / 4</kbd> 切换视图</div>
       <div><kbd style="background:var(--paper-l);padding:1px 5px;border-radius:2px;font-family:inherit">Esc</kbd> 关闭面板</div>
+    </div>
+  </div>
+</div>
+
+<!-- ─────────── TEMPLATE MODAL ─────────── -->
+<div class="tpl-modal" id="tpl-modal">
+  <div class="tpl-box">
+    <div class="tpl-head">
+      <div>
+        <div class="tpl-head-title">📋 待办模板 <span class="tpl-head-badge" id="tpl-count">0 个</span></div>
+      </div>
+      <button class="tpl-close" onclick="closeTplModal()">×</button>
+    </div>
+    <div class="tpl-body">
+      <div class="tpl-sidebar">
+        <div class="tpl-sidebar-head">我的模板</div>
+        <div class="tpl-list" id="tpl-list"></div>
+        <button class="tpl-new-btn" onclick="tplNew()">＋ 新建模板</button>
+      </div>
+      <div class="tpl-content" id="tpl-content">
+        <div class="tpl-empty" id="tpl-empty">
+          <div class="tpl-empty-icon">📋</div>
+          <div style="font-weight:500">选择或新建一个模板</div>
+          <div style="font-size:11px;opacity:.6;text-align:center;line-height:1.7">模板可保存固定的待办事项<br>每次套用时可单独修改备注</div>
+        </div>
+        <div id="tpl-editor" style="display:none;flex-direction:column;gap:10px;overflow:hidden;flex:1;min-height:0">
+          <div class="tpl-name-row">
+            <input class="tpl-name-inp" id="tpl-name-inp" placeholder="模板名称，如：日常工作流程" maxlength="30">
+            <button class="tpl-save-btn" onclick="tplSave()">保存</button>
+          </div>
+          <div class="tpl-label">待办事项 <span style="font-weight:400;font-size:9px;opacity:.7">— 拖动排序，点击备注图标展开备注</span></div>
+          <div class="tpl-col-heads">
+            <div class="tpl-col-head" style="padding-left:22px">标题</div>
+            <div class="tpl-col-head">开始</div>
+            <div class="tpl-col-head">结束</div>
+            <div></div>
+          </div>
+          <div class="tpl-todo-list" id="tpl-todo-list"></div>
+          <button class="tpl-add-row-btn" onclick="tplAddRow()">＋ 添加待办项</button>
+          <div class="tpl-actions">
+            <button class="tpl-apply-btn" onclick="tplOpenApplyPreview('today')">⚡ 套用到今天</button>
+            <button class="tpl-apply-btn" onclick="tplOpenApplyPreview('date')" style="background:var(--bl)">📅 套用到当前日期</button>
+            <button class="tpl-del-tpl" onclick="tplDelete()">删除</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ─────────── APPLY PREVIEW MODAL ─────────── -->
+<div class="apv-modal" id="apv-modal">
+  <div class="apv-box">
+    <div class="apv-head">
+      <div>
+        <div class="apv-title" id="apv-title">预览并确认套用</div>
+        <div class="apv-subtitle" id="apv-subtitle">勾选要套用的项目，可修改备注后确认</div>
+      </div>
+      <button class="tpl-close" onclick="document.getElementById('apv-modal').classList.remove('open')">×</button>
+    </div>
+    <div class="apv-body" id="apv-body"></div>
+    <div class="apv-foot">
+      <button class="apv-confirm-btn" onclick="apvConfirm()">✓ 确认套用</button>
+      <button class="apv-cancel-btn" onclick="document.getElementById('apv-modal').classList.remove('open')">取消</button>
+      <span class="apv-hint" id="apv-hint"></span>
     </div>
   </div>
 </div>
@@ -2333,6 +2519,271 @@ function memoListDrop(e,el){
 }
 function memoListDragEnd(){dragSrcMemo=null;document.querySelectorAll('.memo-item').forEach(c=>c.classList.remove('dragging','drag-over'))}
 
+// ── TEMPLATE SYSTEM ──
+const TPL_KEY = 'todo_templates';
+let tplCurrentId = null;
+let apvTargetToday = false; // whether preview is for today or currentDate
+
+function tplLoadAll() {
+  try { return JSON.parse(localStorage.getItem(TPL_KEY) || '[]'); } catch { return []; }
+}
+function tplSaveAll(arr) {
+  localStorage.setItem(TPL_KEY, JSON.stringify(arr));
+}
+function openTplModal() {
+  document.getElementById('tpl-modal').classList.add('open');
+  tplRenderList();
+  document.getElementById('tpl-modal').onclick = e => {
+    if (e.target === document.getElementById('tpl-modal')) closeTplModal();
+  };
+}
+function closeTplModal() {
+  document.getElementById('tpl-modal').classList.remove('open');
+}
+function tplRenderList() {
+  const arr = tplLoadAll();
+  const list = document.getElementById('tpl-list');
+  list.innerHTML = '';
+  document.getElementById('tpl-count').textContent = arr.length + ' 个';
+  arr.forEach(tpl => {
+    const el = document.createElement('div');
+    el.className = 'tpl-item' + (tpl.id === tplCurrentId ? ' active' : '');
+    const timeItems = (tpl.todos||[]).filter(t=>t.planStart).length;
+    const noteItems = (tpl.todos||[]).filter(t=>t.note).length;
+    const meta = [(tpl.todos||[]).length+'项待办', timeItems?timeItems+'项有时间':'', noteItems?noteItems+'项有备注':''].filter(Boolean).join(' · ');
+    el.innerHTML = `<div class="tpl-item-name">${tpl.name||'未命名'}</div><div class="tpl-item-meta">${meta}</div>`;
+    el.onclick = () => tplSelect(tpl.id);
+    list.appendChild(el);
+  });
+  if (!arr.length) {
+    list.innerHTML = '<div style="padding:20px 10px;font-size:11px;color:var(--ink-m);text-align:center;line-height:2">暂无模板<br>点击下方新建</div>';
+  }
+}
+function tplSelect(id) {
+  tplCurrentId = id;
+  tplRenderList();
+  const tpl = tplLoadAll().find(t => t.id === id);
+  if (!tpl) return;
+  tplShowEditor(tpl);
+}
+function tplShowEditor(tpl) {
+  document.getElementById('tpl-empty').style.display = 'none';
+  const ed = document.getElementById('tpl-editor');
+  ed.style.display = 'flex';
+  document.getElementById('tpl-name-inp').value = tpl.name || '';
+  const todoList = document.getElementById('tpl-todo-list');
+  todoList.innerHTML = '';
+  (tpl.todos || []).forEach(t => tplAddRow(t));
+  const tl = document.getElementById('tpl-todo-list'); if(tl) tl.scrollTop = 0;
+}
+function tplNew() {
+  const id = 'tpl_' + Date.now();
+  const arr = tplLoadAll();
+  const newTpl = { id, name: '新模板 ' + (arr.length + 1), todos: [{ text: '', planStart: '', planEnd: '', note: '' }] };
+  arr.push(newTpl);
+  tplSaveAll(arr);
+  tplCurrentId = id;
+  tplRenderList();
+  tplShowEditor(newTpl);
+  setTimeout(() => document.getElementById('tpl-name-inp')?.focus(), 50);
+}
+function tplAddRow(pre) {
+  const list = document.getElementById('tpl-todo-list');
+  const row = document.createElement('div');
+  row.className = 'tpl-todo-row';
+  const hasNote = !!(pre?.note);
+  row.innerHTML = `
+    <div class="tpl-todo-main">
+      <span class="tpl-drag-handle" title="拖动排序">⠿</span>
+      <input class="tpl-todo-inp tpl-row-text" placeholder="待办事项标题" value="${(pre?.text||'').replace(/"/g,'&quot;')}">
+      <input class="tpl-todo-inp tpl-row-ps" list="dl-t" placeholder="09:00" value="${pre?.planStart||''}" style="font-family:var(--mo);font-size:10px">
+      <input class="tpl-todo-inp tpl-row-pe" list="dl-t" placeholder="10:00" value="${pre?.planEnd||''}" style="font-family:var(--mo);font-size:10px">
+      <button class="tpl-del-row" title="删除" onclick="this.closest('.tpl-todo-row').remove()">×</button>
+    </div>
+    <div class="tpl-note-row" style="${hasNote?'':'display:none'}">
+      <div style="flex:1">
+        <div class="tpl-note-lbl">默认备注</div>
+        <textarea class="tpl-todo-ta tpl-row-note" placeholder="套用时的默认备注内容（套用时还可修改）" rows="2">${pre?.note||''}</textarea>
+      </div>
+    </div>
+    <div style="padding:0 8px 6px 30px">
+      <button class="tpl-note-toggle" onclick="tplToggleNote(this)">${hasNote?'▾ 收起备注':'＋ 添加默认备注'}</button>
+    </div>`;
+  // drag-to-reorder within list
+  row.draggable = true;
+  let dragSrc = null;
+  row.addEventListener('dragstart', e => { dragSrc = row; row.style.opacity = '.45'; e.dataTransfer.effectAllowed = 'move'; });
+  row.addEventListener('dragend', () => { row.style.opacity = ''; dragSrc = null; });
+  row.addEventListener('dragover', e => { e.preventDefault(); row.style.borderColor = 'var(--ac)'; });
+  row.addEventListener('dragleave', () => { row.style.borderColor = ''; });
+  row.addEventListener('drop', e => {
+    e.preventDefault(); row.style.borderColor = '';
+    const src = list.querySelector('.tpl-todo-row[data-dragging]') || dragSrc;
+    if (src && src !== row) {
+      const items = [...list.children];
+      const si = items.indexOf(src), ti = items.indexOf(row);
+      if (si < ti) list.insertBefore(src, row.nextSibling); else list.insertBefore(src, row);
+    }
+  });
+  list.appendChild(row);
+}
+function tplToggleNote(btn) {
+  const noteRow = btn.closest('.tpl-todo-row').querySelector('.tpl-note-row');
+  const shown = noteRow.style.display !== 'none';
+  noteRow.style.display = shown ? 'none' : '';
+  btn.textContent = shown ? '＋ 添加默认备注' : '▾ 收起备注';
+  if (!shown) btn.closest('.tpl-todo-row').querySelector('.tpl-row-note')?.focus();
+}
+function tplGatherRows() {
+  return [...document.querySelectorAll('#tpl-todo-list .tpl-todo-row')].map(row => ({
+    text: row.querySelector('.tpl-row-text')?.value.trim() || '',
+    planStart: row.querySelector('.tpl-row-ps')?.value || '',
+    planEnd: row.querySelector('.tpl-row-pe')?.value || '',
+    note: row.querySelector('.tpl-row-note')?.value || ''
+  })).filter(t => t.text);
+}
+function tplSave() {
+  if (!tplCurrentId) return;
+  const arr = tplLoadAll();
+  const idx = arr.findIndex(t => t.id === tplCurrentId);
+  if (idx < 0) return;
+  arr[idx].name = document.getElementById('tpl-name-inp').value.trim() || '未命名模板';
+  arr[idx].todos = tplGatherRows();
+  tplSaveAll(arr);
+  tplRenderList();
+  const btn = document.querySelector('.tpl-save-btn');
+  const orig = btn.textContent;
+  btn.textContent = '✓ 已保存'; btn.style.background = 'var(--gr)';
+  setTimeout(() => { btn.textContent = orig; btn.style.background = ''; }, 1400);
+}
+function tplDelete() {
+  if (!tplCurrentId) return;
+  const arr = tplLoadAll();
+  const tpl = arr.find(t => t.id === tplCurrentId);
+  if (!tpl || !confirm(`确定删除模板「${tpl.name}」？`)) return;
+  tplSaveAll(arr.filter(t => t.id !== tplCurrentId));
+  tplCurrentId = null;
+  document.getElementById('tpl-editor').style.display = 'none';
+  document.getElementById('tpl-empty').style.display = '';
+  tplRenderList();
+}
+
+// ── APPLY PREVIEW ──
+function tplOpenApplyPreview(mode) {
+  if (!tplCurrentId) return;
+  tplSave(); // auto-save first
+  apvTargetToday = (mode === 'today');
+  const arr = tplLoadAll();
+  const tpl = arr.find(t => t.id === tplCurrentId);
+  if (!tpl || !tpl.todos?.length) { alert('模板为空，请先添加待办项目'); return; }
+
+  const targetDate = apvTargetToday ? new Date() : currentDate;
+  const dateKey = gkey(targetDate);
+  let dayData = {};
+  try { const r = localStorage.getItem(dateKey); if (r) dayData = JSON.parse(r); } catch {}
+  const existing = (dayData.todos || []).map(t => t.text);
+
+  // Build preview
+  const dateStr = `${targetDate.getMonth()+1}月${targetDate.getDate()}日`;
+  document.getElementById('apv-title').textContent = `套用到 ${dateStr}`;
+  document.getElementById('apv-subtitle').textContent = `勾选要套用的项目，可在套用前修改备注`;
+
+  const body = document.getElementById('apv-body');
+  body.innerHTML = '';
+  tpl.todos.forEach((t, i) => {
+    const isDup = existing.includes(t.text);
+    const item = document.createElement('div');
+    item.className = 'apv-item' + (isDup ? ' skip' : '');
+    item.dataset.idx = i;
+    const timeLabel = t.planStart ? `${t.planStart}${t.planEnd?'–'+t.planEnd:''}` : '';
+    item.innerHTML = `
+      <div class="apv-item-top" onclick="apvToggleItem(this)">
+        <div class="apv-chk ${isDup?'':'on'}">${isDup?'':'✓'}</div>
+        <div class="apv-item-title">${t.text}</div>
+        ${timeLabel ? `<div class="apv-item-time">${timeLabel}</div>` : ''}
+        ${isDup ? '<div class="apv-dup-tag">已存在</div>' : ''}
+      </div>
+      <div class="apv-note-wrap">
+        <div class="apv-note-lbl">备注 <span style="color:var(--ink-m);font-weight:400;font-size:9px">套用后仍可编辑</span></div>
+        <textarea class="apv-note-ta" placeholder="无备注，可在此输入…" rows="2">${t.note||''}</textarea>
+      </div>`;
+    body.appendChild(item);
+  });
+
+  const total = tpl.todos.length, dups = existing.filter(e => tpl.todos.some(t => t.text===e)).length;
+  document.getElementById('apv-hint').textContent = dups ? `${dups} 项已存在将跳过` : '';
+
+  document.getElementById('apv-modal').classList.add('open');
+  document.getElementById('apv-modal').onclick = e => {
+    if (e.target === document.getElementById('apv-modal')) document.getElementById('apv-modal').classList.remove('open');
+  };
+}
+function apvToggleItem(top) {
+  const item = top.closest('.apv-item');
+  const chk = top.querySelector('.apv-chk');
+  const isOn = chk.classList.contains('on');
+  chk.classList.toggle('on', !isOn);
+  chk.textContent = isOn ? '' : '✓';
+  item.classList.toggle('skip', isOn);
+}
+function apvConfirm() {
+  const arr = tplLoadAll();
+  const tpl = arr.find(t => t.id === tplCurrentId);
+  if (!tpl) return;
+
+  const targetDate = apvTargetToday ? new Date() : currentDate;
+  const dateKey = gkey(targetDate);
+  let dayData = {};
+  try { const r = localStorage.getItem(dateKey); if (r) dayData = JSON.parse(r); } catch {}
+  if (!dayData.todos) dayData.todos = [];
+
+  let added = 0;
+  document.querySelectorAll('#apv-body .apv-item').forEach((item, i) => {
+    const chk = item.querySelector('.apv-chk');
+    if (!chk.classList.contains('on')) return; // unchecked
+    const t = tpl.todos[parseInt(item.dataset.idx)];
+    if (!t) return;
+    if (dayData.todos.some(ex => ex.text === t.text)) return; // still skip dups
+    const noteOverride = item.querySelector('.apv-note-ta')?.value || '';
+    dayData.todos.push({
+      id: 't_' + Date.now() + '_' + Math.random().toString(36).slice(2,6),
+      text: t.text, planStart: t.planStart||'', planEnd: t.planEnd||'',
+      note: noteOverride, done: false, actualSegs: [], execOpen: !!noteOverride,
+      priority: dayData.todos.length + 1
+    });
+    added++;
+  });
+
+  document.getElementById('apv-modal').classList.remove('open');
+
+  if (added === 0) {
+    // toast
+    const toast = document.getElementById('saved');
+    toast.style.background = 'var(--am)'; toast.textContent = '没有选中任何新项目';
+    toast.classList.add('show');
+    setTimeout(() => { toast.classList.remove('show'); toast.textContent = '已保存'; toast.style.background = ''; }, 2000);
+    return;
+  }
+
+  dayData.date = fmt(targetDate);
+  localStorage.setItem(dateKey, JSON.stringify(dayData));
+  closeTplModal();
+
+  // If applied to today and viewing different date, switch; else re-render
+  if (apvTargetToday) {
+    currentDate = new Date();
+    document.querySelectorAll('.nb')[0].click();
+  } else {
+    renderDaily();
+  }
+
+  const toast = document.getElementById('saved');
+  toast.style.background = 'var(--gr)';
+  toast.textContent = `✓ 已套用 ${added} 项待办`;
+  toast.classList.add('show');
+  setTimeout(() => { toast.classList.remove('show'); toast.textContent = '已保存'; toast.style.background = ''; }, 2200);
+}
+
 // ── DARK MODE ──
 function toggleDarkMode(){
   const isDark=document.body.classList.toggle('dark-mode');
@@ -2365,8 +2816,14 @@ document.addEventListener('keydown',e=>{
   if((e.ctrlKey||e.metaKey)&&e.key==='t'&&!isInput){e.preventDefault();goToday();}
   // Ctrl/Cmd + E : 打开/关闭导出
   if((e.ctrlKey||e.metaKey)&&e.key==='e'&&!isInput){e.preventDefault();toggleExport();}
-  // Esc : 关闭导出面板
-  if(e.key==='Escape'){const p=document.getElementById('expp');if(p&&p.classList.contains('open'))toggleExport();}
+  // Ctrl/Cmd + L : 打开模板
+  if((e.ctrlKey||e.metaKey)&&e.key==='l'&&!isInput){e.preventDefault();openTplModal();}
+  // Esc : 关闭导出面板 / 模板面板
+  if(e.key==='Escape'){
+    const p=document.getElementById('expp');if(p&&p.classList.contains('open'))toggleExport();
+    const apv=document.getElementById('apv-modal');if(apv&&apv.classList.contains('open'))apv.classList.remove('open');
+    const tm=document.getElementById('tpl-modal');if(tm&&tm.classList.contains('open'))closeTplModal();
+  }
   // 1/2/3 : 切换视图（非输入状态）
   if(!isInput&&!e.ctrlKey&&!e.metaKey){
     if(e.key==='1'){const btn=document.querySelectorAll('.nb')[0];if(btn){switchView('daily',btn);}}
