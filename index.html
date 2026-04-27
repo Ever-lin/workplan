@@ -272,6 +272,19 @@ body.dark-mode .utl-conflict-bar{background:rgba(239,68,68,.1);border-color:rgba
 .tcard.time-conflict{border-color:#ef4444 !important;box-shadow:0 0 0 1.5px rgba(239,68,68,.25)}
 .conflict-tag{font-size:8px;padding:1px 5px;background:#fee2e2;color:#b91c1c;border:1px solid #fca5a5;border-radius:2px;white-space:nowrap;font-family:var(--ss)}
 
+/* ── SKIPPED (今日未做) ── */
+.tcard.is-skipped{background:#fafafa;border-color:#d1d5db;opacity:.75}
+.tcard.is-skipped .ttxt{text-decoration:line-through;color:var(--ink-m)}
+.skipped-tag{font-size:8px;padding:1px 5px;background:#f3f4f6;color:#6b7280;border:1px solid #d1d5db;border-radius:2px;white-space:nowrap;font-family:var(--ss)}
+.tbtn-skip{font-size:9px;padding:1px 6px;border:1px solid var(--paper-l);border-radius:2px;background:none;font-family:var(--ss);transition:all var(--t);cursor:pointer;color:var(--ink-m);flex-shrink:0;white-space:nowrap}
+.tbtn-skip:hover{border-color:#ef4444;color:#ef4444;background:#fee2e2}
+.tbtn-skip.skipped{border-color:#6b7280;color:#6b7280;background:#f3f4f6}
+.tbtn-skip.skipped:hover{border-color:var(--ac);color:var(--ac);background:var(--ac-p)}
+body.dark-mode .tcard.is-skipped{background:#1e1f33;border-color:#374151}
+body.dark-mode .skipped-tag{background:#1f2937;color:#9ca3af;border-color:#374151}
+body.dark-mode .tbtn-skip:hover{background:rgba(239,68,68,.15)}
+body.dark-mode .tbtn-skip.skipped{background:#1f2937;border-color:#4b5563;color:#9ca3af}
+
 /* add button */
 .addbtn{background:none;border:1px dashed var(--bdr);color:var(--ink-m);font-family:var(--ss);font-size:12px;padding:5px 14px;cursor:pointer;border-radius:2px;transition:all var(--t);width:100%}
 .addbtn:hover{border-color:var(--ac);color:var(--ac);background:var(--ac-p)}
@@ -1252,6 +1265,7 @@ function checkTimeConflicts(){
   // 收集所有有计划时间的固定安排和临时事项
   const segs=[];
   document.querySelectorAll('.tcard').forEach(c=>{
+    if(c.dataset.isSkipped==='1')return;
     const ps=c.querySelector('.eps')?.value||'';
     const pe=c.querySelector('.epe')?.value||'';
     const txt=c.querySelector('.ttxt')?.value||'';
@@ -1310,6 +1324,7 @@ function gather(){
       execOpen:esec?esec.style.display!=='none':true,
       isIncomplete:c.dataset.isIncomplete==='1',
       isMakeup:c.dataset.isMakeup==='1',
+      isSkipped:c.dataset.isSkipped==='1',
       completedDate:c.dataset.completedDate||'',
       movedToNext:c.dataset.movedToNext||''
     });
@@ -1463,6 +1478,7 @@ function renderUnifiedTimeline(){
   const events=[]; // {type:'todo'|'otask', sortMin, endMin, data}
 
   document.querySelectorAll('.tcard').forEach(c=>{
+    if(c.dataset.isSkipped==='1')return; // 今日未做，不在时间轴显示
     const ps=c.querySelector('.eps')?.value||'';
     const pe=c.querySelector('.epe')?.value||'';
     const txt=c.querySelector('.ttxt')?.value||'';
@@ -1886,9 +1902,10 @@ function buildCard(pre){
   const execOpen=pre ? pre.execOpen!==false : false;
 
   const c=document.createElement('div');
-  c.className='tcard'+(pre?.done?' done':'')+(pre?.isIncomplete&&!pre?.done?' is-incomplete':'')+(pre?.isMakeup?' is-makeup':'')+(pre?.movedToNext?' is-moved':'');
+  c.className='tcard'+(pre?.done?' done':'')+(pre?.isIncomplete&&!pre?.done?' is-incomplete':'')+(pre?.isMakeup?' is-makeup':'')+(pre?.movedToNext?' is-moved':'')+(pre?.isSkipped?' is-skipped':'');
   c.dataset.id=id;c.dataset.priority=priority;
   if(pre?.isIncomplete&&!pre?.done) c.dataset.isIncomplete='1';
+  if(pre?.isSkipped) c.dataset.isSkipped='1';
   if(pre?.isMakeup) c.dataset.isMakeup='1';
   if(pre?.completedDate) c.dataset.completedDate=pre.completedDate;
   if(pre?.movedToNext) c.dataset.movedToNext=pre.movedToNext;
@@ -1906,6 +1923,7 @@ function buildCard(pre){
       ${pre?.planStart?`<span class="ttime">${pre.planStart}${pre.planEnd?'–'+pre.planEnd:''}</span>`:''}
       ${(pre?.isIncomplete&&!pre?.done)?'<span class="incomplete-tag">⏳ 未完成</span>':''}
       ${pre?.isMakeup?`<span class="makeup-tag">✅ 补完${pre.completedDate?' ('+pre.completedDate+')':''}</span>`:''}
+      ${pre?.isSkipped?'<span class="skipped-tag">× 今日未做</span>':''}
     </div>
   </div>
   <div class="tacts">
@@ -1915,6 +1933,7 @@ function buildCard(pre){
     <button class="tbtn-copy-next" onclick="copyTdToNextDay(this)" title="复制到明天（今天保留）" style="font-size:9px;padding:1px 6px">⎘复明</button>
     <button class="tbtn-incomplete${(pre?.isIncomplete&&!pre?.done)?' marked':''}" onclick="toggleIncomplete(this)" title="标记为未完成">${(pre?.isIncomplete&&!pre?.done)?'未完成✓':'未完成'}</button>
     <button class="tbtn-makeup" onclick="markMakeup(this)" title="标记为今日补完">补完</button>
+    <button class="tbtn-skip${pre?.isSkipped?' skipped':''}" onclick="toggleSkipped(this)" title="今日未做（固定安排今天跳过）">${pre?.isSkipped?'↩ 恢复':'× 未做'}</button>
     <button class="etoggle" onclick="toggleExec(this)">执行 ${execOpen?'▴':'▾'}</button>
     <button class="ib" onclick="removeTd(this)" title="删除">×</button>
   </div>
@@ -2039,6 +2058,10 @@ function toggleDone(chk){
   const c=chk.closest('.tcard');const done=!c.classList.contains('done');
   c.classList.toggle('done',done);chk.classList.toggle('ck',done);chk.textContent=done?'✓':'';
   if(done){
+    // Clear skipped state when marking done
+    c.classList.remove('is-skipped');delete c.dataset.isSkipped;
+    const skTag=c.querySelector('.skipped-tag');if(skTag)skTag.remove();
+    const skBtn=c.querySelector('.tbtn-skip');if(skBtn){skBtn.classList.remove('skipped');skBtn.textContent='× 未做';}
     // Clear incomplete and makeup when manually marked done
     c.classList.remove('is-incomplete');
     delete c.dataset.isIncomplete;
@@ -2144,6 +2167,38 @@ function markMakeup(btn){
   }
   saveDayData();updateStats();renderUnifiedTimeline();
 }
+function toggleSkipped(btn){
+  const c=btn.closest('.tcard');
+  const isSkipped=c.dataset.isSkipped==='1';
+  if(isSkipped){
+    // 恢复：取消未做标记
+    c.dataset.isSkipped='0';
+    delete c.dataset.isSkipped;
+    c.classList.remove('is-skipped');
+    btn.classList.remove('skipped');
+    btn.textContent='× 未做';
+    const tag=c.querySelector('.skipped-tag');if(tag)tag.remove();
+  } else {
+    // 标记今日未做：清除已完成状态，禁用勾选
+    c.dataset.isSkipped='1';
+    c.classList.add('is-skipped');
+    c.classList.remove('done','is-incomplete','is-makeup');
+    delete c.dataset.isIncomplete;delete c.dataset.isMakeup;delete c.dataset.completedDate;
+    const chk=c.querySelector('.tchk');chk.classList.remove('ck');chk.textContent='';
+    const incBtn=c.querySelector('.tbtn-incomplete');if(incBtn){incBtn.classList.remove('marked');incBtn.textContent='未完成';}
+    const incTag=c.querySelector('.incomplete-tag');if(incTag)incTag.remove();
+    const mkTag=c.querySelector('.makeup-tag');if(mkTag)mkTag.remove();
+    const mkBtn=c.querySelector('.tbtn-makeup');if(mkBtn)mkBtn.textContent='补完';
+    btn.classList.add('skipped');
+    btn.textContent='↩ 恢复';
+    const meta=c.querySelector('.tmeta');
+    if(meta&&!meta.querySelector('.skipped-tag')){
+      const tag=document.createElement('span');tag.className='skipped-tag';tag.textContent='× 今日未做';
+      meta.appendChild(tag);
+    }
+  }
+  saveDayData();updateStats();renderUnifiedTimeline();
+}
 function onTodoActualTimeChange(inp){
   const c=inp?.closest('.tcard');
   if(!c)return;
@@ -2186,7 +2241,8 @@ function reindex(){
   });
 }
 function updateStats(){
-  const cs=[...document.querySelectorAll('.tcard')];
+  const cs=[...document.querySelectorAll('.tcard')].filter(c=>c.dataset.isSkipped!=='1');
+  const skipped=[...document.querySelectorAll('.tcard')].filter(c=>c.dataset.isSkipped==='1');
   const dn=cs.filter(c=>c.classList.contains('done'));
   const allOtasks=[...document.querySelectorAll('.otask')].filter(el=>!el.dataset.movedToNext);
   const otDone=allOtasks.filter(el=>el.classList.contains('ck')).length;
@@ -4135,10 +4191,16 @@ function handleFullRestore(e) {
 
 function openFullBackupModal() {
   // Count data
-  let planDays = 0, snapDays = 0, templates = 0;
+  let planDays = 0, snapDays = 0, templates = 0, totalSkipped = 0;
   for (let i = 0; i < localStorage.length; i++) {
     const k = localStorage.key(i);
-    if (k && k.startsWith('plan_')) planDays++;
+    if (k && k.startsWith('plan_')) {
+      planDays++;
+      try {
+        const d = JSON.parse(localStorage.getItem(k));
+        if (d && d.todos) totalSkipped += d.todos.filter(t => t.isSkipped).length;
+      } catch {}
+    }
     if (k && k.startsWith('snap_')) snapDays++;
   }
   try { templates = (JSON.parse(localStorage.getItem('todo_templates') || '[]')).length; } catch {}
@@ -4148,6 +4210,7 @@ function openFullBackupModal() {
   document.getElementById('fbk-days').textContent = planDays;
   document.getElementById('fbk-snaps').textContent = snapDays;
   document.getElementById('fbk-tpls').textContent = templates;
+  document.getElementById('fbk-skipped').textContent = totalSkipped;
   document.getElementById('fbk-name').textContent = siteName;
   document.getElementById('fbk-storage').textContent = pct + '%';
 
@@ -4189,7 +4252,7 @@ document.addEventListener('DOMContentLoaded', function() {
     <!-- Data summary -->
     <div style="padding:16px 20px 12px">
       <div style="font-size:11px;font-weight:600;color:var(--ink-m);letter-spacing:.8px;margin-bottom:10px">本次备份将包含：</div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px">
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:12px">
         <div style="background:var(--paper-w);border:1px solid var(--bdr);border-radius:6px;padding:10px 12px">
           <div style="font-family:var(--mo);font-size:20px;font-weight:500;color:var(--ac)" id="fbk-days">0</div>
           <div style="font-size:11px;color:var(--ink-m);margin-top:2px">天计划记录</div>
@@ -4201,6 +4264,10 @@ document.addEventListener('DOMContentLoaded', function() {
         <div style="background:var(--paper-w);border:1px solid var(--bdr);border-radius:6px;padding:10px 12px">
           <div style="font-family:var(--mo);font-size:20px;font-weight:500;color:var(--gr)" id="fbk-tpls">0</div>
           <div style="font-size:11px;color:var(--ink-m);margin-top:2px">个计划模板</div>
+        </div>
+        <div style="background:var(--paper-w);border:1px solid var(--bdr);border-radius:6px;padding:10px 12px">
+          <div style="font-family:var(--mo);font-size:20px;font-weight:500;color:#6b7280" id="fbk-skipped">0</div>
+          <div style="font-size:11px;color:var(--ink-m);margin-top:2px">次今日未做记录</div>
         </div>
         <div style="background:var(--paper-w);border:1px solid var(--bdr);border-radius:6px;padding:10px 12px">
           <div style="font-family:var(--mo);font-size:13px;font-weight:500;color:var(--ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap" id="fbk-name">—</div>
