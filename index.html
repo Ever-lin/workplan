@@ -181,6 +181,13 @@ body.dark-mode .utl-conflict-bar{background:rgba(239,68,68,.1);border-color:rgba
 
 /* note line */
 .utl-note{font-size:9px;color:var(--ink-m);padding-left:12px;white-space:normal;overflow:visible;word-break:break-word;font-family:var(--ss);line-height:1.5}
+/* timeline checklist */
+.utl-cl{display:flex;flex-direction:column;gap:3px;padding-left:10px;margin-top:4px}
+.utl-cl-row{display:flex;align-items:center;gap:5px;font-size:9.5px;color:var(--ink-m);font-family:var(--ss);line-height:1.4}
+.utl-cl-dot{width:10px;height:10px;border-radius:50%;border:1.5px solid var(--ink-m);flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:7px;color:transparent;background:transparent}
+.utl-cl-dot.ck{background:var(--gr);border-color:var(--gr);color:white}
+.utl-cl-txt{color:var(--ink-m)}
+.utl-cl-txt.done{text-decoration:line-through;opacity:.55}
 
 /* ── MINI TASKS BOTTOM SECTION ── */
 .utl-mini-section{margin-top:10px;border-top:2px dashed rgba(42,92,63,.25);padding-top:8px}
@@ -617,6 +624,45 @@ body.dark-mode .clear-day-btn:hover{background:rgba(239,68,68,.25)}
   .mc{min-height:52px;padding:2px}
   .mc-tip{display:none !important}
 }
+/* ── CUSTOM DIALOGS ── */
+.cdlg-overlay{position:fixed;inset:0;z-index:9000;background:rgba(10,10,30,.55);backdrop-filter:blur(3px);display:flex;align-items:center;justify-content:center}
+.cdlg-box{background:var(--card-bg);border:1px solid var(--bdr);border-radius:6px;width:min(340px,92vw);box-shadow:0 16px 48px rgba(0,0,0,.3);overflow:hidden;font-family:var(--ss)}
+.cdlg-head{padding:14px 16px 10px;border-bottom:1px solid var(--bdr);font-size:13px;font-weight:600;color:var(--ink)}
+.cdlg-body{padding:12px 16px;font-size:12px;color:var(--ink-m);line-height:1.6;white-space:pre-line}
+.cdlg-inp{width:100%;border:1px solid var(--bdr);background:var(--paper-w);color:var(--ink);font-family:var(--ss);font-size:12px;padding:6px 10px;border-radius:3px;margin-top:6px;outline:none;box-sizing:border-box}
+.cdlg-inp:focus{border-color:var(--ac)}
+.cdlg-foot{padding:10px 16px;display:flex;gap:8px;justify-content:flex-end;border-top:1px solid var(--bdr)}
+.cdlg-ok{background:var(--ac);border:none;color:white;font-family:var(--ss);font-size:12px;padding:6px 16px;border-radius:3px;cursor:pointer;transition:opacity .15s}
+.cdlg-ok.danger{background:#ef4444}
+.cdlg-ok:hover{opacity:.85}
+.cdlg-cancel{background:none;border:1px solid var(--bdr);color:var(--ink-m);font-family:var(--ss);font-size:12px;padding:5px 14px;border-radius:3px;cursor:pointer;transition:all .15s}
+.cdlg-cancel:hover{border-color:var(--ac);color:var(--ac)}
+body.dark-mode .cdlg-box{background:#1a1b2e}
+body.dark-mode .cdlg-inp{background:var(--paper-l);color:var(--ink)}
+
+/* ── SNAPSHOT / UNDO ── */
+.snap-btn{background:none;border:1px solid rgba(255,255,255,.3);color:var(--paper);font-family:var(--ss);font-size:12px;padding:4px 10px;cursor:pointer;border-radius:2px;transition:all var(--t);display:flex;align-items:center;gap:4px}
+.snap-btn:hover{background:rgba(255,255,255,.15)}
+.snap-btn:disabled{opacity:.35;cursor:default}
+.snap-modal{display:none;position:fixed;inset:0;z-index:800;background:rgba(10,10,30,.6);backdrop-filter:blur(4px);align-items:center;justify-content:center}
+.snap-modal.open{display:flex}
+.snap-box{background:var(--card-bg);border:1px solid var(--bdr);border-radius:6px;width:min(440px,94vw);max-height:80vh;display:flex;flex-direction:column;box-shadow:0 16px 56px rgba(0,0,0,.35);overflow:hidden}
+.snap-head{padding:14px 18px 12px;border-bottom:1px solid var(--bdr);display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+.snap-title{font-family:var(--sf);font-size:14px;font-weight:600;color:var(--ink)}
+.snap-sub{font-size:11px;color:var(--ink-m);margin-top:2px}
+.snap-body{flex:1;overflow-y:auto;padding:10px 14px;display:flex;flex-direction:column;gap:6px}
+.snap-item{border:1px solid var(--bdr);border-radius:4px;padding:10px 14px;cursor:pointer;transition:all var(--t);display:flex;align-items:center;gap:12px}
+.snap-item:hover{border-color:var(--ac);background:var(--ac-p)}
+.snap-item-left{flex:1;min-width:0}
+.snap-item-time{font-family:var(--mo);font-size:11px;font-weight:600;color:var(--ink)}
+.snap-item-label{font-size:10px;color:var(--am);font-family:var(--ss);margin-top:1px}
+.snap-item-desc{font-size:10px;color:var(--ink-m);margin-top:2px}
+.snap-item-restore{font-size:11px;color:var(--ac);font-family:var(--ss);white-space:nowrap;flex-shrink:0}
+.snap-item:hover .snap-item-restore{color:var(--ac)}
+.snap-empty{text-align:center;padding:30px;font-size:12px;color:var(--ink-m);opacity:.6}
+.snap-foot{padding:10px 14px;border-top:1px solid var(--bdr);font-size:10px;color:var(--ink-m);flex-shrink:0}
+body.dark-mode .snap-box{background:#1a1b2e}
+body.dark-mode .snap-item:hover{background:var(--ac-p)}
 </style>
 </head>
 <body>
@@ -654,6 +700,7 @@ body.dark-mode .clear-day-btn:hover{background:rgba(239,68,68,.25)}
   </nav>
   <div class="hdr-r">
     <button class="dark-toggle" id="dark-toggle-btn" onclick="toggleDarkMode()" title="切换深色模式">🌙</button>
+    <button class="snap-btn" id="snap-undo-btn" onclick="openSnapModal()" title="撤销 / 恢复历史版本" disabled>↩ 撤销</button>
     <button class="tpl-btn" onclick="openTplModal()" title="计划模板">📋 模板</button>
     <button class="hbtn" onclick="toggleExport()">导出 ↓</button>
   </div>
@@ -950,9 +997,179 @@ body.dark-mode .clear-day-btn:hover{background:rgba(239,68,68,.25)}
   </div>
 </div>
 
+
+<!-- ─────────── SNAPSHOT / UNDO MODAL ─────────── -->
+<div class="snap-modal" id="snap-modal">
+  <div class="snap-box">
+    <div class="snap-head">
+      <div>
+        <div class="snap-title">↩ 撤销 — 恢复历史版本</div>
+        <div class="snap-sub" id="snap-sub">选择一个时间点恢复</div>
+      </div>
+      <button class="tpl-close" onclick="closeSnapModal()">×</button>
+    </div>
+    <div class="snap-body" id="snap-body"></div>
+    <div class="snap-foot">💡 每次套用模板、清除全天前会自动保存快照，最多保留 5 个</div>
+  </div>
+</div>
+
 <div class="saved" id="saved">已保存</div>
 
 <script>
+
+// ── CUSTOM DIALOG HELPERS (replaces confirm/alert/prompt blocked in iframes) ──
+function cdlgAlert(msg, title){
+  return new Promise(resolve=>{
+    const ov=document.createElement('div');ov.className='cdlg-overlay';
+    ov.innerHTML=`<div class="cdlg-box"><div class="cdlg-head">${title||'提示'}</div><div class="cdlg-body">${msg}</div><div class="cdlg-foot"><button class="cdlg-ok" id="_cdlg_ok">确定</button></div></div>`;
+    document.body.appendChild(ov);
+    const ok=ov.querySelector('#_cdlg_ok');
+    const close=()=>{ov.remove();resolve();};
+    ok.onclick=close;ov.onclick=e=>{if(e.target===ov)close();};
+    ok.focus();
+  });
+}
+function cdlgConfirm(msg, title, danger){
+  return new Promise(resolve=>{
+    const ov=document.createElement('div');ov.className='cdlg-overlay';
+    ov.innerHTML=`<div class="cdlg-box"><div class="cdlg-head">${title||'确认'}</div><div class="cdlg-body">${msg}</div><div class="cdlg-foot"><button class="cdlg-cancel" id="_cdlg_no">取消</button><button class="cdlg-ok${danger?' danger':''}" id="_cdlg_yes">确定</button></div></div>`;
+    document.body.appendChild(ov);
+    const yes=ov.querySelector('#_cdlg_yes'),no=ov.querySelector('#_cdlg_no');
+    yes.onclick=()=>{ov.remove();resolve(true);};
+    no.onclick=()=>{ov.remove();resolve(false);};
+    ov.onclick=e=>{if(e.target===ov){ov.remove();resolve(false);}};
+    yes.focus();
+  });
+}
+function cdlgPrompt(msg, defaultVal, title){
+  return new Promise(resolve=>{
+    const ov=document.createElement('div');ov.className='cdlg-overlay';
+    ov.innerHTML=`<div class="cdlg-box"><div class="cdlg-head">${title||'输入'}</div><div class="cdlg-body">${msg}<input class="cdlg-inp" id="_cdlg_inp" value="${(defaultVal||'').replace(/"/g,'&quot;')}" maxlength="40"></div><div class="cdlg-foot"><button class="cdlg-cancel" id="_cdlg_no">取消</button><button class="cdlg-ok" id="_cdlg_yes">确定</button></div></div>`;
+    document.body.appendChild(ov);
+    const inp=ov.querySelector('#_cdlg_inp'),yes=ov.querySelector('#_cdlg_yes'),no=ov.querySelector('#_cdlg_no');
+    const ok=()=>{ov.remove();resolve(inp.value);};
+    const cancel=()=>{ov.remove();resolve(null);};
+    yes.onclick=ok;no.onclick=cancel;
+    inp.addEventListener('keydown',e=>{if(e.key==='Enter')ok();if(e.key==='Escape')cancel();});
+    ov.onclick=e=>{if(e.target===ov)cancel();};
+    inp.focus();inp.select();
+  });
+}
+
+
+// ── SNAPSHOT / UNDO SYSTEM ──
+const SNAP_MAX = 5;
+
+function snapKey(dateStr) { return 'snap_' + dateStr; }
+
+function snapSave(dateStr, label) {
+  // Save current state of the given date as a snapshot
+  const dayKey = 'plan_' + dateStr;
+  const raw = localStorage.getItem(dayKey);
+  if (!raw) return; // nothing to snapshot
+  
+  const snapStorageKey = snapKey(dateStr);
+  let snaps = [];
+  try { snaps = JSON.parse(localStorage.getItem(snapStorageKey) || '[]'); } catch {}
+  
+  const entry = {
+    ts: Date.now(),
+    label: label || '操作前',
+    data: raw  // store as raw string to avoid double-parse
+  };
+  snaps.unshift(entry);
+  // Keep only last SNAP_MAX
+  snaps = snaps.slice(0, SNAP_MAX);
+  try { localStorage.setItem(snapStorageKey, JSON.stringify(snaps)); } catch(e) {
+    // Storage full — remove oldest snap and retry
+    snaps = snaps.slice(0, SNAP_MAX - 1);
+    try { localStorage.setItem(snapStorageKey, JSON.stringify(snaps)); } catch {}
+  }
+  updateSnapBtn();
+}
+
+function snapLoadAll(dateStr) {
+  try { return JSON.parse(localStorage.getItem(snapKey(dateStr)) || '[]'); } catch { return []; }
+}
+
+function updateSnapBtn() {
+  const btn = document.getElementById('snap-undo-btn');
+  if (!btn) return;
+  const dateStr = fmt(currentDate);
+  const snaps = snapLoadAll(dateStr);
+  btn.disabled = snaps.length === 0;
+}
+
+function openSnapModal() {
+  const dateStr = fmt(currentDate);
+  const snaps = snapLoadAll(dateStr);
+  const body = document.getElementById('snap-body');
+  const sub = document.getElementById('snap-sub');
+  body.innerHTML = '';
+  
+  const d = currentDate;
+  sub.textContent = `${d.getFullYear()}年${d.getMonth()+1}月${d.getDate()}日 — 选择一个时间点恢复`;
+  
+  if (!snaps.length) {
+    body.innerHTML = '<div class="snap-empty">暂无快照<br>套用模板或清除全天前会自动保存</div>';
+  } else {
+    snaps.forEach((snap, i) => {
+      const item = document.createElement('div');
+      item.className = 'snap-item';
+      const ts = new Date(snap.ts);
+      const timeStr = `${String(ts.getHours()).padStart(2,'0')}:${String(ts.getMinutes()).padStart(2,'0')}:${String(ts.getSeconds()).padStart(2,'0')}`;
+      // Parse snap to show summary
+      let desc = '';
+      try {
+        const sd = JSON.parse(snap.data);
+        const tc = (sd.todos||[]).length, oc = (sd.otasks||[]).length, mc = (sd.memos||[]).length;
+        const parts = [];
+        if (tc) parts.push(`${tc}个固定安排`);
+        if (oc) parts.push(`${oc}个临时事项`);
+        if (mc) parts.push(`${mc}个小任务`);
+        desc = parts.length ? parts.join(' · ') : '空白状态';
+      } catch {}
+      item.innerHTML = `
+        <div class="snap-item-left">
+          <div class="snap-item-time">${timeStr}</div>
+          <div class="snap-item-label">${snap.label}</div>
+          <div class="snap-item-desc">${desc}</div>
+        </div>
+        <div class="snap-item-restore">点击恢复 →</div>`;
+      item.onclick = () => snapRestore(dateStr, snap);
+      body.appendChild(item);
+    });
+  }
+  document.getElementById('snap-modal').classList.add('open');
+}
+
+function closeSnapModal() {
+  document.getElementById('snap-modal').classList.remove('open');
+}
+
+async function snapRestore(dateStr, snap) {
+  const ts = new Date(snap.ts);
+  const timeStr = `${String(ts.getHours()).padStart(2,'0')}:${String(ts.getMinutes()).padStart(2,'0')}`;
+  const ok = await cdlgConfirm(`恢复到 ${timeStr} 的版本（${snap.label}）？\n当前数据将被覆盖。`, '确认恢复', true);
+  if (!ok) return;
+  
+  // Save current state as a snapshot before restoring (so user can undo the undo)
+  snapSave(dateStr, '恢复前自动保存');
+  
+  localStorage.setItem('plan_' + dateStr, snap.data);
+  closeSnapModal();
+  
+  // Reload view
+  if (fmt(currentDate) === dateStr) {
+    renderDaily();
+  }
+  const toast = document.getElementById('saved');
+  toast.style.background = 'var(--ac)';
+  toast.textContent = `↩ 已恢复到 ${timeStr} 的版本`;
+  toast.classList.add('show');
+  setTimeout(() => { toast.classList.remove('show'); toast.textContent = '已保存'; toast.style.background = ''; }, 2500);
+}
+
 // ── CONSTANTS ──
 const HOURS=['06:00','07:00','08:00','09:00','10:00','11:00','12:00','13:00',
              '14:00','15:00','16:00','17:00','18:00','19:00','20:00','21:00','22:00','23:00'];
@@ -1043,7 +1260,6 @@ function gather(){
       planStart:c.querySelector('.eps')?.value||'',planEnd:c.querySelector('.epe')?.value||'',
       actualSegs,noteChecklist,
       priority:parseInt(c.dataset.priority)||i+1,done:c.classList.contains('done'),
-      note:c.querySelector('.enote')?.value||'',
       execOpen:esec?esec.style.display!=='none':true,
       isIncomplete:c.dataset.isIncomplete==='1',
       isMakeup:c.dataset.isMakeup==='1',
@@ -1057,7 +1273,7 @@ function gather(){
     const exec=el.querySelector('.otask-exec');
     const actualSegs=[...el.querySelectorAll('.otask-segs-wrap .time-seg')].map(s=>({start:s.querySelector('.seg-s')?.value||'',end:s.querySelector('.seg-e')?.value||''})).filter(s=>s.start||s.end);
     const noteChecklist=[...el.querySelectorAll('.otask-checklist .note-cl-row')].map(r=>({text:r.querySelector('.note-cl-inp')?.value||'',done:r.querySelector('.note-cl-dot')?.classList.contains('ck')||false})).filter(r=>r.text);
-    if(v)otasks.push({text:v,done:el.classList.contains('ck'),actualSegs,noteChecklist,planStart:el.querySelector('.ops')?.value||'',planEnd:el.querySelector('.ope')?.value||'',note:el.querySelector('.otnote')?.value||'',execOpen:exec?exec.style.display!=='none':false,movedToNext:el.dataset.movedToNext||'',deferredFrom:el.dataset.deferredFrom||''});
+    if(v)otasks.push({text:v,done:el.classList.contains('ck'),actualSegs,noteChecklist,planStart:el.querySelector('.ops')?.value||'',planEnd:el.querySelector('.ope')?.value||'',execOpen:exec?exec.style.display!=='none':false,movedToNext:el.dataset.movedToNext||'',deferredFrom:el.dataset.deferredFrom||''});
   });
   const memos=[];
   document.querySelectorAll('.memo-item').forEach(el=>{
@@ -1159,6 +1375,7 @@ function renderDaily(){
   renderUnifiedTimeline();
   checkTimeConflicts();
   renderWeather(d.weather||'');
+  updateSnapBtn();
 }
 
 function updateDD(){
@@ -1169,6 +1386,21 @@ function updateDD(){
   buildYearOpts('sel-year',d.getFullYear());
   buildMonthOpts('sel-month',d.getMonth());
   buildDayOpts('sel-day',d.getFullYear(),d.getMonth(),d.getDate());
+}
+
+// ── RENDER CHECKLIST IN TIMELINE ──
+function renderUtlChecklist(items, parentEl){
+  if(!items||!items.length)return;
+  const cl=document.createElement('div');cl.className='utl-cl';
+  items.forEach(item=>{
+    const r=document.createElement('div');r.className='utl-cl-row';
+    const d=document.createElement('span');
+    d.className='utl-cl-dot'+(item.done?' ck':'');
+    if(item.done){d.textContent='✓';d.style.color='white';}
+    const s=document.createElement('span');s.className='utl-cl-txt'+(item.done?' done':'');s.textContent=item.text;
+    r.appendChild(d);r.appendChild(s);cl.appendChild(r);
+  });
+  parentEl.appendChild(cl);
 }
 
 // ── UNIFIED TIMELINE ──
@@ -1192,6 +1424,7 @@ function renderUnifiedTimeline(){
     const isMakeup=c.dataset.isMakeup==='1';
     const completedDate=c.dataset.completedDate||'';
     const note=c.querySelector('.enote')?.value||'';
+    const noteChecklist=[...c.querySelectorAll('.todo-checklist .note-cl-row')].map(r=>({text:r.querySelector('.note-cl-inp')?.value||'',done:r.querySelector('.note-cl-dot')?.classList.contains('ck')||false})).filter(r=>r.text);
     if(!txt)return;
     // Collect all actual segments
     const segs=[...c.querySelectorAll('.todo-segs .time-seg')].map(s=>({as:s.querySelector('.seg-s')?.value||'',ae:s.querySelector('.seg-e')?.value||''})).filter(s=>s.as||s.ae);
@@ -1213,7 +1446,7 @@ function renderUnifiedTimeline(){
         const sortMin=timeToMin(as);
         const endMin=ae?timeToMin(ae):sortMin+1;
         const segLabel=segs.length>1?` (第${si+1}段)`:'';
-        events.push({type:'todo',sortMin,endMin,data:{txt:txt+segLabel,ps:si===0?ps:'',pe:si===0?pe:'',as,ae,done,note:si===0?note:'',isPlan:si===0&&!!ps,isActual:true,atype:getAtype(),segIndex:si,totalSegs:segs.length,isIncomplete:false,isMakeup:si===0?isMakeup:false,completedDate}});
+        events.push({type:'todo',sortMin,endMin,data:{txt:txt+segLabel,ps:si===0?ps:'',pe:si===0?pe:'',as,ae,done,noteChecklist:si===0?noteChecklist:[],isPlan:si===0&&!!ps,isActual:true,atype:getAtype(),segIndex:si,totalSegs:segs.length,isIncomplete:false,isMakeup:si===0?isMakeup:false,completedDate}});
       });
     } else {
       // Plan-only (no actual)
@@ -1221,13 +1454,13 @@ function renderUnifiedTimeline(){
       // KEY FIX: if incomplete, the slot is FREE from plan-start (not occupied till plan-end)
       // We still render the row, but for gap-calculation the occupied interval is zero-width (point at ps)
       const endMin=isIncomplete?sortMin:( pe?timeToMin(pe):sortMin+1 );
-      events.push({type:'todo',sortMin,endMin,data:{txt,ps,pe,as:'',ae:'',done,note,isPlan:true,isActual:false,atype:isIncomplete?'incomplete':'same',segIndex:0,totalSegs:0,isIncomplete,isMakeup,completedDate}});
+      events.push({type:'todo',sortMin,endMin,data:{txt,ps,pe,as:'',ae:'',done,noteChecklist,isPlan:true,isActual:false,atype:isIncomplete?'incomplete':'same',segIndex:0,totalSegs:0,isIncomplete,isMakeup,completedDate}});
     }
   });
 
   document.querySelectorAll('.otask').forEach(el=>{
     const txt=el.querySelector('.otask-txt')?.value||'';
-    const note=el.querySelector('.otnote')?.value||'';
+    const noteChecklist=[...el.querySelectorAll('.otask-checklist .note-cl-row')].map(r=>({text:r.querySelector('.note-cl-inp')?.value||'',done:r.querySelector('.note-cl-dot')?.classList.contains('ck')||false})).filter(r=>r.text);
     const done=el.classList.contains('ck');
     const ps=el.querySelector('.ops')?.value||'';
     const pe=el.querySelector('.ope')?.value||'';
@@ -1239,13 +1472,13 @@ function renderUnifiedTimeline(){
         const sortMin=timeToMin(as);
         const endMin=ae?timeToMin(ae):sortMin+1;
         const segLabel=segs.length>1?` (第${si+1}段)`:'';
-        events.push({type:'otask',sortMin,endMin,data:{txt:txt+segLabel,ps:si===0?ps:'',pe:si===0?pe:'',as,ae,note:si===0?note:'',done,isPlan:si===0&&!!ps,isActual:true}});
+        events.push({type:'otask',sortMin,endMin,data:{txt:txt+segLabel,ps:si===0?ps:'',pe:si===0?pe:'',as,ae,noteChecklist:si===0?noteChecklist:[],done,isPlan:si===0&&!!ps,isActual:true}});
       });
     } else if(ps){
       // 只有计划时间，无实际 — 也显示在时间轴
       const sortMin=timeToMin(ps);
       const endMin=pe?timeToMin(pe):sortMin+1;
-      events.push({type:'otask',sortMin,endMin,data:{txt,ps,pe,as:'',ae:'',note,done,isPlan:true,isActual:false}});
+      events.push({type:'otask',sortMin,endMin,data:{txt,ps,pe,as:'',ae:'',noteChecklist,done,isPlan:true,isActual:false}});
     }
   });
 
@@ -1380,7 +1613,7 @@ function renderUnifiedTimeline(){
         nameEntry.appendChild(dot);nameEntry.appendChild(txt2);
         if(isConflict){const ctag=document.createElement('span');ctag.className='utl-conflict-tag';ctag.textContent='⚠ 时间冲突';nameEntry.appendChild(ctag);}
         colName.appendChild(nameEntry);
-        if(t.note){const note=document.createElement('div');note.className='utl-note';note.style.whiteSpace='pre-wrap';note.textContent='↳ '+t.note;colName.appendChild(note);}
+        if(t.noteChecklist&&t.noteChecklist.length){renderUtlChecklist(t.noteChecklist,colName);}
 
         const planSlot=document.createElement('div');planSlot.className='utl-plan-slot';
         if(t.isPlan){
@@ -1435,7 +1668,7 @@ function renderUnifiedTimeline(){
         // 冲突标记
         if(isConflict){const ctag=document.createElement('span');ctag.className='utl-conflict-tag';ctag.textContent='⚠ 时间冲突';nameEntry.appendChild(ctag);}
         colName.appendChild(nameEntry);
-        if(t.note){const note=document.createElement('div');note.className='utl-note';note.style.whiteSpace='pre-wrap';note.textContent='↳ '+t.note;colName.appendChild(note);}
+        if(t.noteChecklist&&t.noteChecklist.length){renderUtlChecklist(t.noteChecklist,colName);}
 
         // 计划时间列（修复 bug）
         const planSlot=document.createElement('div');planSlot.className='utl-plan-slot';
@@ -1645,12 +1878,9 @@ function buildCard(pre){
   <div class="time-segs todo-segs"></div>
   <button class="add-seg-btn" onclick="addTodoSeg(this)">＋ 添加实际时间段</button>
   <div class="note-cl-wrap" style="margin-top:6px">
-    <div style="font-size:9px;color:var(--ink-m);letter-spacing:.5px;margin-bottom:3px;display:flex;align-items:center;gap:5px">备注要点 <span style="opacity:.4;font-size:8px">· 点击圆圈打钩</span></div>
     <div class="note-checklist todo-checklist"></div>
-    <button class="note-cl-add" onclick="addNoteClRow(this.closest('.tcard'),'todo')">＋ 添加要点</button>
-    <div class="note-cl-divider"></div>
+    <button class="note-cl-add" onclick="addNoteClRow(this.closest('.tcard'),'todo')">＋ 添加备注要点</button>
   </div>
-  <textarea class="enote" placeholder="自由备注…" oninput="saveDayData();renderUnifiedTimeline()" style="margin-top:2px">${pre?.note||''}</textarea>
 </div>`;
   list.appendChild(c);
   ar(c.querySelector('.ttxt'));
@@ -2113,18 +2343,14 @@ function addOtask(pre){
   if(oSegs.length===0)oSegs.push({start:'',end:''});
   oSegs.forEach(s=>addOtaskSegRow(segsWrap,div,chk,s.start,s.end));
 
-  const noteTA=document.createElement('textarea');noteTA.className='otnote';
-  noteTA.placeholder='自由备注…';noteTA.value=pre?.note||'';
-  noteTA.addEventListener('input',()=>{saveDayData();renderUnifiedTimeline()});
-
   // Note checklist for otask
   const clWrap=document.createElement('div');clWrap.className='note-cl-wrap';clWrap.style.marginTop='6px';
-  clWrap.innerHTML=`<div style="font-size:9px;color:var(--ink-m);letter-spacing:.5px;margin-bottom:3px;display:flex;align-items:center;gap:5px">备注要点 <span style="opacity:.4;font-size:8px">· 点击圆圈打钩</span></div><div class="note-checklist otask-checklist"></div><button class="note-cl-add">＋ 添加要点</button><div class="note-cl-divider"></div>`;
+  clWrap.innerHTML=`<div class="note-checklist otask-checklist"></div><button class="note-cl-add">＋ 添加备注要点</button>`;
   clWrap.querySelector('.note-cl-add').onclick=()=>addNoteClRow(div,'otask');
   const otClContainer=clWrap.querySelector('.otask-checklist');
   (pre?.noteChecklist||[]).forEach(item=>addNoteClRowEl(otClContainer,'otask',div,item.text,item.done));
 
-  execSec.appendChild(planRow);execSec.appendChild(segsWrap);execSec.appendChild(addSegBtn);execSec.appendChild(clWrap);execSec.appendChild(noteTA);
+  execSec.appendChild(planRow);execSec.appendChild(segsWrap);execSec.appendChild(addSegBtn);execSec.appendChild(clWrap);
   div.appendChild(topRow);div.appendChild(execSec);
   list.appendChild(div);
   // init badge
@@ -2166,7 +2392,7 @@ function moveOtaskToNextDay(div){
     saveDayData();
     applyOtaskDeferredStyle(div,dateStr);
   } else {
-    alert('明天已有相同安排');
+    cdlgAlert('明天已有相同安排');
   }
 }
 
@@ -2197,6 +2423,7 @@ function restoreOtaskFromDeferred(div){
 function moveTdToNextDay(btn){
   const c=btn.closest('.tcard');
   if(c.dataset.movedToNext) return; // already moved
+  snapSave(fmt(currentDate), '移动事项前');
   const text=c.querySelector('.ttxt')?.value||'';
   const ps=c.querySelector('.eps')?.value||'';
   const pe=c.querySelector('.epe')?.value||'';
@@ -2206,7 +2433,7 @@ function moveTdToNextDay(btn){
   const key='plan_'+fmt(tomorrow);
   let data={};try{const r=localStorage.getItem(key);if(r)data=JSON.parse(r)}catch{}
   if(!data.todos)data.todos=[];
-  if(data.todos.some(t=>t.text===text)){alert('明天已有相同计划');return;}
+  if(data.todos.some(t=>t.text===text)){cdlgAlert('明天已有相同计划');return;}
   data.todos.push({id:'t_'+fmt(tomorrow)+'_'+Math.random().toString(36).slice(2,6),text,planStart:ps,planEnd:pe,note,done:false,actualSegs:[],execOpen:!!note,priority:data.todos.length+1,deferredFrom:fmt(currentDate)});
   localStorage.setItem(key,JSON.stringify(data));
   // Remove card from today immediately
@@ -2225,7 +2452,7 @@ function copyTdToNextDay(btn){
   const key='plan_'+fmt(tomorrow);
   let data={};try{const r=localStorage.getItem(key);if(r)data=JSON.parse(r)}catch{}
   if(!data.todos)data.todos=[];
-  if(data.todos.some(t=>t.text===text)){alert('明天已有相同计划');return;}
+  if(data.todos.some(t=>t.text===text)){cdlgAlert('明天已有相同计划');return;}
   data.todos.push({id:'t_'+fmt(tomorrow)+'_'+Math.random().toString(36).slice(2,6),text,planStart:ps,planEnd:pe,note,done:false,actualSegs:[],execOpen:!!note,priority:data.todos.length+1});
   localStorage.setItem(key,JSON.stringify(data));
   // Visual: show confirmation on button, keep card
@@ -2446,13 +2673,13 @@ function toggleExport(){document.getElementById('expp').classList.toggle('open')
 
 function exportTimelinePng(){
   const target=document.getElementById('utl-rows');
-  if(!target||!target.children.length){alert('当日暂无时间轴数据');return;}
+  if(!target||!target.children.length){cdlgAlert('当日暂无时间轴数据');return;}
   // Dynamically load html2canvas from CDN
   if(!window.html2canvas){
     const s=document.createElement('script');
     s.src='https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js';
     s.onload=()=>_doCapture();
-    s.onerror=()=>alert('加载截图库失败，请检查网络连接后重试');
+    s.onerror=()=>cdlgAlert('加载截图库失败，请检查网络连接后重试');
     document.head.appendChild(s);
   } else { _doCapture(); }
 }
@@ -2477,7 +2704,7 @@ function _doCapture(){
       a.href=url;a.download=(siteName+'_'+dateStr.replace(/\s/g,'')+'.png');
       a.click();URL.revokeObjectURL(url);
     },'image/png');
-  }).catch(e=>{document.body.removeChild(wrapper);alert('截图失败：'+e.message);});
+  }).catch(e=>{document.body.removeChild(wrapper);cdlgAlert('截图失败：'+e.message);});
 }
 
 function getExpData(){
@@ -2490,7 +2717,7 @@ function getExpData(){
 }
 
 function doExport(f){
-  const all=getExpData();if(!all.length){alert('所选范围暂无数据');return}
+  const all=getExpData();if(!all.length){cdlgAlert('所选范围暂无数据');return}
   const n=localStorage.getItem('site_name')||'工作计划';
   if(f==='json'){dl(n+'_'+fmt(new Date())+'.json',JSON.stringify(all,null,2),'application/json')}
   else if(f==='csv'){
@@ -2597,11 +2824,11 @@ function handleImport(e){
     // 1. 解析 JSON
     let arr;
     try{ arr=JSON.parse(ev.target.result); }
-    catch{ alert('❌ 文件解析失败：不是合法的 JSON 格式，请确认是本系统导出的备份文件。');e.target.value='';return; }
+    catch{ cdlgAlert('❌ 文件解析失败：不是合法的 JSON 格式，请确认是本系统导出的备份文件。');e.target.value='';return; }
     // 2. Schema 校验
     const items=Array.isArray(arr)?arr:[arr];
     const invalid=items.filter(d=>!d||typeof d!=='object'||!d.date||!/^\d{4}-\d{2}-\d{2}$/.test(d.date));
-    if(invalid.length>0){ alert(`❌ 数据格式有误：${invalid.length} 条记录缺少合法的 date 字段，请确认是本系统导出的 JSON 备份。`);e.target.value='';return; }
+    if(invalid.length>0){ cdlgAlert(`❌ 数据格式有误：${invalid.length} 条记录缺少合法的 date 字段，请确认是本系统导出的 JSON 备份。`);e.target.value='';return; }
     // 3. 覆盖前先备份现有数据
     const backup=[];
     for(let k in localStorage) if(Object.prototype.hasOwnProperty.call(localStorage,k)&&k.startsWith('plan_')){
@@ -2615,7 +2842,7 @@ function handleImport(e){
     }
     // 4. 写入数据
     items.forEach(d=>{ if(d.date) localStorage.setItem('plan_'+d.date,JSON.stringify(d)); });
-    alert('✅ 导入成功！共恢复 '+items.length+' 天数据。'+(backup.length>0?'\n已自动下载导入前的数据备份，请妥善保存。':''));
+    cdlgAlert('✅ 导入成功！共恢复 '+items.length+' 天数据。'+(backup.length>0?'\n已自动下载导入前的数据备份，请妥善保存。':''));
     renderDaily();checkStorageUsage();
   };
   r.readAsText(file);e.target.value='';
@@ -2709,7 +2936,7 @@ function moveMemoToNextDay(div){
     saveDayData();
     applyMemoDeferredStyle(div,dateStr);
   } else {
-    alert('明天已有相同小任务');
+    cdlgAlert('明天已有相同小任务');
   }
 }
 
@@ -2771,8 +2998,8 @@ function copyAllTodos(btn){
     lines.push(idx+'.'+title.trim());
     if(note.trim()) note.trim().split('\n').filter(l=>l.trim()).forEach(l=>lines.push('· '+l.trim()));
   });
-  if(!lines.length){alert('没有计划事项可复制');return;}
-  copyToClipboard(lines.join('\n'),()=>flashCopied(btn),()=>alert('复制失败，请手动选中文本复制'));
+  if(!lines.length){cdlgAlert('没有计划事项可复制');return;}
+  copyToClipboard(lines.join('\n'),()=>flashCopied(btn),()=>cdlgAlert('复制失败，请手动选中文本复制'));
 }
 function copyAllOtasks(btn){
   const lines=[];let idx=0;
@@ -2784,18 +3011,18 @@ function copyAllOtasks(btn){
     lines.push(idx+'.'+title.trim());
     if(note.trim()) note.trim().split('\n').filter(l=>l.trim()).forEach(l=>lines.push('· '+l.trim()));
   });
-  if(!lines.length){alert('没有临时事项可复制');return;}
-  copyToClipboard(lines.join('\n'),()=>flashCopied(btn),()=>alert('复制失败，请手动选中文本复制'));
+  if(!lines.length){cdlgAlert('没有临时事项可复制');return;}
+  copyToClipboard(lines.join('\n'),()=>flashCopied(btn),()=>cdlgAlert('复制失败，请手动选中文本复制'));
 }
 function copyTodo(btn){
   const c=btn.closest('.tcard');
   const text=buildCopyText(c.querySelector('.ttxt')?.value||'',c.querySelector('.enote')?.value||'');
-  copyToClipboard(text,()=>flashCopied(btn),()=>alert('复制失败'));
+  copyToClipboard(text,()=>flashCopied(btn),()=>cdlgAlert('复制失败'));
 }
 function copyOtask(btn){
   const div=btn.closest('.otask');
   const text=buildCopyText(div.querySelector('.otask-txt')?.value||'',div.querySelector('.otnote')?.value||'');
-  copyToClipboard(text,()=>flashCopied(btn),()=>alert('复制失败'));
+  copyToClipboard(text,()=>flashCopied(btn),()=>cdlgAlert('复制失败'));
 }
 
 // ── DRAG: TODO LIST ──
@@ -3067,12 +3294,15 @@ function tplDelete() {
   if (!tplCurrentId) return;
   const arr = tplLoadAll();
   const tpl = arr.find(t => t.id === tplCurrentId);
-  if (!tpl || !confirm(`确定删除模板「${tpl.name}」？`)) return;
-  tplSaveAll(arr.filter(t => t.id !== tplCurrentId));
-  tplCurrentId = null;
-  document.getElementById('tpl-editor').style.display = 'none';
-  document.getElementById('tpl-empty').style.display = '';
-  tplRenderList();
+  if(!tpl) return;
+  cdlgConfirm(`确定删除模板「${tpl.name}」？`,'删除模板',true).then(ok=>{
+    if(!ok) return;
+    tplSaveAll(tplLoadAll().filter(t=>t.id!==tplCurrentId));
+    tplCurrentId=null;
+    document.getElementById('tpl-editor').style.display='none';
+    document.getElementById('tpl-empty').style.display='';
+    tplRenderList();
+  });
 }
 
 // ── APPLY PREVIEW ──
@@ -3083,11 +3313,11 @@ function tplOpenApplyPreview(mode) {
   const arr = tplLoadAll();
   const tpl = arr.find(t => t.id === tplCurrentId);
   const totalItems = (tpl?.todos||[]).length;
-  if (!tpl || totalItems === 0) { alert('模板为空，请先添加固定安排事项'); return; }
+  if (!tpl || totalItems === 0) { cdlgAlert('模板为空，请先添加固定安排事项');return; }
 
   // 临时事项模式下校验是否有临时事项
   if (tplFilterMode === 'otask' && !(tpl.otasks||[]).length) {
-    alert('该模板没有临时事项，请先在模板中添加临时事项'); return;
+    cdlgAlert('该模板没有临时事项，请先在模板中添加临时事项');return;
   }
 
   const targetDate = apvTargetToday ? new Date() : currentDate;
@@ -3219,6 +3449,8 @@ function apvConfirm() {
     return;
   }
 
+  // Save snapshot BEFORE writing new data
+  snapSave(fmt(targetDate), '套用模板前');
   dayData.date = fmt(targetDate);
   localStorage.setItem(dateKey, JSON.stringify(dayData));
   closeTplModal();
@@ -3238,14 +3470,14 @@ function apvConfirm() {
 }
 
 // ── SAVE TODAY AS TEMPLATE ──
-function tplSaveToday(){
+async function tplSaveToday(){
   const data=load(currentDate)||{};
   const todos=(data.todos||[]).filter(t=>t.text&&t.text.trim());
   if(!todos.length){
-    alert('当前日期没有任何固定安排，无法保存为模板');return;
+    cdlgAlert('当前日期没有任何固定安排，无法保存为模板');return;
   }
   const dateStr=`${currentDate.getMonth()+1}月${currentDate.getDate()}日`;
-  const name=prompt(`模板名称：`,`${dateStr}的固定安排模板`);
+  const name=await cdlgPrompt('模板名称：',`${dateStr}的固定安排模板`,'保存为模板');
   if(name===null)return;
   const finalName=name.trim()||`${dateStr}的固定安排模板`;
 
@@ -3266,8 +3498,10 @@ function tplSaveToday(){
 }
 
 // ── CLEAR ALL DAY ──
-function clearAllDay(){
-  if(!confirm('确定要清除当天所有事项吗？\n（每日固定安排、临时事项、小任务全部清空）'))return;
+async function clearAllDay(){
+  const ok=await cdlgConfirm('每日固定安排、临时事项、小任务全部清空','确定清除全天所有事项？',true);
+  if(!ok)return;
+  snapSave(fmt(currentDate), '清除全天前');
   document.getElementById('tlist').innerHTML='';
   document.getElementById('otask-list').innerHTML='';
   document.getElementById('memo-list').innerHTML='';
