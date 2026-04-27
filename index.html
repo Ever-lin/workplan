@@ -229,7 +229,7 @@ body.dark-mode .utl-conflict-bar{background:rgba(239,68,68,.1);border-color:rgba
 .tcard.done .ttxt{text-decoration:line-through;color:var(--ink-m)}
 .ttop{display:flex;align-items:flex-start;gap:6px;padding:7px 9px 5px}
 .tpri{width:19px;height:19px;border-radius:50%;background:var(--ac);color:white;font-size:9px;font-family:var(--mo);display:flex;align-items:center;justify-content:center;flex-shrink:0;cursor:pointer;margin-top:1px;user-select:none;font-weight:500}
-.tpri.p2{background:var(--bl)}.tpri.p3{background:var(--ink-m)}
+.tpri.p2{background:var(--bl)}.tpri.p3{background:var(--gr)}.tpri.p4{background:var(--am)}.tpri.p5{background:#e879f9}.tpri.p6{background:#f97316}.tpri.p7{background:#06b6d4}
 .tchk{width:15px;height:15px;border:1.5px solid var(--bdr);border-radius:2px;flex-shrink:0;display:flex;align-items:center;justify-content:center;background:white;transition:all var(--t);margin-top:2px;font-size:9px;cursor:default}
 .tchk.ck{background:var(--gr);border-color:var(--gr);color:white}
 .tbody{flex:1;display:flex;flex-direction:column;gap:2px;min-width:0}
@@ -567,6 +567,32 @@ body.dark-mode .apv-note-ta{background:var(--paper-l);color:var(--ink)}
 ::-webkit-scrollbar-track{background:transparent}
 ::-webkit-scrollbar-thumb{background:var(--bdr);border-radius:3px}
 
+/* ── NOTE CHECKLIST ── */
+.note-checklist{display:flex;flex-direction:column;gap:3px;margin-top:5px;margin-bottom:2px}
+.note-cl-row{display:flex;align-items:center;gap:6px;padding:3px 5px;border-radius:3px;transition:background var(--t)}
+.note-cl-row:hover{background:var(--paper-w)}
+.note-cl-dot{width:14px;height:14px;border-radius:50%;border:1.5px solid var(--bdr);background:white;flex-shrink:0;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:8px;color:transparent;transition:all var(--t)}
+.note-cl-dot.ck{background:var(--gr);border-color:var(--gr);color:white}
+.note-cl-dot:hover{border-color:var(--gr);transform:scale(1.1)}
+.note-cl-inp{flex:1;border:none;background:transparent;font-family:var(--ss);font-size:11px;color:var(--ink);outline:none;min-width:0}
+.note-cl-inp::placeholder{color:var(--ink-m)}
+.note-cl-inp.done-txt{text-decoration:line-through;color:var(--ink-m)}
+.note-cl-del{background:none;border:none;color:var(--ink-m);font-size:12px;cursor:pointer;padding:0 2px;opacity:0;transition:opacity var(--t);line-height:1;flex-shrink:0}
+.note-cl-row:hover .note-cl-del{opacity:.6}
+.note-cl-del:hover{opacity:1!important;color:#ef4444}
+.note-cl-add{background:none;border:none;color:var(--ink-m);font-family:var(--ss);font-size:10px;cursor:pointer;padding:2px 5px;border-radius:2px;transition:all var(--t);text-align:left;display:flex;align-items:center;gap:3px;margin-top:1px}
+.note-cl-add:hover{color:var(--ac);background:var(--ac-p)}
+.note-cl-divider{height:1px;background:var(--paper-l);margin:4px 0}
+body.dark-mode .note-cl-dot{background:var(--paper-w);border-color:var(--bdr)}
+body.dark-mode .note-cl-row:hover{background:var(--paper-l)}
+body.dark-mode .note-cl-inp{color:var(--ink)}
+
+/* ── CLEAR ALL BUTTON ── */
+.clear-day-btn{background:#fee2e2;border:1px solid #fca5a5;color:#b91c1c;font-family:var(--ss);font-size:11px;padding:3px 10px;border-radius:2px;cursor:pointer;transition:all var(--t);white-space:nowrap;flex-shrink:0}
+.clear-day-btn:hover{background:#fecaca;border-color:#f87171}
+body.dark-mode .clear-day-btn{background:rgba(239,68,68,.15);border-color:rgba(239,68,68,.35);color:#fca5a5}
+body.dark-mode .clear-day-btn:hover{background:rgba(239,68,68,.25)}
+
 @media(max-width:820px){
   .pgrid{grid-template-columns:1fr}.pgrid::after{display:none}
   .sbar{grid-template-columns:repeat(3,1fr) !important}.ygrid{grid-template-columns:repeat(2,1fr)}
@@ -658,7 +684,7 @@ body.dark-mode .apv-note-ta{background:var(--paper-l);color:var(--ink)}
   </div>
 
   <div class="sbar" style="margin-bottom:10px;grid-template-columns:repeat(6,1fr)">
-    <div class="sc"><div class="sv" id="s-tot">0</div><div class="sl">计划总数</div></div>
+    <div class="sc"><div class="sv" id="s-tot">0</div><div class="sl">固定安排数</div></div>
     <div class="sc g"><div class="sv" id="s-done">0</div><div class="sl">已完成</div></div>
     <div class="sc b"><div class="sv" id="s-rate">0%</div><div class="sl">完成率</div></div>
     <div class="sc a"><div class="sv" id="s-other">0</div><div class="sl">临时事项</div></div>
@@ -672,20 +698,21 @@ body.dark-mode .apv-note-ta{background:var(--paper-l);color:var(--ink)}
       <div style="padding:14px 14px 10px 16px;flex:1;display:flex;flex-direction:column">
         <div class="todo-toolbar">
           <div class="todo-toolbar-left">
-            <div class="ptitle" style="margin-bottom:0;border:none;padding:0">每日工作计划</div>
+            <div class="ptitle" style="margin-bottom:0;border:none;padding:0">每日固定安排</div>
+            <span id="s-todo-summary" style="font-size:10px;color:var(--ink-m);font-family:var(--mo)"></span>
             <button class="tpl-quick-btn" onclick="openTplModal()" title="打开模板管理">📋 套用模板</button>
           </div>
-          <button class="copy-all-btn" id="copy-todos-btn" onclick="copyAllTodos(this)" title="复制全部每日工作计划">⎘ 全部复制</button>
+          <button class="copy-all-btn" id="copy-todos-btn" onclick="copyAllTodos(this)" title="复制全部每日固定安排">⎘ 全部复制</button>
+          <button class="clear-day-btn" onclick="clearAllDay()" title="一键清除当天所有事项">🗑 清除全天</button>
         </div>
         <div class="tlist" id="tlist"></div>
         <div style="margin-top:6px">
-          <button class="addbtn" onclick="addTodo()">＋ 添加工作计划</button>
+          <button class="addbtn" onclick="addTodo()">＋ 添加固定安排</button>
         </div>
         <!-- 其他事项 -->
         <div class="todo-toolbar" style="margin-top:14px">
           <div class="todo-toolbar-left">
             <div class="ptitle" style="margin-bottom:0;border:none;padding:0">临时事项</div>
-            <button class="tpl-quick-btn" onclick="openOtaskTplPicker()" title="从模板套用临时事项">📋 套用模板</button>
           </div>
           <button class="copy-all-btn" id="copy-otasks-btn" onclick="copyAllOtasks(this)" title="复制全部临时事项">⎘ 全部复制</button>
         </div>
@@ -715,7 +742,6 @@ body.dark-mode .apv-note-ta{background:var(--paper-l);color:var(--ink)}
             <span><span style="display:inline-block;padding:1px 5px;background:rgba(107,63,160,.18);color:#3d1878;border-radius:3px;font-size:9px;font-family:var(--mo)">临时</span></span>
             <span><span style="display:inline-block;padding:1px 5px;background:rgba(245,158,11,.18);color:#78350f;border-radius:3px;font-size:9px;font-family:var(--mo)">未完成</span></span>
             <span><span style="display:inline-block;padding:1px 5px;background:rgba(42,92,63,.2);color:#1a4830;border-radius:3px;font-size:9px;font-family:var(--mo)">补完</span></span>
-
           </div>
         </div>
         <div class="utl-wrap" style="flex:1">
@@ -851,7 +877,7 @@ body.dark-mode .apv-note-ta{background:var(--paper-l);color:var(--ink)}
   <div class="tpl-box">
     <div class="tpl-head">
       <div>
-        <div class="tpl-head-title">📋 计划模板 <span class="tpl-head-badge" id="tpl-count">0 个</span><span id="tpl-filter-badge" style="display:none;font-size:10px;color:var(--bl);background:rgba(14,165,233,.12);padding:2px 8px;border-radius:3px;margin-left:6px;font-family:var(--ss);font-weight:400">📌 临时事项模式</span></div>
+        <div class="tpl-head-title">📋 固定安排模板 <span class="tpl-head-badge" id="tpl-count">0 个</span></div>
       </div>
       <button class="tpl-close" onclick="closeTplModal()">×</button>
     </div>
@@ -860,13 +886,13 @@ body.dark-mode .apv-note-ta{background:var(--paper-l);color:var(--ink)}
         <div class="tpl-sidebar-head">我的模板</div>
         <div class="tpl-list" id="tpl-list"></div>
         <button class="tpl-new-btn" onclick="tplNew()">＋ 新建模板</button>
-        <button class="tpl-new-btn tpl-save-today-btn" onclick="tplSaveToday()" title="把当前日期的所有计划事项保存为新模板">📥 今日计划→模板</button>
+        <button class="tpl-new-btn tpl-save-today-btn" onclick="tplSaveToday()" title="把当前日期的固定安排保存为新模板">📥 今日安排→模板</button>
       </div>
       <div class="tpl-content" id="tpl-content">
         <div class="tpl-empty" id="tpl-empty">
           <div class="tpl-empty-icon">📋</div>
           <div style="font-weight:500">选择或新建一个模板</div>
-          <div style="font-size:11px;opacity:.6;text-align:center;line-height:1.7">模板可保存固定的计划事项<br>每次套用时可单独修改备注</div>
+          <div style="font-size:11px;opacity:.6;text-align:center;line-height:1.7">模板可保存固定的每日安排<br>每次套用时可单独修改备注</div>
         </div>
         <div id="tpl-editor" style="display:none;flex-direction:column;gap:0;overflow:hidden;flex:1;min-height:0">
           <!-- 模板名 + 保存 -->
@@ -880,7 +906,7 @@ body.dark-mode .apv-note-ta{background:var(--paper-l);color:var(--ink)}
             <div class="tpl-section">
               <div class="tpl-section-hdr">
                 <span class="tpl-section-dot" style="background:var(--ac)"></span>
-                <span class="tpl-section-title">每日工作计划</span>
+                <span class="tpl-section-title">每日固定安排</span>
                 <span class="tpl-section-hint">可设置计划时间和默认备注</span>
               </div>
               <div class="tpl-col-heads">
@@ -890,33 +916,7 @@ body.dark-mode .apv-note-ta{background:var(--paper-l);color:var(--ink)}
                 <div></div>
               </div>
               <div class="tpl-todo-list" id="tpl-todo-list"></div>
-              <button class="tpl-add-row-btn" onclick="tplAddRow('todo')">＋ 添加工作计划</button>
-            </div>
-            <!-- 临时事项区 -->
-            <div class="tpl-section">
-              <div class="tpl-section-hdr">
-                <span class="tpl-section-dot" style="background:var(--bl)"></span>
-                <span class="tpl-section-title">临时事项</span>
-                <span class="tpl-section-hint">可设置计划时间</span>
-              </div>
-              <div class="tpl-col-heads" style="grid-template-columns:1fr 70px 70px 26px">
-                <div class="tpl-col-head" style="padding-left:22px">标题</div>
-                <div class="tpl-col-head">开始</div>
-                <div class="tpl-col-head">结束</div>
-                <div></div>
-              </div>
-              <div class="tpl-todo-list" id="tpl-otask-list"></div>
-              <button class="tpl-add-row-btn" onclick="tplAddRow('otask')">＋ 添加临时事项</button>
-            </div>
-            <!-- 小任务区 -->
-            <div class="tpl-section">
-              <div class="tpl-section-hdr">
-                <span class="tpl-section-dot" style="background:var(--am)"></span>
-                <span class="tpl-section-title">小任务</span>
-                <span class="tpl-section-hint">仅标题，快速勾选</span>
-              </div>
-              <div class="tpl-todo-list" id="tpl-memo-list"></div>
-              <button class="tpl-add-row-btn" onclick="tplAddRow('memo')">＋ 添加小任务</button>
+              <button class="tpl-add-row-btn" onclick="tplAddRow('todo')">＋ 添加固定安排</button>
             </div>
           </div>
           <!-- 操作栏 -->
@@ -1037,10 +1037,11 @@ function gather(){
   document.querySelectorAll('.tcard').forEach((c,i)=>{
     const esec=c.querySelector('.esec');
     const actualSegs=[...c.querySelectorAll('.todo-segs .time-seg')].map(s=>({start:s.querySelector('.seg-s')?.value||'',end:s.querySelector('.seg-e')?.value||''})).filter(s=>s.start||s.end);
+    const noteChecklist=[...c.querySelectorAll('.todo-checklist .note-cl-row')].map(r=>({text:r.querySelector('.note-cl-inp')?.value||'',done:r.querySelector('.note-cl-dot')?.classList.contains('ck')||false})).filter(r=>r.text);
     todos.push({
       id:c.dataset.id,text:c.querySelector('.ttxt')?.value||'',
       planStart:c.querySelector('.eps')?.value||'',planEnd:c.querySelector('.epe')?.value||'',
-      actualSegs,
+      actualSegs,noteChecklist,
       priority:parseInt(c.dataset.priority)||i+1,done:c.classList.contains('done'),
       note:c.querySelector('.enote')?.value||'',
       execOpen:esec?esec.style.display!=='none':true,
@@ -1055,7 +1056,8 @@ function gather(){
     const v=el.querySelector('.otask-txt')?.value||'';
     const exec=el.querySelector('.otask-exec');
     const actualSegs=[...el.querySelectorAll('.otask-segs-wrap .time-seg')].map(s=>({start:s.querySelector('.seg-s')?.value||'',end:s.querySelector('.seg-e')?.value||''})).filter(s=>s.start||s.end);
-    if(v)otasks.push({text:v,done:el.classList.contains('ck'),actualSegs,planStart:el.querySelector('.ops')?.value||'',planEnd:el.querySelector('.ope')?.value||'',note:el.querySelector('.otnote')?.value||'',execOpen:exec?exec.style.display!=='none':false,movedToNext:el.dataset.movedToNext||'',deferredFrom:el.dataset.deferredFrom||''});
+    const noteChecklist=[...el.querySelectorAll('.otask-checklist .note-cl-row')].map(r=>({text:r.querySelector('.note-cl-inp')?.value||'',done:r.querySelector('.note-cl-dot')?.classList.contains('ck')||false})).filter(r=>r.text);
+    if(v)otasks.push({text:v,done:el.classList.contains('ck'),actualSegs,noteChecklist,planStart:el.querySelector('.ops')?.value||'',planEnd:el.querySelector('.ope')?.value||'',note:el.querySelector('.otnote')?.value||'',execOpen:exec?exec.style.display!=='none':false,movedToNext:el.dataset.movedToNext||'',deferredFrom:el.dataset.deferredFrom||''});
   });
   const memos=[];
   document.querySelectorAll('.memo-item').forEach(el=>{
@@ -1090,6 +1092,12 @@ function checkStorageUsage(){
 
 // ── VIEWS ──
 function switchView(v,btn){
+  // Save current daily data before switching so weekly/monthly are in sync
+  const dailyView=document.getElementById('view-daily');
+  if(dailyView&&dailyView.classList.contains('active')&&v!=='daily'){
+    const data=gather();
+    localStorage.setItem(gkey(currentDate),JSON.stringify(data));
+  }
   document.querySelectorAll('.vw').forEach(e=>e.classList.remove('active'));
   document.querySelectorAll('.nb').forEach(e=>e.classList.remove('active'));
   document.getElementById('view-'+v).classList.add('active');
@@ -1302,6 +1310,14 @@ function renderUnifiedTimeline(){
   });
 
   // ── 4. Column header ──
+  // 空状态提示
+  if(events.length===0){
+    const empty=document.createElement('div');
+    empty.style.cssText='display:flex;flex-direction:column;align-items:center;justify-content:center;flex:1;padding:40px 20px;gap:8px;opacity:.45';
+    empty.innerHTML=`<div style="font-size:32px">📭</div><div style="font-size:12px;color:var(--ink-m);font-family:var(--ss);text-align:center;line-height:1.8">今日暂无带时间的安排<br>填写计划/实际时间后会显示在这里</div>`;
+    rows.appendChild(empty);
+    return;
+  }
   // 冲突汇总条
   if(conflictPairs.length>0){
     const bar=document.createElement('div');bar.className='utl-conflict-bar';
@@ -1594,7 +1610,8 @@ function buildCard(pre){
   if(pre?.isMakeup) c.dataset.isMakeup='1';
   if(pre?.completedDate) c.dataset.completedDate=pre.completedDate;
   if(pre?.movedToNext) c.dataset.movedToNext=pre.movedToNext;
-  const pc=priority===1?'':(priority===2?' p2':' p3');
+  const priClasses=['','p2','p3','p4','p5','p6','p7'];
+  const pc=priority<=1?'':(' '+(priClasses[Math.min(priority-1,6)]));
 
   c.innerHTML=`
 <div class="ttop">
@@ -1627,7 +1644,13 @@ function buildCard(pre){
   </div>
   <div class="time-segs todo-segs"></div>
   <button class="add-seg-btn" onclick="addTodoSeg(this)">＋ 添加实际时间段</button>
-  <textarea class="enote" placeholder="备注：遇到什么问题？如何解决？" oninput="saveDayData();renderUnifiedTimeline()" style="margin-top:5px">${pre?.note||''}</textarea>
+  <div class="note-cl-wrap" style="margin-top:6px">
+    <div style="font-size:9px;color:var(--ink-m);letter-spacing:.5px;margin-bottom:3px;display:flex;align-items:center;gap:5px">备注要点 <span style="opacity:.4;font-size:8px">· 点击圆圈打钩</span></div>
+    <div class="note-checklist todo-checklist"></div>
+    <button class="note-cl-add" onclick="addNoteClRow(this.closest('.tcard'),'todo')">＋ 添加要点</button>
+    <div class="note-cl-divider"></div>
+  </div>
+  <textarea class="enote" placeholder="自由备注…" oninput="saveDayData();renderUnifiedTimeline()" style="margin-top:2px">${pre?.note||''}</textarea>
 </div>`;
   list.appendChild(c);
   ar(c.querySelector('.ttxt'));
@@ -1637,6 +1660,9 @@ function buildCard(pre){
   c.ondragover=ev=>todoDragOver(ev,c);
   c.ondrop=ev=>todoDrop(ev,c);
   c.ondragend=()=>todoDragEnd(c);
+  // Restore saved checklist items
+  const clContainer=c.querySelector('.todo-checklist');
+  (pre?.noteChecklist||[]).forEach(item=>addNoteClRowEl(clContainer,'todo',c,item.text,item.done));
   // Restore saved segments
   const segsContainer=c.querySelector('.todo-segs');
   const segs=pre?.actualSegs||(pre?.actualStart?[{start:pre.actualStart,end:pre.actualEnd||''}]:[]);
@@ -1861,7 +1887,8 @@ function onTodoActualTimeChange(inp){
 }
 function cyclePri(el){
   const c=el.closest('.tcard');let p=parseInt(c.dataset.priority)||1;p=p>=3?1:p+1;
-  c.dataset.priority=p;el.textContent=p;el.className='tpri'+(p===1?'':(p===2?' p2':' p3'));saveDayData();
+  const priClasses=['','p2','p3','p4','p5','p6','p7'];
+  c.dataset.priority=p;el.textContent=p;el.className='tpri'+(p<=1?'':(' '+(priClasses[Math.min(p-1,6)])));saveDayData();
 }
 function moveTd(btn,dir){
   const c=btn.closest('.tcard'),list=c.parentElement,items=[...list.children],idx=items.indexOf(c),tgt=items[idx+dir];
@@ -1873,9 +1900,10 @@ function removeTd(btn){
   c.remove();reindex();saveDayData();updateStats();renderUnifiedTimeline();
 }
 function reindex(){
+  const priClasses=['','p2','p3','p4','p5','p6','p7'];
   document.querySelectorAll('.tcard').forEach((c,i)=>{
     c.dataset.priority=i+1;const b=c.querySelector('.tpri');
-    b.textContent=i+1;b.className='tpri'+(i===0?'':(i===1?' p2':' p3'));
+    b.textContent=i+1;b.className='tpri'+(i===0?'':(' '+(priClasses[Math.min(i,6)])));
   });
 }
 function updateStats(){
@@ -1891,6 +1919,12 @@ function updateStats(){
   if(document.getElementById('s-done'))document.getElementById('s-done').textContent=dn.length;
   if(document.getElementById('s-rate'))document.getElementById('s-rate').textContent=cs.length?Math.round(dn.length/cs.length*100)+'%':'0%';
   if(document.getElementById('s-other'))document.getElementById('s-other').textContent=otDone+'/'+otTotal+(memoTotal?' (+'+memoDone+'/'+memoTotal+')':'');
+  // 固定安排完成小计徽章（标题旁边）
+  const summaryEl=document.getElementById('s-todo-summary');
+  if(summaryEl){
+    if(cs.length>0){summaryEl.textContent=dn.length+'/'+cs.length+' 完成';summaryEl.style.color=dn.length===cs.length?'var(--gr)':'var(--ink-m)';}
+    else summaryEl.textContent='';
+  }
   // 计划总时长
   let planMins=0;
   cs.forEach(c=>{
@@ -1921,6 +1955,67 @@ function updateStats(){
   }
 }
 function ar(el){el.style.height='auto';el.style.height=el.scrollHeight+'px'}
+
+// ── NOTE CHECKLIST ──
+function addNoteClRow(container, type){
+  // container is .tcard or .otask div
+  const listEl = container.querySelector(type==='todo' ? '.todo-checklist' : '.otask-checklist');
+  if(!listEl) return;
+  addNoteClRowEl(listEl, type, container, '', false);
+  // focus the new input
+  const rows = listEl.querySelectorAll('.note-cl-inp');
+  if(rows.length) rows[rows.length-1].focus();
+  saveDayData();
+}
+
+function addNoteClRowEl(listEl, type, card, text, done){
+  const row = document.createElement('div');
+  row.className = 'note-cl-row';
+
+  const dot = document.createElement('div');
+  dot.className = 'note-cl-dot' + (done ? ' ck' : '');
+  dot.textContent = done ? '✓' : '';
+  dot.title = done ? '点击取消' : '点击完成';
+
+  const inp = document.createElement('input');
+  inp.type = 'text';
+  inp.className = 'note-cl-inp' + (done ? ' done-txt' : '');
+  inp.placeholder = '要点内容…';
+  inp.value = text;
+
+  const del = document.createElement('button');
+  del.className = 'note-cl-del';
+  del.title = '删除';
+  del.textContent = '×';
+
+  dot.onclick = () => {
+    const isDone = dot.classList.toggle('ck');
+    dot.textContent = isDone ? '✓' : '';
+    dot.title = isDone ? '点击取消' : '点击完成';
+    inp.classList.toggle('done-txt', isDone);
+    saveDayData();
+  };
+
+  inp.addEventListener('input', () => saveDayData());
+  inp.addEventListener('keydown', e => {
+    if(e.key === 'Enter'){
+      e.preventDefault();
+      addNoteClRow(card, type);
+    }
+    if(e.key === 'Backspace' && inp.value === ''){
+      e.preventDefault();
+      row.remove();
+      saveDayData();
+    }
+  });
+
+  del.onclick = () => { row.remove(); saveDayData(); };
+
+  row.appendChild(dot);
+  row.appendChild(inp);
+  row.appendChild(del);
+  listEl.appendChild(row);
+}
 
 // ── OTHER TASKS ──
 function addOtask(pre){
@@ -2019,10 +2114,17 @@ function addOtask(pre){
   oSegs.forEach(s=>addOtaskSegRow(segsWrap,div,chk,s.start,s.end));
 
   const noteTA=document.createElement('textarea');noteTA.className='otnote';
-  noteTA.placeholder='备注：遇到什么问题？如何解决？';noteTA.value=pre?.note||'';
+  noteTA.placeholder='自由备注…';noteTA.value=pre?.note||'';
   noteTA.addEventListener('input',()=>{saveDayData();renderUnifiedTimeline()});
 
-  execSec.appendChild(planRow);execSec.appendChild(segsWrap);execSec.appendChild(addSegBtn);execSec.appendChild(noteTA);
+  // Note checklist for otask
+  const clWrap=document.createElement('div');clWrap.className='note-cl-wrap';clWrap.style.marginTop='6px';
+  clWrap.innerHTML=`<div style="font-size:9px;color:var(--ink-m);letter-spacing:.5px;margin-bottom:3px;display:flex;align-items:center;gap:5px">备注要点 <span style="opacity:.4;font-size:8px">· 点击圆圈打钩</span></div><div class="note-checklist otask-checklist"></div><button class="note-cl-add">＋ 添加要点</button><div class="note-cl-divider"></div>`;
+  clWrap.querySelector('.note-cl-add').onclick=()=>addNoteClRow(div,'otask');
+  const otClContainer=clWrap.querySelector('.otask-checklist');
+  (pre?.noteChecklist||[]).forEach(item=>addNoteClRowEl(otClContainer,'otask',div,item.text,item.done));
+
+  execSec.appendChild(planRow);execSec.appendChild(segsWrap);execSec.appendChild(addSegBtn);execSec.appendChild(clWrap);execSec.appendChild(noteTA);
   div.appendChild(topRow);div.appendChild(execSec);
   list.appendChild(div);
   // init badge
@@ -2820,9 +2922,6 @@ function openTplModal(filterMode) {
   tplFilterMode = filterMode || null;
   document.getElementById('tpl-modal').classList.add('open');
   tplRenderList();
-  // 更新模态框标题提示
-  const badge = document.getElementById('tpl-filter-badge');
-  if (badge) badge.style.display = tplFilterMode === 'otask' ? 'inline-block' : 'none';
   document.getElementById('tpl-modal').onclick = e => {
     if (e.target === document.getElementById('tpl-modal')) closeTplModal();
   };
@@ -2830,8 +2929,6 @@ function openTplModal(filterMode) {
 function closeTplModal() {
   document.getElementById('tpl-modal').classList.remove('open');
   tplFilterMode = null;
-  const badge = document.getElementById('tpl-filter-badge');
-  if (badge) badge.style.display = 'none';
 }
 function tplRenderList() {
   const arr = tplLoadAll();
@@ -2841,11 +2938,12 @@ function tplRenderList() {
   arr.forEach(tpl => {
     const el = document.createElement('div');
     el.className = 'tpl-item' + (tpl.id === tplCurrentId ? ' active' : '');
-    const tc = (tpl.todos||[]).length, oc = (tpl.otasks||[]).length, mc = (tpl.memos||[]).length;
+    const tc = (tpl.todos||[]).length;
+    const legacyOc = (tpl.otasks||[]).length;
+    const legacyMc = (tpl.memos||[]).length;
     const parts = [];
-    if(tc) parts.push(`<span style="color:var(--ac)">${tc}计划</span>`);
-    if(oc) parts.push(`<span style="color:var(--bl)">${oc}其他</span>`);
-    if(mc) parts.push(`<span style="color:var(--am)">${mc}小任务</span>`);
+    if(tc) parts.push(`<span style="color:var(--ac)">${tc}项固定安排</span>`);
+    if(legacyOc||legacyMc) parts.push(`<span style="color:var(--ink-m);font-size:9px" title="旧版模板含临时/小任务数据，套用时不会导入">含旧数据</span>`);
     const meta = parts.length ? parts.join('<span style="opacity:.4"> · </span>') : '<span style="opacity:.5">空模板</span>';
     el.innerHTML = `<div class="tpl-item-name">${tpl.name||'未命名'}</div><div class="tpl-item-meta">${meta}</div>`;
     el.onclick = () => tplSelect(tpl.id);
@@ -2867,14 +2965,10 @@ function tplShowEditor(tpl) {
   const ed = document.getElementById('tpl-editor');
   ed.style.display = 'flex';
   document.getElementById('tpl-name-inp').value = tpl.name || '';
-  // Clear all three lists
+  // Clear todo list only
   document.getElementById('tpl-todo-list').innerHTML = '';
-  document.getElementById('tpl-otask-list').innerHTML = '';
-  document.getElementById('tpl-memo-list').innerHTML = '';
-  // Populate by type
+  // Populate todos only (otasks and memos are independent per-day)
   (tpl.todos || []).forEach(t => tplAddRow('todo', t));
-  (tpl.otasks || []).forEach(o => tplAddRow('otask', o));
-  (tpl.memos || []).forEach(m => tplAddRow('memo', m));
 }
 function tplNew() {
   const id = 'tpl_' + Date.now();
@@ -2961,8 +3055,7 @@ function tplSave() {
   arr[idx].name = document.getElementById('tpl-name-inp').value.trim() || '未命名模板';
   const rows = tplGatherRows();
   arr[idx].todos = rows.todos;
-  arr[idx].otasks = rows.otasks;
-  arr[idx].memos = rows.memos;
+  // Keep existing otasks/memos in template data for backward compatibility
   tplSaveAll(arr);
   tplRenderList();
   const btn = document.querySelector('.tpl-save-btn');
@@ -2989,8 +3082,8 @@ function tplOpenApplyPreview(mode) {
   apvTargetToday = (mode === 'today');
   const arr = tplLoadAll();
   const tpl = arr.find(t => t.id === tplCurrentId);
-  const totalItems = (tpl?.todos||[]).length + (tpl?.otasks||[]).length + (tpl?.memos||[]).length;
-  if (!tpl || totalItems === 0) { alert('模板为空，请先添加事项'); return; }
+  const totalItems = (tpl?.todos||[]).length;
+  if (!tpl || totalItems === 0) { alert('模板为空，请先添加固定安排事项'); return; }
 
   // 临时事项模式下校验是否有临时事项
   if (tplFilterMode === 'otask' && !(tpl.otasks||[]).length) {
@@ -3045,18 +3138,16 @@ function tplOpenApplyPreview(mode) {
     body.appendChild(sec);
   }
 
-  // 根据 filterMode 决定渲染哪些分组
-  if (tplFilterMode === 'otask') {
-    renderGroup(tpl.otasks||[], 'otask', exOtasks, 'var(--bl)', '临时事项');
+  // 模板只套用每日固定安排（todos），不套用临时事项和小任务
+  if (tplFilterMode !== 'otask') {
+    renderGroup(tpl.todos||[], 'todo', exTodos, 'var(--ac)', '每日固定安排');
   } else {
-    renderGroup(tpl.todos||[], 'todo', exTodos, 'var(--ac)', '工作计划');
     renderGroup(tpl.otasks||[], 'otask', exOtasks, 'var(--bl)', '临时事项');
-    renderGroup(tpl.memos||[], 'memo', exMemos, 'var(--am)', '小任务');
   }
 
   const relevantItems = tplFilterMode === 'otask'
     ? (tpl.otasks||[])
-    : [...(tpl.todos||[]),...(tpl.otasks||[]),...(tpl.memos||[])];
+    : [...(tpl.todos||[])];  // template only applies todos now
   const totalDups = relevantItems.filter(t=>
     exTodos.includes(t.text)||exOtasks.includes(t.text)||exMemos.includes(t.text)).length;
   document.getElementById('apv-hint').textContent = totalDups ? `${totalDups} 项已存在将跳过` : '';
@@ -3150,24 +3241,19 @@ function apvConfirm() {
 function tplSaveToday(){
   const data=load(currentDate)||{};
   const todos=(data.todos||[]).filter(t=>t.text&&t.text.trim());
-  const otasks=(data.otasks||[]).filter(o=>o.text&&o.text.trim());
-  const memos=(data.memos||[]).filter(m=>m.text&&m.text.trim());
-  if(!todos.length&&!otasks.length&&!memos.length){
-    alert('当前日期没有任何计划事项、临时事项或小任务，无法保存为模板');return;
+  if(!todos.length){
+    alert('当前日期没有任何固定安排，无法保存为模板');return;
   }
   const dateStr=`${currentDate.getMonth()+1}月${currentDate.getDate()}日`;
-  const name=prompt(`模板名称：`,`${dateStr}的工作模板`);
+  const name=prompt(`模板名称：`,`${dateStr}的固定安排模板`);
   if(name===null)return;
-  const finalName=name.trim()||`${dateStr}的工作模板`;
+  const finalName=name.trim()||`${dateStr}的固定安排模板`;
 
-  // 三类分开存储
   const tplTodos=todos.map(t=>({text:t.text,planStart:t.planStart||'',planEnd:t.planEnd||'',note:t.note||''}));
-  const tplOtasks=otasks.map(o=>({text:o.text,planStart:o.planStart||'',planEnd:o.planEnd||'',note:o.note||''}));
-  const tplMemos=memos.map(m=>({text:m.text}));
 
   const id='tpl_'+Date.now();
   const arr=tplLoadAll();
-  arr.push({id,name:finalName,todos:tplTodos,otasks:tplOtasks,memos:tplMemos,createdFrom:fmt(currentDate)});
+  arr.push({id,name:finalName,todos:tplTodos,otasks:[],memos:[],createdFrom:fmt(currentDate)});
   tplSaveAll(arr);
   tplCurrentId=id;
   tplRenderList();
@@ -3177,6 +3263,19 @@ function tplSaveToday(){
   toast.textContent=`✓ 已保存为模板「${finalName}」`;
   toast.classList.add('show');
   setTimeout(()=>{toast.classList.remove('show');toast.textContent='已保存';toast.style.background='';},2200);
+}
+
+// ── CLEAR ALL DAY ──
+function clearAllDay(){
+  if(!confirm('确定要清除当天所有事项吗？\n（每日固定安排、临时事项、小任务全部清空）'))return;
+  document.getElementById('tlist').innerHTML='';
+  document.getElementById('otask-list').innerHTML='';
+  document.getElementById('memo-list').innerHTML='';
+  saveDayData();updateStats();renderUnifiedTimeline();
+  const toast=document.getElementById('saved');
+  toast.style.background='#ef4444';toast.textContent='已清除全部事项';
+  toast.classList.add('show');
+  setTimeout(()=>{toast.classList.remove('show');toast.textContent='已保存';toast.style.background='';},2000);
 }
 
 // ── DARK MODE ──
