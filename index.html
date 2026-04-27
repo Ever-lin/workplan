@@ -716,6 +716,7 @@ body.dark-mode .snap-item:hover{background:var(--ac-p)}
     <button class="snap-btn" id="snap-undo-btn" onclick="openSnapModal()" title="撤销 / 恢复历史版本" disabled>↩ 撤销</button>
     <button class="tpl-btn" onclick="openTplModal()" title="计划模板">📋 模板</button>
     <button class="hbtn" onclick="toggleExport()">导出 ↓</button>
+    <button class="hbtn" id="full-backup-btn" onclick="openFullBackupModal()" title="一键备份所有数据为 JSON，防止数据丢失" style="background:rgba(16,185,129,.18);border-color:rgba(16,185,129,.5);font-weight:600;display:flex;align-items:center;gap:5px">💾 <span id="full-backup-ts" style="font-size:11px;opacity:.8"></span></button>
   </div>
 </header>
 
@@ -4050,6 +4051,176 @@ initDarkMode();
 initTitle();
 renderDaily();
 checkStorageUsage();
+
+// ══════════════════════════════════════════════
+// 一键完整备份
+// ══════════════════════════════════════════════
+const FULL_BACKUP_TS_KEY = 'full_backup_ts';
+
+function _buildFullBackupBundle() {
+  const bundle = { _version: 1, _app: 'work-plan', _exportedAt: new Date().toISOString(), _keys: {} };
+  for (let i = 0; i < localStorage.length; i++) {
+    const k = localStorage.key(i);
+    if (!k) continue;
+    try { bundle._keys[k] = JSON.parse(localStorage.getItem(k)); }
+    catch { bundle._keys[k] = localStorage.getItem(k); }
+  }
+  return bundle;
+}
+
+function doFullBackup() {
+  const bundle = _buildFullBackupBundle();
+  const dateStr = new Date().toISOString().slice(0,10);
+  const timeStr = new Date().toTimeString().slice(0,5).replace(':','-');
+  const json = JSON.stringify(bundle, null, 2);
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([json], {type:'application/json'}));
+  a.download = `工作计划完整备份_${dateStr}_${timeStr}.json`;
+  a.click();
+  URL.revokeObjectURL(a.href);
+  localStorage.setItem(FULL_BACKUP_TS_KEY, Date.now().toString());
+  updateFullBackupBtn();
+}
+
+function updateFullBackupBtn() {
+  const el = document.getElementById('full-backup-ts');
+  if (!el) return;
+  const ts = localStorage.getItem(FULL_BACKUP_TS_KEY);
+  if (!ts) { el.textContent = '一键备份'; return; }
+  const diff = Math.round((Date.now() - parseInt(ts)) / 60000);
+  if (diff < 1) el.textContent = '一键备份 · 刚备份';
+  else if (diff < 60) el.textContent = `一键备份 · ${diff}m前`;
+  else if (diff < 1440) el.textContent = `一键备份 · ${Math.round(diff/60)}h前`;
+  else el.textContent = `一键备份 · ${Math.round(diff/1440)}d前`;
+  const btn = document.getElementById('full-backup-btn');
+  if (btn) {
+    if (diff > 120) {
+      btn.style.background = 'rgba(245,158,11,.18)';
+      btn.style.borderColor = 'rgba(245,158,11,.5)';
+    } else {
+      btn.style.background = 'rgba(16,185,129,.18)';
+      btn.style.borderColor = 'rgba(16,185,129,.5)';
+    }
+  }
+}
+
+function handleFullRestore(e) {
+  const file = e.target.files[0]; if (!file) return;
+  const r = new FileReader();
+  r.onload = ev => {
+    let bundle;
+    try { bundle = JSON.parse(ev.target.result); }
+    catch { cdlgAlert('❌ 文件解析失败：不是合法的 JSON 格式'); e.target.value=''; return; }
+    if (!bundle._version || !bundle._keys) {
+      cdlgAlert('❌ 格式不符：请选择由本工具「一键备份」导出的 JSON 文件');
+      e.target.value=''; return;
+    }
+    cdlgConfirm(`即将用备份文件恢复全部数据，当前数据将被覆盖。\n备份时间：${bundle._exportedAt||'未知'}\n\n确认继续？`, '恢复完整备份', true).then(ok => {
+      if (!ok) { e.target.value=''; return; }
+      Object.entries(bundle._keys).forEach(([k, v]) => {
+        try { localStorage.setItem(k, typeof v === 'string' ? v : JSON.stringify(v)); }
+        catch {}
+      });
+      e.target.value='';
+      closeFullBackupModal();
+      renderDaily();
+      checkStorageUsage();
+      initTitle();
+      initDarkMode();
+      cdlgAlert('✅ 恢复成功！所有数据已还原。');
+    });
+  };
+  r.readAsText(file);
+}
+
+function openFullBackupModal() {
+  // Count data
+  let planDays = 0, snapDays = 0, templates = 0;
+  for (let i = 0; i < localStorage.length; i++) {
+    const k = localStorage.key(i);
+    if (k && k.startsWith('plan_')) planDays++;
+    if (k && k.startsWith('snap_')) snapDays++;
+  }
+  try { templates = (JSON.parse(localStorage.getItem('todo_templates') || '[]')).length; } catch {}
+  const siteName = localStorage.getItem('site_name') || '工作计划';
+
+  const pct = storageUsage();
+  document.getElementById('fbk-days').textContent = planDays;
+  document.getElementById('fbk-snaps').textContent = snapDays;
+  document.getElementById('fbk-tpls').textContent = templates;
+  document.getElementById('fbk-name').textContent = siteName;
+  document.getElementById('fbk-storage').textContent = pct + '%';
+
+  const ts = localStorage.getItem(FULL_BACKUP_TS_KEY);
+  const lastEl = document.getElementById('fbk-lastbackup');
+  if (ts) {
+    const diff = Math.round((Date.now() - parseInt(ts)) / 60000);
+    const dtStr = new Date(parseInt(ts)).toLocaleString('zh-CN', {month:'numeric',day:'numeric',hour:'2-digit',minute:'2-digit'});
+    const warn = diff > 60;
+    lastEl.innerHTML = `${warn?'⚠️':'✅'} 上次备份：${dtStr}（${diff<60?diff+'分钟前':Math.round(diff/60)+'小时前'}）`;
+    lastEl.style.cssText = `font-size:11px;padding:6px 10px;border-radius:3px;border:1px solid;${warn?'background:#fef3c7;color:#92400e;border-color:#f59e0b':'background:#d1fae5;color:#065f46;border-color:#10b981'}`;
+  } else {
+    lastEl.innerHTML = '⚠️ 尚未备份过，建议立即备份以防数据丢失';
+    lastEl.style.cssText = 'font-size:11px;padding:6px 10px;border-radius:3px;border:1px solid;background:#fee2e2;color:#991b1b;border-color:#f87171';
+  }
+  document.getElementById('full-backup-modal').style.display = 'flex';
+}
+
+function closeFullBackupModal() {
+  document.getElementById('full-backup-modal').style.display = 'none';
+}
+
+updateFullBackupBtn();
+setInterval(updateFullBackupBtn, 60000);
 </script>
+<!-- ═══ FULL BACKUP MODAL ═══ -->
+<div id="full-backup-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:9999;align-items:center;justify-content:center" onclick="if(event.target===this)closeFullBackupModal()">
+  <div style="background:var(--card-bg);border-radius:10px;box-shadow:0 12px 48px rgba(0,0,0,.3);width:380px;max-width:96vw;overflow:hidden;font-family:var(--ss)">
+    <!-- Header -->
+    <div style="background:linear-gradient(135deg,#10b981,#059669);padding:18px 20px;display:flex;align-items:flex-start;justify-content:space-between">
+      <div>
+        <div style="font-size:16px;font-weight:700;color:#fff;letter-spacing:.5px">💾 一键完整备份</div>
+        <div style="font-size:11px;color:rgba(255,255,255,.8);margin-top:3px">导出所有数据为 JSON，随时可完整恢复</div>
+      </div>
+      <button onclick="closeFullBackupModal()" style="background:rgba(255,255,255,.2);border:none;color:#fff;width:28px;height:28px;border-radius:50%;font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;line-height:1">✕</button>
+    </div>
+    <!-- Data summary -->
+    <div style="padding:16px 20px 12px">
+      <div style="font-size:11px;font-weight:600;color:var(--ink-m);letter-spacing:.8px;margin-bottom:10px">本次备份将包含：</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px">
+        <div style="background:var(--paper-w);border:1px solid var(--bdr);border-radius:6px;padding:10px 12px">
+          <div style="font-family:var(--mo);font-size:20px;font-weight:500;color:var(--ac)" id="fbk-days">0</div>
+          <div style="font-size:11px;color:var(--ink-m);margin-top:2px">天计划记录</div>
+        </div>
+        <div style="background:var(--paper-w);border:1px solid var(--bdr);border-radius:6px;padding:10px 12px">
+          <div style="font-family:var(--mo);font-size:20px;font-weight:500;color:var(--bl)" id="fbk-snaps">0</div>
+          <div style="font-size:11px;color:var(--ink-m);margin-top:2px">天历史快照</div>
+        </div>
+        <div style="background:var(--paper-w);border:1px solid var(--bdr);border-radius:6px;padding:10px 12px">
+          <div style="font-family:var(--mo);font-size:20px;font-weight:500;color:var(--gr)" id="fbk-tpls">0</div>
+          <div style="font-size:11px;color:var(--ink-m);margin-top:2px">个计划模板</div>
+        </div>
+        <div style="background:var(--paper-w);border:1px solid var(--bdr);border-radius:6px;padding:10px 12px">
+          <div style="font-family:var(--mo);font-size:13px;font-weight:500;color:var(--ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap" id="fbk-name">—</div>
+          <div style="font-size:11px;color:var(--ink-m);margin-top:2px">站点名称 · 存储 <span id="fbk-storage">0%</span></div>
+        </div>
+      </div>
+      <div id="fbk-lastbackup" style="font-size:11px;padding:6px 10px;border-radius:3px;border:1px solid var(--bdr);background:var(--paper-w);color:var(--ink-m)">检查中…</div>
+    </div>
+    <!-- Actions -->
+    <div style="padding:0 20px 20px;display:flex;flex-direction:column;gap:8px">
+      <button onclick="doFullBackup();closeFullBackupModal()" style="width:100%;padding:11px;background:#10b981;color:#fff;border:none;border-radius:6px;font-size:14px;font-weight:700;cursor:pointer;font-family:var(--ss);display:flex;align-items:center;justify-content:center;gap:6px">💾 立即下载备份文件</button>
+      <div style="display:flex;gap:8px">
+        <label style="flex:1;padding:8px;background:var(--paper-w);color:var(--ink);border:1px solid var(--bdr);border-radius:6px;font-size:12px;cursor:pointer;font-family:var(--ss);display:flex;align-items:center;justify-content:center;gap:4px;transition:all var(--t)" onmouseover="this.style.borderColor='var(--ac)'" onmouseout="this.style.borderColor='var(--bdr)'">
+          📂 从备份恢复
+          <input type="file" accept=".json" style="display:none" onchange="handleFullRestore(event)">
+        </label>
+        <button onclick="closeFullBackupModal()" style="flex:1;padding:8px;background:var(--paper-w);color:var(--ink-m);border:1px solid var(--bdr);border-radius:6px;font-size:12px;cursor:pointer;font-family:var(--ss)">取消</button>
+      </div>
+      <div style="font-size:10px;color:var(--ink-m);text-align:center;line-height:1.6">备份文件包含所有计划、模板、快照及设置<br>清除浏览器缓存后可通过此文件完整恢复</div>
+    </div>
+  </div>
+</div>
+
 </body>
 </html>
