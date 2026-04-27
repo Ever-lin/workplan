@@ -1479,6 +1479,7 @@ function renderUnifiedTimeline(){
 
   document.querySelectorAll('.tcard').forEach(c=>{
     if(c.dataset.isSkipped==='1')return; // 今日未做，不在时间轴显示
+    if(c.dataset.movedToNext)return; // 已移到明天，不在时间轴显示
     const ps=c.querySelector('.eps')?.value||'';
     const pe=c.querySelector('.epe')?.value||'';
     const txt=c.querySelector('.ttxt')?.value||'';
@@ -1519,6 +1520,7 @@ function renderUnifiedTimeline(){
   });
 
   document.querySelectorAll('.otask').forEach(el=>{
+    if(el.dataset.movedToNext)return; // 已移到明天，不在时间轴显示
     const txt=el.querySelector('.otask-txt')?.value||'';
     const noteChecklist=[...el.querySelectorAll('.otask-checklist .note-cl-row')].map(r=>({text:r.querySelector('.note-cl-inp')?.value||'',done:r.querySelector('.note-cl-dot')?.classList.contains('ck')||false})).filter(r=>r.text);
     const done=el.classList.contains('ck');
