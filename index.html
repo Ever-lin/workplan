@@ -4210,11 +4210,9 @@ setInterval(updateFullBackupBtn, 60000);
     <!-- Actions -->
     <div style="padding:0 20px 20px;display:flex;flex-direction:column;gap:8px">
       <button onclick="doFullBackup();closeFullBackupModal()" style="width:100%;padding:11px;background:#10b981;color:#fff;border:none;border-radius:6px;font-size:14px;font-weight:700;cursor:pointer;font-family:var(--ss);display:flex;align-items:center;justify-content:center;gap:6px">💾 立即下载备份文件</button>
+      <input type="file" id="fbk-restore-input" accept=".json" style="display:none" onchange="handleFullRestore(event)">
       <div style="display:flex;gap:8px">
-        <label style="flex:1;padding:8px;background:var(--paper-w);color:var(--ink);border:1px solid var(--bdr);border-radius:6px;font-size:12px;cursor:pointer;font-family:var(--ss);display:flex;align-items:center;justify-content:center;gap:4px;transition:all var(--t)" onmouseover="this.style.borderColor='var(--ac)'" onmouseout="this.style.borderColor='var(--bdr)'">
-          📂 从备份恢复
-          <input type="file" accept=".json" style="display:none" onchange="handleFullRestore(event)">
-        </label>
+        <button onclick="document.getElementById('fbk-restore-input').click()" style="flex:1;padding:8px;background:var(--paper-w);color:var(--ink);border:1px solid var(--bdr);border-radius:6px;font-size:12px;cursor:pointer;font-family:var(--ss);display:flex;align-items:center;justify-content:center;gap:4px">📂 从备份恢复</button>
         <button onclick="closeFullBackupModal()" style="flex:1;padding:8px;background:var(--paper-w);color:var(--ink-m);border:1px solid var(--bdr);border-radius:6px;font-size:12px;cursor:pointer;font-family:var(--ss)">取消</button>
       </div>
       <div style="font-size:10px;color:var(--ink-m);text-align:center;line-height:1.6">备份文件包含所有计划、模板、快照及设置<br>清除浏览器缓存后可通过此文件完整恢复</div>
