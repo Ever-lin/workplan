@@ -491,7 +491,7 @@ body.dark-mode .goal-input{background:var(--paper-l);color:var(--ink)}
 /* MONTHLY */
 .mgrid{display:grid;grid-template-columns:repeat(7,1fr);gap:3px;margin-top:12px}
 .mhdr{text-align:center;font-size:11px;color:var(--ink-m);padding:3px 0;letter-spacing:1px}
-.mc{min-height:110px;border:1px solid var(--bdr);border-radius:2px;padding:5px 6px;background:white;cursor:pointer;transition:all var(--t);vertical-align:top}
+.mc{min-height:120px;border:1px solid var(--bdr);border-radius:2px;padding:5px 6px;background:white;cursor:pointer;transition:all var(--t);vertical-align:top;height:auto}
 .mc:hover{border-color:var(--ac);background:var(--ac-p)}
 .mc.td{border:2px solid var(--ac)}.mc.om{background:var(--paper);opacity:.4;pointer-events:none}
 .mc.mwe{background:rgba(245,158,11,.03)}
@@ -946,15 +946,6 @@ body.dark-mode .snap-item:hover{background:var(--ac-p)}
     <div class="sc b"><div class="sv" id="w-memos">0</div><div class="sl">小任务完成</div></div>
   </div>
   <div id="wgrid" style="display:grid;grid-template-columns:repeat(7,1fr);gap:8px;margin-top:12px"></div>
-  <!-- 本周目标 -->
-  <div class="goal-bar" style="margin-top:12px;margin-bottom:0">
-    <span class="goal-label">🎯 本周目标</span>
-    <input class="goal-input" id="w-goal-inp" placeholder="写下本周想达成的目标…" oninput="saveGoal('w-goal-inp',this.value,true)" maxlength="80">
-    <div class="goal-progress">
-      <div class="goal-bar-track"><div class="goal-bar-fill" id="w-goal-fill" style="width:0%"></div></div>
-      <span class="goal-pct" id="w-goal-pct">0%</span>
-    </div>
-  </div>
 </div>
 </div>
 
@@ -980,15 +971,6 @@ body.dark-mode .snap-item:hover{background:var(--ac-p)}
   </div>
   <!-- 月度摘要面板 -->
   <div id="m-summary" style="display:none;margin-bottom:12px;background:var(--card-bg);border:1px solid var(--bdr);border-radius:4px;overflow:hidden"></div>
-  <!-- 本月目标 -->
-  <div class="goal-bar" id="m-goal-bar">
-    <span class="goal-label">🎯 本月目标</span>
-    <input class="goal-input" id="m-goal-inp" placeholder="写下本月想达成的目标…" oninput="saveGoal('m-goal-inp',this.value,false)" maxlength="100">
-    <div class="goal-progress">
-      <div class="goal-bar-track"><div class="goal-bar-fill" id="m-goal-fill" style="width:0%"></div></div>
-      <span class="goal-pct" id="m-goal-pct">0%</span>
-    </div>
-  </div>
   <div class="mgrid" id="mgrid"></div>
 </div>
 </div>
@@ -1013,7 +995,7 @@ body.dark-mode .snap-item:hover{background:var(--ac-p)}
     <div class="sc b"><div class="sv" id="y-memos">0</div><div class="sl">小任务完成</div></div>
   </div>
   <!-- 年度热力图 -->
-  <div id="y-heatmap-wrap" style="margin-bottom:14px;background:var(--card-bg);border:1px solid var(--bdr);border-radius:4px;padding:14px 16px"></div>
+  <div id="y-heatmap-wrap" style="margin-bottom:14px;background:var(--card-bg);border:1px solid var(--bdr);border-radius:4px;padding:14px 16px;overflow-x:auto"></div>
   <div class="ygrid" id="ygrid"></div>
 </div>
 </div>
@@ -2918,11 +2900,24 @@ function renderWeekly(){
           // 备注要点数
           const cl=item.noteChecklist||[];const clDone=cl.filter(c=>c.done).length;
           const clTag=cl.length?`<span style="font-size:8px;color:var(--ink-m);flex-shrink:0;margin-top:1px">${clDone}/${cl.length}项</span>`:'';
+          const isSkipped=item.isSkipped;
+          const isIncomplete=item.isIncomplete&&!isDone;
+          const isMoved=item.movedToNext;
+          let rowBg='';
+          if(isSkipped) rowBg='background:rgba(239,68,68,.06);';
+          else if(isIncomplete) rowBg='background:rgba(245,158,11,.06);';
+          else if(isMoved) rowBg='background:rgba(107,114,128,.05);';
+          row.style.cssText=`display:flex;align-items:flex-start;gap:5px;padding:3px 0;border-bottom:1px dashed var(--paper-l);${rowBg}`;
+          const skipTag=isSkipped?`<span style="font-size:7px;padding:1px 4px;background:#fee2e2;color:#b91c1c;border-radius:2px;white-space:nowrap;flex-shrink:0;margin-top:1px">× 未做</span>`:'';
+          const incTag=isIncomplete?`<span style="font-size:7px;padding:1px 4px;background:#fef3c7;color:#92400e;border-radius:2px;white-space:nowrap;flex-shrink:0;margin-top:1px">⏳ 未完成</span>`:'';
+          const movedTag=isMoved?`<span style="font-size:7px;padding:1px 4px;background:rgba(107,114,128,.1);color:#6b7280;border-radius:2px;white-space:nowrap;flex-shrink:0;margin-top:1px">→推后</span>`:'';
+          const iconColor=isSkipped?'#ef4444':isIncomplete?'#f59e0b':isDone?doneColor:'var(--bdr)';
+          const iconText=isSkipped?'×':isIncomplete?'⏳':isDone?iconDone:iconPend;
           row.innerHTML=`
-            <span style="color:${isDone?doneColor:'var(--bdr)'};flex-shrink:0;margin-top:2px;font-size:9px">${isDone?iconDone:iconPend}</span>
+            <span style="color:${iconColor};flex-shrink:0;margin-top:2px;font-size:9px">${iconText}</span>
             <div style="flex:1;min-width:0">
-              <div style="font-size:11px;color:${isDone?'var(--ink-m)':'var(--ink)'};${isDone?'text-decoration:line-through;':''}line-height:1.35;word-break:break-all">${item.text}</div>
-              ${(timeTag||actualTag||clTag)?`<div style="display:flex;flex-wrap:wrap;gap:3px;margin-top:2px">${timeTag}${actualTag}${clTag}</div>`:''}
+              <div style="font-size:11px;color:${isSkipped?'#b91c1c':isIncomplete?'#92400e':isDone?'var(--ink-m)':'var(--ink)'};${isDone||isSkipped?'text-decoration:line-through;':''}line-height:1.35;word-break:break-all">${item.text}</div>
+              ${(skipTag||incTag||movedTag||timeTag||actualTag||clTag)?`<div style="display:flex;flex-wrap:wrap;gap:3px;margin-top:2px">${skipTag}${incTag}${movedTag}${timeTag}${actualTag}${clTag}</div>`:''}
               ${item.note&&item.note.trim()?`<div style="font-size:9px;color:var(--ink-m);margin-top:2px;line-height:1.4;font-style:italic">${item.note.trim().slice(0,40)}${item.note.trim().length>40?'…':''}</div>`:''}
             </div>`;
           col.appendChild(row);
@@ -2930,7 +2925,13 @@ function renderWeekly(){
         return col;
       }
 
-      const c1=buildCol(todos,'固定安排','var(--ac)','var(--gr)','✓','○');
+      // 将 todos 按状态分组：skipped 最后，其次 incomplete，正常在前
+      const sortedTodos=[...todos].sort((a,b)=>{
+        const aS=a.isSkipped?2:a.isIncomplete&&!a.done?1:0;
+        const bS=b.isSkipped?2:b.isIncomplete&&!b.done?1:0;
+        return aS-bS;
+      });
+      const c1=buildCol(sortedTodos,'固定安排','var(--ac)','var(--gr)','✓','○');
       const c2=buildCol(otasks,'临时事项','var(--bl)','var(--bl)','✓','○');
       const c3=buildCol(memos,'小任务','var(--am)','var(--am)','✓','○');
       c3.style.borderRight='none';
@@ -3003,8 +3004,8 @@ function renderMonthly(){
   }
   if(streakEndTmp)streakEnd=streakEndTmp;
 
-  // 高频任务 top5
-  const topTasks=Object.entries(taskFreq).sort((a,b)=>b[1]-a[1]).slice(0,5);
+  // 高频任务 top10
+  const topTasks=Object.entries(taskFreq).sort((a,b)=>b[1]-a[1]).slice(0,10);
 
   // ── 月度摘要面板 ──
   const sumEl=document.getElementById('m-summary');
@@ -3065,10 +3066,10 @@ function renderMonthly(){
           </div>
         </div>
         <div style="padding:12px 16px">
-          <div style="font-size:10px;color:var(--ink-m);letter-spacing:.8px;margin-bottom:8px;font-weight:500">🔁 高频固定安排 Top5</div>
+          <div style="font-size:10px;color:var(--ink-m);letter-spacing:.8px;margin-bottom:8px;font-weight:500">🔁 高频固定安排 Top10</div>
           ${topTasks.length?topTasks.map(([name,cnt],i)=>{
             const pct=Math.round(cnt/dim*100);
-            const colors=['var(--ac)','var(--bl)','var(--gr)','var(--am)','var(--ink-m)'];
+            const colors=['var(--ac)','var(--bl)','var(--gr)','var(--am)','var(--ink-m)','var(--ac)','var(--bl)','var(--gr)','var(--am)','var(--ink-m)'];
             return `<div style="margin-bottom:6px">
               <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:2px">
                 <span style="font-size:10px;color:var(--ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1;min-width:0">${name}</span>
@@ -3096,36 +3097,77 @@ function renderMonthly(){
       const todos=(data.todos||[]).filter(t=>!t.movedToNext);
       const otasks=(data.otasks||[]).filter(o=>!o.movedToNext);
       const memos=(data.memos||[]).filter(m=>!m.movedToNext);
+      const deferredTodos=(data.todos||[]).filter(t=>t.movedToNext);
       const dn=todos.filter(t=>t.done).length;
       const r=todos.length?Math.round(dn/todos.length*100):0;
       const pbHtml=todos.length?`<div style="height:2px;background:var(--paper-l);border-radius:1px;overflow:hidden;margin:3px 0"><div style="height:100%;width:${r}%;background:${r>=100?'var(--gr)':r>=60?'var(--bl)':'var(--ac)'};border-radius:1px"></div></div>`:'';
-      const allItems=[
-        ...todos.map(t=>({text:t.text,done:t.done,color:'var(--ac)',doneColor:'var(--gr)',ps:t.planStart||'',pe:t.planEnd||'',segs:t.actualSegs||[]})),
-        ...otasks.map(o=>({text:o.text,done:o.done,color:'var(--bl)',doneColor:'var(--bl)',ps:o.planStart||'',pe:o.planEnd||'',segs:o.actualSegs||[]})),
-        ...memos.map(mm=>({text:mm.text,done:mm.done,color:'var(--am)',doneColor:'var(--am)',ps:'',pe:'',segs:[]})),
-      ];
-      const showItems=allItems.slice(0,5);
-      const rest=allItems.length-showItems.length;
-      const itemsHtml=showItems.map(it=>{
-        const timeStr=it.ps?`<span style="font-family:var(--mo);font-size:7px;color:${it.color};opacity:.8;flex-shrink:0">${it.ps}${it.pe?'-'+it.pe:''}</span>`:'';
-        const validSegs=(it.segs||[]).filter(s=>s.start);
-        const segsStr=validSegs.map((s,si)=>`<span style="font-family:var(--mo);font-size:7px;color:var(--gr);background:var(--gr-l);padding:0 3px;border-radius:2px;white-space:nowrap;flex-shrink:0">${validSegs.length>1?`✓${si+1} `:'✓'}${s.start}${s.end?'–'+s.end:''}</span>`).join('');
-        return `<div style="display:flex;align-items:flex-start;gap:3px;padding:1px 0;border-bottom:1px dashed rgba(0,0,0,.04)">
-          <span style="color:${it.done?it.doneColor:'var(--bdr)'};font-size:7px;flex-shrink:0;margin-top:1.5px">${it.done?'✓':'○'}</span>
+
+      function buildMcItem(it, accentColor, doneColor, iconDone, iconPend){
+        const isDone=it.done;
+        const isSkipped=it.isSkipped;
+        const isIncomplete=it.isIncomplete&&!isDone;
+        const isMoved=it.movedToNext;
+        const ps=it.planStart||'';const pe=it.planEnd||'';
+        const timeTag=ps?`<span style="font-family:var(--mo);font-size:7px;color:${accentColor};opacity:.8;flex-shrink:0">${ps}${pe?'–'+pe:''}</span>`:'';
+        const segs=it.actualSegs||[];
+        const validSegs=segs.filter(s=>s.start);
+        const segsStr=validSegs.length?validSegs.map((s,si)=>`<span style="font-family:var(--mo);font-size:7px;color:var(--gr);background:var(--gr-l);padding:0 3px;border-radius:2px;white-space:nowrap;flex-shrink:0">✓${s.start}${s.end?'–'+s.end:''}</span>`).join(''):'';
+        const cl=it.noteChecklist||[];const clDone=cl.filter(c=>c.done).length;
+        const clTag=cl.length?`<span style="font-size:7px;color:var(--ink-m);flex-shrink:0">${clDone}/${cl.length}项</span>`:'';
+        let statusTag='';
+        if(isSkipped) statusTag=`<span style="font-size:7px;padding:0 3px;background:#fee2e2;color:#b91c1c;border-radius:2px;white-space:nowrap;flex-shrink:0">× 未做</span>`;
+        else if(isIncomplete) statusTag=`<span style="font-size:7px;padding:0 3px;background:#fef3c7;color:#92400e;border-radius:2px;white-space:nowrap;flex-shrink:0">⏳</span>`;
+        else if(isMoved) statusTag=`<span style="font-size:7px;padding:0 3px;background:rgba(107,114,128,.1);color:#6b7280;border-radius:2px;white-space:nowrap;flex-shrink:0">→推</span>`;
+        const iconColor=isSkipped?'#ef4444':isIncomplete?'#f59e0b':isDone?doneColor:'var(--bdr)';
+        const iconText=isSkipped?'×':isIncomplete?'⏳':isDone?iconDone:iconPend;
+        const textStyle=`font-size:9px;color:${isSkipped?'#b91c1c':isIncomplete?'#92400e':isDone?'var(--ink-m)':'var(--ink)'};${isDone||isSkipped?'text-decoration:line-through;':''}overflow:hidden;white-space:nowrap;text-overflow:ellipsis;line-height:1.3`;
+        return `<div style="display:flex;align-items:flex-start;gap:3px;padding:1px 0;border-bottom:1px dashed rgba(0,0,0,.04)${isSkipped?';background:rgba(239,68,68,.04)':isIncomplete?';background:rgba(245,158,11,.04)':''}">
+          <span style="color:${iconColor};font-size:7px;flex-shrink:0;margin-top:1.5px">${iconText}</span>
           <div style="flex:1;min-width:0">
-            <div style="font-size:9px;color:${it.done?'var(--ink-m)':'var(--ink)'};${it.done?'text-decoration:line-through;':''}overflow:hidden;white-space:nowrap;text-overflow:ellipsis;line-height:1.3">${it.text}</div>
-            ${(timeStr||segsStr)?`<div style="display:flex;flex-wrap:wrap;gap:2px;margin-top:1px">${timeStr}${segsStr}</div>`:''}
+            <div style="${textStyle}">${it.text}</div>
+            ${(statusTag||timeTag||segsStr||clTag)?`<div style="display:flex;flex-wrap:wrap;gap:2px;margin-top:1px">${statusTag}${timeTag}${segsStr}${clTag}</div>`:''}
           </div>
         </div>`;
-      }).join('');
-      const moreHtml=rest>0?`<div style="font-size:8px;color:var(--ink-m);opacity:.6;text-align:right;margin-top:2px">…还有${rest}项</div>`:'';
+      }
+
       const wxHtml=data.weather?`<span style="font-size:10px;flex-shrink:0">${data.weather}</span>`:'';
+
+      // Build sections
+      let sectionsHtml='';
+
+      if(todos.length){
+        const doneCount=todos.filter(t=>t.done).length;
+        const skippedCount=todos.filter(t=>t.isSkipped).length;
+        sectionsHtml+=`<div style="margin-top:3px">
+          <div style="font-size:8px;color:var(--ac);font-weight:600;letter-spacing:.3px;margin-bottom:2px;display:flex;align-items:center;gap:3px">固定<span style="font-family:var(--mo);font-size:7px;background:var(--ac);color:white;padding:0 3px;border-radius:8px;opacity:.8">${todos.length}</span>${skippedCount?`<span style="font-size:7px;background:#fee2e2;color:#b91c1c;padding:0 3px;border-radius:8px">${skippedCount}未做</span>`:''}</div>
+          ${todos.map(t=>buildMcItem(t,'var(--ac)','var(--gr)','✓','○')).join('')}
+        </div>`;
+      }
+      if(otasks.length){
+        sectionsHtml+=`<div style="margin-top:3px">
+          <div style="font-size:8px;color:var(--bl);font-weight:600;letter-spacing:.3px;margin-bottom:2px;display:flex;align-items:center;gap:3px">临时<span style="font-family:var(--mo);font-size:7px;background:var(--bl);color:white;padding:0 3px;border-radius:8px;opacity:.8">${otasks.length}</span></div>
+          ${otasks.map(o=>buildMcItem(o,'var(--bl)','var(--bl)','✓','○')).join('')}
+        </div>`;
+      }
+      if(memos.length){
+        sectionsHtml+=`<div style="margin-top:3px">
+          <div style="font-size:8px;color:var(--am);font-weight:600;letter-spacing:.3px;margin-bottom:2px;display:flex;align-items:center;gap:3px">小任务<span style="font-family:var(--mo);font-size:7px;background:var(--am);color:white;padding:0 3px;border-radius:8px;opacity:.8">${memos.length}</span></div>
+          ${memos.map(m=>buildMcItem(m,'var(--am)','var(--am)','✓','○')).join('')}
+        </div>`;
+      }
+      if(deferredTodos.length){
+        sectionsHtml+=`<div style="margin-top:3px">
+          <div style="font-size:8px;color:#6b7280;font-weight:600;letter-spacing:.3px;margin-bottom:2px">→ 推后 ${deferredTodos.length}项</div>
+          ${deferredTodos.map(t=>`<div style="display:flex;align-items:center;gap:3px;padding:1px 0;background:rgba(107,114,128,.04);border-bottom:1px dashed rgba(0,0,0,.04)"><span style="color:#9ca3af;font-size:7px;flex-shrink:0">→</span><div style="font-size:9px;color:#9ca3af;text-decoration:line-through;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;flex:1">${t.text}</div></div>`).join('')}
+        </div>`;
+      }
+
       c.innerHTML=`
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1px">
           <div class="mcd">${d}</div>${wxHtml}
           ${todos.length?`<span style="font-family:var(--mo);font-size:8px;color:${r>=100?'var(--gr)':r>=60?'var(--bl)':'var(--ink-m)'}">${r}%</span>`:''}
         </div>${pbHtml}
-        <div style="margin-top:2px">${itemsHtml}${moreHtml}</div>`;
+        <div style="margin-top:1px">${sectionsHtml}</div>`;
     } else {
       c.innerHTML=`<div class="mcd">${d}</div>`;
     }
@@ -3199,14 +3241,14 @@ function renderYearly(){
 
   // 星期标签 + 格子
   const heatGrid=document.createElement('div');
-  heatGrid.style.cssText='display:flex;gap:2px';
+  heatGrid.style.cssText='display:flex;gap:2px;min-width:max-content';
 
   // 左侧星期列
   const wdCol=document.createElement('div');
   wdCol.style.cssText='display:flex;flex-direction:column;gap:2px;padding-top:0;width:22px;flex-shrink:0';
   ['日','一','二','三','四','五','六'].forEach((w,i)=>{
     const lbl=document.createElement('div');
-    lbl.style.cssText=`height:10px;font-size:8px;color:var(--ink-m);line-height:10px;text-align:right;padding-right:3px;${i%2===0?'':'opacity:.4'}`;
+    lbl.style.cssText=`height:16px;font-size:8px;color:var(--ink-m);line-height:16px;text-align:right;padding-right:3px;${i%2===0?'':'opacity:.4'}`;
     lbl.textContent=i%2===0?w:'';
     wdCol.appendChild(lbl);
   });
@@ -3222,7 +3264,7 @@ function renderYearly(){
   weekCol.style.cssText='display:flex;flex-direction:column;gap:2px';
   for(let e=0;e<firstDow;e++){
     const empty=document.createElement('div');
-    empty.style.cssText='width:10px;height:10px';
+    empty.style.cssText='width:16px;height:16px';
     weekCol.appendChild(empty);
   }
 
@@ -3248,10 +3290,20 @@ function renderYearly(){
       else bg='rgba(92,110,248,.15)';
     }
     const isToday=key===fmt(new Date());
-    cell.style.cssText=`width:10px;height:10px;border-radius:2px;background:${bg};cursor:pointer;transition:transform .1s;flex-shrink:0;${isToday?'outline:1.5px solid var(--ac);outline-offset:1px':''}`;
-    cell.title=`${dt2.getMonth()+1}/${dt2.getDate()}${hasData?' — 完成率 '+rate2+'%':'（无记录）'}`;
+    const dayNum=dt2.getDate();
+    const monthNum=dt2.getMonth()+1;
+    // Show day number on cell (small, visible especially on hover)
+    cell.style.cssText=`position:relative;width:16px;height:16px;border-radius:2px;background:${bg};cursor:pointer;transition:transform .1s;flex-shrink:0;display:flex;align-items:center;justify-content:center;${isToday?'outline:1.5px solid var(--ac);outline-offset:1px':''}`;
+    cell.title=`${monthNum}/${dayNum}${hasData?' — 完成率 '+rate2+'%':'（无记录）'}`;
+    // Day number label
+    const numLbl=document.createElement('span');
+    const lightBg=!hasData||(rate2<50&&rate2>0);
+    const textColor=rate2>=50&&hasData?'rgba(255,255,255,.9)':'var(--ink-m)';
+    numLbl.style.cssText=`font-size:7px;line-height:1;color:${textColor};font-family:var(--mo);pointer-events:none;user-select:none;font-weight:500`;
+    numLbl.textContent=dayNum;
+    cell.appendChild(numLbl);
     cell.onclick=(()=>{const d2=new Date(dt2);return()=>{currentDate=d2;document.querySelectorAll('.nb')[0].click()}})();
-    cell.onmouseenter=()=>{cell.style.transform='scale(1.4)';};
+    cell.onmouseenter=()=>{cell.style.transform='scale(1.3)';};
     cell.onmouseleave=()=>{cell.style.transform='';};
     weekCol.appendChild(cell);
   }
@@ -3263,12 +3315,12 @@ function renderYearly(){
   const legend=document.createElement('div');
   legend.style.cssText='display:flex;align-items:center;gap:6px;margin-top:8px;font-size:9px;color:var(--ink-m)';
   legend.innerHTML=`<span>少</span>
-    <div style="width:10px;height:10px;border-radius:2px;background:var(--paper-l)"></div>
-    <div style="width:10px;height:10px;border-radius:2px;background:rgba(92,110,248,.15)"></div>
-    <div style="width:10px;height:10px;border-radius:2px;background:rgba(92,110,248,.3)"></div>
-    <div style="width:10px;height:10px;border-radius:2px;background:rgba(92,110,248,.55)"></div>
-    <div style="width:10px;height:10px;border-radius:2px;background:rgba(16,185,129,.6)"></div>
-    <div style="width:10px;height:10px;border-radius:2px;background:var(--gr)"></div>
+    <div style="width:16px;height:16px;border-radius:2px;background:var(--paper-l)"></div>
+    <div style="width:16px;height:16px;border-radius:2px;background:rgba(92,110,248,.15)"></div>
+    <div style="width:16px;height:16px;border-radius:2px;background:rgba(92,110,248,.3)"></div>
+    <div style="width:16px;height:16px;border-radius:2px;background:rgba(92,110,248,.55)"></div>
+    <div style="width:16px;height:16px;border-radius:2px;background:rgba(16,185,129,.6)"></div>
+    <div style="width:16px;height:16px;border-radius:2px;background:var(--gr)"></div>
     <span>100%</span>`;
   heatWrap.appendChild(legend);
 
