@@ -473,6 +473,8 @@ body.dark-mode .utl-conflict-bar{background:rgba(239,68,68,.1);border-color:rgba
 .tpl-item-meta{font-size:10px;color:var(--ink-m)}
 .tpl-new-btn{margin:8px;padding:7px 10px;border:1px dashed var(--bdr);background:none;color:var(--ink-m);font-family:var(--ss);font-size:11px;border-radius:4px;cursor:pointer;transition:all var(--t)}
 .tpl-new-btn:hover{border-color:var(--ac);color:var(--ac);background:var(--ac-p)}
+.tpl-save-today-btn{border-color:var(--gr);color:var(--gr) !important;background:var(--gr-l)}
+.tpl-save-today-btn:hover{border-color:var(--gr);color:white !important;background:var(--gr) !important}
 
 /* Editor area */
 .tpl-content{flex:1;display:flex;flex-direction:column;overflow:hidden;padding:16px 18px;gap:10px}
@@ -500,6 +502,15 @@ body.dark-mode .utl-conflict-bar{background:rgba(239,68,68,.1);border-color:rgba
 .tpl-note-lbl{font-size:9px;color:var(--ink-m);margin-bottom:3px;letter-spacing:.3px}
 .tpl-note-toggle{background:none;border:none;color:var(--ink-m);font-size:9px;cursor:pointer;padding:3px 0;white-space:nowrap;font-family:var(--ss);opacity:.7;transition:opacity var(--t);flex-shrink:0;margin-top:2px}
 .tpl-note-toggle:hover{opacity:1;color:var(--ac)}
+.tpl-cl-list{display:flex;flex-direction:column;gap:3px;margin-bottom:4px}
+.tpl-cl-row{display:flex;align-items:center;gap:5px;padding:2px 4px}
+.tpl-cl-dot{font-size:10px;color:var(--ink-m);flex-shrink:0;width:12px;text-align:center}
+.tpl-cl-inp{flex:1;border:1px solid var(--bdr);background:white;color:var(--ink);font-family:var(--ss);font-size:11px;padding:3px 6px;border-radius:3px}
+.tpl-cl-inp:focus{outline:none;border-color:var(--ac)}
+.tpl-cl-del{background:none;border:none;color:var(--ink-m);cursor:pointer;font-size:13px;padding:0 3px;opacity:.4;transition:opacity var(--t);line-height:1;flex-shrink:0}
+.tpl-cl-del:hover{opacity:1;color:#ef4444}
+.tpl-cl-add{background:none;border:none;color:var(--ink-m);font-family:var(--ss);font-size:10px;cursor:pointer;padding:2px 5px;border-radius:2px;transition:all var(--t);text-align:left}
+.tpl-cl-add:hover{color:var(--ac);background:var(--ac-p)}
 .tpl-del-row{background:none;border:none;color:var(--ink-m);cursor:pointer;font-size:15px;padding:0 3px;opacity:.4;transition:opacity var(--t);line-height:1}
 .tpl-del-row:hover{opacity:1;color:#ef4444}
 
@@ -747,7 +758,6 @@ body.dark-mode .snap-item:hover{background:var(--ac-p)}
           <div class="todo-toolbar-left">
             <div class="ptitle" style="margin-bottom:0;border:none;padding:0">每日固定安排</div>
             <span id="s-todo-summary" style="font-size:10px;color:var(--ink-m);font-family:var(--mo)"></span>
-            <button class="tpl-quick-btn" onclick="openTplModal()" title="打开模板管理">📋 套用模板</button>
           </div>
           <button class="copy-all-btn" id="copy-todos-btn" onclick="copyAllTodos(this)" title="复制全部每日固定安排">⎘ 全部复制</button>
           <button class="clear-day-btn" onclick="clearAllDay()" title="一键清除当天所有事项">🗑 清除全天</button>
@@ -1258,6 +1268,7 @@ function gather(){
     todos.push({
       id:c.dataset.id,text:c.querySelector('.ttxt')?.value||'',
       planStart:c.querySelector('.eps')?.value||'',planEnd:c.querySelector('.epe')?.value||'',
+      note:c.querySelector('.enote')?.value||'',
       actualSegs,noteChecklist,
       priority:parseInt(c.dataset.priority)||i+1,done:c.classList.contains('done'),
       execOpen:esec?esec.style.display!=='none':true,
@@ -1836,7 +1847,6 @@ function buildCard(pre){
   const execOpen=pre?.execOpen!==false;
 
   const c=document.createElement('div');
-  c.className='tcard'+(pre?.done?' done':'')+(pre?.isIncomplete&&!pre?.done?' is-incomplete':'')+(pre?.isMakeup?' is-makeup':'');
   c.className='tcard'+(pre?.done?' done':'')+(pre?.isIncomplete&&!pre?.done?' is-incomplete':'')+(pre?.isMakeup?' is-makeup':'')+(pre?.movedToNext?' is-moved':'');
   c.dataset.id=id;c.dataset.priority=priority;
   if(pre?.isIncomplete&&!pre?.done) c.dataset.isIncomplete='1';
@@ -2179,7 +2189,7 @@ function updateStats(){
       if(!data||!(data.todos||[]).length){if(i===0)continue;break;}
       const todos=data.todos||[];
       const rate=todos.filter(t=>t.done).length/todos.length;
-      if(rate>=0.5)streak++; else if(i>0)break;
+      if(rate>=0.5)streak++; else break;
     }
     streakEl.textContent=streak+(streak>0?'🔥':'');
   }
@@ -2224,6 +2234,7 @@ function addNoteClRowEl(listEl, type, card, text, done){
     dot.title = isDone ? '点击取消' : '点击完成';
     inp.classList.toggle('done-txt', isDone);
     saveDayData();
+    renderUnifiedTimeline();
   };
 
   inp.addEventListener('input', () => saveDayData());
@@ -2851,11 +2862,10 @@ function handleImport(e){
 // ── WEATHER ──
 function setWeather(wx,btn){
   const d=load(currentDate)||{};
-  if(d.weather===wx){d.weather='';btn.classList.remove('selected')}
-  else{d.weather=wx}
-  const data=gather();data.weather=d.weather===wx?'':wx;
+  const newWx=d.weather===wx?'':wx;
+  const data=gather();data.weather=newWx;
   localStorage.setItem(gkey(currentDate),JSON.stringify(data));
-  renderWeather(data.weather||'');showSaved();
+  renderWeather(newWx);showSaved();
 }
 function clearWeather(){
   const data=gather();data.weather='';
@@ -3215,7 +3225,7 @@ function tplAddRow(type, pre) {
   const row = document.createElement('div');
   row.className = 'tpl-todo-row';
   row.dataset.type = type;
-  const hasNote = !!(pre?.note);
+  const hasNote = !!(pre?.noteChecklist?.length);
   const isTodo = type === 'todo';
   const placeholder = type === 'todo' ? '工作计划标题' : type === 'otask' ? '临时事项标题' : '小任务标题';
   row.innerHTML = `
@@ -3229,12 +3239,18 @@ function tplAddRow(type, pre) {
     ${type !== 'memo' ? `
     <div class="tpl-note-row" style="${hasNote?'':'display:none'}">
       <div style="flex:1">
-        <div class="tpl-note-lbl">默认备注</div>
-        <textarea class="tpl-todo-ta tpl-row-note" placeholder="套用时的默认备注内容" rows="2">${pre?.note||''}</textarea>
+        <div class="tpl-note-lbl">默认备注要点</div>
+        <div class="tpl-cl-list">${(pre?.noteChecklist||[]).map(item=>`
+          <div class="tpl-cl-row">
+            <span class="tpl-cl-dot">○</span>
+            <input class="tpl-cl-inp" type="text" placeholder="要点内容…" value="${(item.text||'').replace(/"/g,'&quot;')}">
+            <button class="tpl-cl-del" onclick="this.closest('.tpl-cl-row').remove()">×</button>
+          </div>`).join('')}</div>
+        <button class="tpl-cl-add" onclick="tplAddClRow(this)">＋ 添加要点</button>
       </div>
     </div>
     <div style="padding:0 8px 6px 30px">
-      <button class="tpl-note-toggle" onclick="tplToggleNote(this)">${hasNote?'▾ 收起备注':'＋ 添加默认备注'}</button>
+      <button class="tpl-note-toggle" onclick="tplToggleNote(this)">${hasNote?'▾ 收起备注要点':'＋ 添加默认备注要点'}</button>
     </div>` : ''}`;
   // drag-to-reorder within same list
   row.draggable = true;
@@ -3257,20 +3273,27 @@ function tplToggleNote(btn) {
   const noteRow = btn.closest('.tpl-todo-row').querySelector('.tpl-note-row');
   const shown = noteRow.style.display !== 'none';
   noteRow.style.display = shown ? 'none' : '';
-  btn.textContent = shown ? '＋ 添加默认备注' : '▾ 收起备注';
-  if (!shown) btn.closest('.tpl-todo-row').querySelector('.tpl-row-note')?.focus();
+  btn.textContent = shown ? '＋ 添加默认备注要点' : '▾ 收起备注要点';
+  if (!shown) btn.closest('.tpl-todo-row').querySelector('.tpl-cl-inp')?.focus();
+}
+function tplAddClRow(btn) {
+  const list = btn.closest('.tpl-note-row').querySelector('.tpl-cl-list');
+  const row = document.createElement('div');
+  row.className = 'tpl-cl-row';
+  row.innerHTML = `<span class="tpl-cl-dot">○</span><input class="tpl-cl-inp" type="text" placeholder="要点内容…"><button class="tpl-cl-del" onclick="this.closest('.tpl-cl-row').remove()">×</button>`;
+  list.appendChild(row);
+  row.querySelector('.tpl-cl-inp').focus();
 }
 function tplGatherRows() {
-  // Returns {todos, otasks, memos} separately
   const gather = (listId, hasTime) =>
     [...document.querySelectorAll('#'+listId+' .tpl-todo-row')].map(row => ({
       text: row.querySelector('.tpl-row-text')?.value.trim() || '',
       ...(hasTime ? {planStart: row.querySelector('.tpl-row-ps')?.value||'', planEnd: row.querySelector('.tpl-row-pe')?.value||''} : {}),
-      note: row.querySelector('.tpl-row-note')?.value || ''
+      noteChecklist: [...(row.querySelectorAll('.tpl-cl-inp')||[])].map(i=>({text:i.value.trim(),done:false})).filter(i=>i.text)
     })).filter(t => t.text);
   return {
     todos: gather('tpl-todo-list', true),
-    otasks: gather('tpl-otask-list', true),   // otask 也有计划时间
+    otasks: gather('tpl-otask-list', true),
     memos: gather('tpl-memo-list', false)
   };
 }
@@ -3419,10 +3442,12 @@ function apvConfirm() {
     if (stype === 'todo') {
       const t = (tpl.todos||[])[idx]; if(!t) return;
       if (dayData.todos.some(ex=>ex.text===t.text)) return;
+      const noteChecklist = (t.noteChecklist||[]).map(i=>({text:i.text,done:false}));
       dayData.todos.push({
         id:'t_'+Date.now()+'_'+Math.random().toString(36).slice(2,6),
         text:t.text, planStart:t.planStart||'', planEnd:t.planEnd||'',
-        note:noteOverride, done:false, actualSegs:[], execOpen:!!noteOverride,
+        note:'', noteChecklist, done:false, actualSegs:[],
+        execOpen:noteChecklist.length>0,
         priority:dayData.todos.length+1
       });
       added++;
@@ -3481,7 +3506,7 @@ async function tplSaveToday(){
   if(name===null)return;
   const finalName=name.trim()||`${dateStr}的固定安排模板`;
 
-  const tplTodos=todos.map(t=>({text:t.text,planStart:t.planStart||'',planEnd:t.planEnd||'',note:t.note||''}));
+  const tplTodos=todos.map(t=>({text:t.text,planStart:t.planStart||'',planEnd:t.planEnd||'',noteChecklist:(t.noteChecklist||[]).map(i=>({text:i.text,done:false}))}));
 
   const id='tpl_'+Date.now();
   const arr=tplLoadAll();
