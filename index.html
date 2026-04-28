@@ -403,6 +403,7 @@ body.dark-mode .more-menu-item.danger:hover{background:rgba(239,68,68,.15)}
 body.dark-mode .tcard.tl-hover{background:var(--ac-p) !important;border-color:var(--ac) !important}
 body.dark-mode .utl-row.card-hover{background:rgba(92,110,248,.16) !important}
 
+.tcard textarea,.tcard input[type="text"]{-webkit-user-drag:none;user-drag:none}
 .dragging{opacity:.4;cursor:grabbing !important}
 .drag-over{border-top:2px solid var(--ac) !important}
 .drag-handle{cursor:grab;color:var(--ink-m);font-size:12px;padding:2px 3px;flex-shrink:0;opacity:.4;transition:opacity var(--t);user-select:none;line-height:1}
@@ -2243,7 +2244,7 @@ function buildCard(pre){
   const labelDotStyle=pre?.labelColor?`background:${pre.labelColor};border-color:${pre.labelColor}`:'';
   c.innerHTML=`
 <div class="ttop">
-  <span class="drag-handle" title="按住拖动排序" onmousedown="initTodoDrag(event,this)">⠿</span>
+  <span class="drag-handle">⠿</span>
   <div style="position:relative;flex-shrink:0">
     <div class="todo-label-dot${pre?.labelColor?'':' no-label'}" style="${labelDotStyle}" title="${pre?.label||'点击设置分类标签'}" onclick="openLabelPicker(this)"></div>
     <div class="label-picker" id="lp_${id}">
@@ -2263,7 +2264,7 @@ function buildCard(pre){
   <div class="tpri${pc}" onclick="cyclePri(this)" title="点击切换优先级">${priority}</div>
   <div class="tchk ${pre?.done?'ck':''}" onclick="toggleDone(this)">${pre?.done?'✓':''}</div>
   <div class="tbody">
-    <textarea class="ttxt" rows="1" placeholder="工作计划…" oninput="ar(this);saveDayData();renderUnifiedTimeline()">${pre?.text||''}</textarea>
+    <textarea class="ttxt" rows="1" draggable="false" placeholder="工作计划…" oninput="ar(this);saveDayData();renderUnifiedTimeline()">${pre?.text||''}</textarea>
     <div class="tmeta">
       ${pre?.planStart?`<span class="ttime">${pre.planStart}${pre.planEnd?'–'+pre.planEnd:''}</span>`:''}
       ${pre?.labelColor?`<span class="label-tag" style="background:${pre.labelColor}22;color:${pre.labelColor};border:1px solid ${pre.labelColor}44"><span class="label-dot-sm" style="background:${pre.labelColor}"></span>${pre.label||'标签'}</span>`:''}
@@ -2313,12 +2314,16 @@ function buildCard(pre){
   // ── 联动高亮：任务卡片 ↔ 时间轴行 ──
   c.addEventListener('mouseenter',()=>{const txt=c.querySelector('.ttxt')?.value||'';if(txt)_syncHoverByTxt(txt,true);});
   c.addEventListener('mouseleave',()=>{const txt=c.querySelector('.ttxt')?.value||'';if(txt)_syncHoverByTxt(txt,false);});
-  // Drag: only activated via handle to avoid textarea interference
-  c.setAttribute('draggable','false');
-  c.ondragstart=ev=>{if(c.getAttribute('draggable')==='true')todoDragStart(ev,c);else ev.preventDefault();};
+  // Bind drag events — block when dragstart originates from textarea/input
+  c.setAttribute('draggable','true');
+  c.ondragstart=ev=>{
+    const tag=(ev.target?.tagName||'').toLowerCase();
+    if(tag==='textarea'||tag==='input'){ev.preventDefault();return;}
+    todoDragStart(ev,c);
+  };
   c.ondragover=ev=>todoDragOver(ev,c);
   c.ondrop=ev=>todoDrop(ev,c);
-  c.ondragend=()=>{c.setAttribute('draggable','false');todoDragEnd(c);};
+  c.ondragend=()=>todoDragEnd(c);
   // Restore saved checklist items
   const clContainer=c.querySelector('.todo-checklist');
   (pre?.noteChecklist||[]).forEach(item=>addNoteClRowEl(clContainer,'todo',c,item.text,item.done,item.clLabel||'',item.clLabelColor||''));
@@ -3317,7 +3322,7 @@ function renderWeekly(){
       const itemEntries=Object.values(wItemMap).filter(e=>e.planMins||e.actualMins);
       const wTodoItems=itemEntries.filter(e=>e.isTodo).sort((a,b)=>b.planMins-a.planMins);
       const wOtaskItems=itemEntries.filter(e=>!e.isTodo).sort((a,b)=>b.planMins-a.planMins);
-      function buildWItemRows(arr){return arr.map(g=>{const eff=g.planMins>0?Math.round(g.actualMins/g.planMins*100):0;const effColor=eff>=100?'var(--gr)':eff>=80?'var(--bl)':eff>0?'var(--am)':'var(--ink-m)';const labelBadge=g.labelColor&&g.labelName?`<span style="display:inline-flex;align-items:center;gap:2px;font-size:8px;padding:0 4px;border-radius:8px;background:${g.labelColor}22;color:${g.labelColor};border:1px solid ${g.labelColor}44;margin-left:3px;white-space:nowrap"><span style="width:4px;height:4px;border-radius:50%;background:${g.labelColor};display:inline-block"></span>${g.labelName}</span>`:'';return`<div style="display:grid;grid-template-columns:1fr 70px 70px 60px;gap:6px;align-items:center;padding:3px 0;border-bottom:1px dashed var(--paper-l);font-size:10px"><span style="color:var(--ink);display:flex;align-items:center;flex-wrap:wrap;gap:2px;min-width:0"><span style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%">${g.txt}</span>${labelBadge}</span><span style="font-family:var(--mo);color:var(--am);text-align:right">${fmtMw(g.planMins)}</span><span style="font-family:var(--mo);color:var(--gr);text-align:right">${fmtMw(g.actualMins)}</span><span style="font-family:var(--mo);font-weight:600;color:${effColor};text-align:right">${g.planMins>0?eff+'%':'—'}</span></div>`;}).join('');}
+      function buildWItemRows(arr){return arr.map(g=>{const eff=g.planMins>0?Math.round(g.actualMins/g.planMins*100):0;const effColor=eff>=100?'var(--gr)':eff>=80?'var(--bl)':eff>0?'var(--am)':'var(--ink-m)';const labelBadge=g.labelColor&&g.labelName?`<span style="display:inline-flex;align-items:center;gap:2px;font-size:8px;padding:0 4px;border-radius:8px;background:${g.labelColor}22;color:${g.labelColor};border:1px solid ${g.labelColor}44;margin-left:3px;white-space:nowrap"><span style="width:4px;height:4px;border-radius:50%;background:${g.labelColor};display:inline-block"></span>${g.labelName}</span>`:'';return`<div style="display:grid;grid-template-columns:1fr 70px 70px 60px;gap:6px;align-items:center;padding:3px 0;border-bottom:1px dashed var(--paper-l);font-size:10px"><span style="color:var(--ink);display:flex;align-items:center;flex-wrap:wrap;gap:2px;min-width:0"><span style="overflow:hidden;text-overflow:ellipsis;max-width:100%">${g.txt}</span>${labelBadge}</span><span style="font-family:var(--mo);color:var(--am);text-align:right">${fmtMw(g.planMins)}</span><span style="font-family:var(--mo);color:var(--gr);text-align:right">${fmtMw(g.actualMins)}</span><span style="font-family:var(--mo);font-weight:600;color:${effColor};text-align:right">${g.planMins>0?eff+'%':'—'}</span></div>`;}).join('');}
       const itemHtml=itemEntries.length?`<div style="margin-top:8px;border-top:1px solid var(--paper-l);padding-top:6px"><div style="font-size:10px;font-weight:600;color:var(--ink-m);letter-spacing:.6px;margin-bottom:5px">⏱ 按事项分类时长</div><div style="display:grid;grid-template-columns:1fr 70px 70px 60px;gap:4px;padding-bottom:4px;border-bottom:1px solid var(--paper-l);font-size:9px;color:var(--ink-m);letter-spacing:.4px"><span>事项</span><span style="text-align:right">计划</span><span style="text-align:right">实际</span><span style="text-align:right">效率</span></div>${wTodoItems.length?`<div style="font-size:9px;font-weight:600;color:var(--ac);letter-spacing:.4px;padding:4px 0 2px">每日固定安排</div>${buildWItemRows(wTodoItems)}`:''}${wOtaskItems.length?`<div style="font-size:9px;font-weight:600;color:var(--bl);letter-spacing:.4px;padding:4px 0 2px;margin-top:2px">临时事项</div>${buildWItemRows(wOtaskItems)}`:''}` + `</div>`:'';
       wTimeEl.innerHTML=`<div style="display:flex;gap:12px;flex-wrap:wrap"><div style="display:flex;align-items:center;gap:5px;font-size:11px"><span style="color:var(--ink-m)">计划总时长</span><span style="font-family:var(--mo);font-weight:600;color:var(--am)">${fmtMw(wPlanMin)}</span></div><div style="display:flex;align-items:center;gap:5px;font-size:11px"><span style="color:var(--ink-m)">实际总时长</span><span style="font-family:var(--mo);font-weight:600;color:var(--gr)">${fmtMw(wActMin)}</span></div></div>${labelHtml}${itemHtml}`;
       wTimeEl.style.display='block';
@@ -3760,11 +3765,13 @@ function renderYearly(){
   const yTopHtml=yTopTasks.length?yTopTasks.map(([name,cnt])=>{
     const di=yTaskDayMap[name]||{planned:cnt,done:0};
     const doneDays=di.done,plannedDays=di.planned;
-    const yearDays=new Date(currentYear,11,31).getDate()+(new Date(currentYear,1,29).getDate()===29?366:365)-new Date(currentYear,0,0).getDate();
     const isLeap=(new Date(currentYear,1,29).getDate()===29);
     const totalYearDays=isLeap?366:365;
-    const pct=plannedDays>0?Math.round(doneDays/plannedDays*100):0; // 完成率=完成天/计划天
-    const pctBar=Math.round(plannedDays/totalYearDays*100); // 计划覆盖率
+    // 与月视图一致：完成天数÷当年总天数（进度条=完成占全年比例）
+    const pct=Math.round(doneDays/totalYearDays*100);
+    const pctBar=Math.round(plannedDays/totalYearDays*100);
+    // 有完成记录时至少显示3%宽度，避免进度条完全不可见
+    const pctDisplay=doneDays>0?Math.max(3,pct):0;
     const doneColor=doneDays>=plannedDays?'var(--gr)':doneDays>=plannedDays*0.8?'var(--bl)':'var(--ac)';
     const lbl=yTaskLabelMap[name];
     const labelHtml=lbl?`<span style="display:inline-flex;align-items:center;gap:2px;font-size:8px;padding:1px 4px;border-radius:8px;background:${lbl.color}22;color:${lbl.color};border:1px solid ${lbl.color}44;white-space:nowrap;flex-shrink:0"><span style="width:4px;height:4px;border-radius:50%;background:${lbl.color};display:inline-block"></span>${lbl.label}</span>`:'';
@@ -3778,7 +3785,7 @@ function renderYearly(){
       <div style="display:flex;align-items:center;gap:5px;margin-bottom:2px">
         <div style="flex:1;height:3px;background:var(--paper-l);border-radius:2px;overflow:hidden;position:relative">
           <div style="position:absolute;top:0;left:0;height:100%;width:${Math.min(100,pctBar)}%;background:rgba(92,110,248,.2);border-radius:2px"></div>
-          <div style="position:absolute;top:0;left:0;height:100%;width:${Math.min(100,pct)}%;background:${doneColor};border-radius:2px;transition:width .3s"></div>
+          <div style="position:absolute;top:0;left:0;height:100%;width:${Math.min(100,pctDisplay)}%;background:${doneColor};border-radius:2px;transition:width .3s"></div>
         </div>
         <span style="font-family:var(--mo);font-size:9px;color:${doneColor};flex-shrink:0;white-space:nowrap;font-weight:600">${doneDays}/${plannedDays}/${totalYearDays}</span>
       </div>
@@ -3797,7 +3804,7 @@ function renderYearly(){
     </div>
     <div style="padding:12px 16px">
       <div style="font-size:10px;color:var(--ink-m);letter-spacing:.8px;margin-bottom:4px;font-weight:500">🔁 固定安排完成情况</div>
-      <div style="font-size:9px;color:var(--ink-m);opacity:.7;margin-bottom:8px;line-height:1.5">数字含义：<span style="font-family:var(--mo);color:var(--gr);font-weight:600">完成天数</span> / <span style="font-family:var(--mo);color:var(--ac);font-weight:600">计划天数</span> / <span style="font-family:var(--mo);color:var(--ink-m);font-weight:600">当年总天数</span>（进度条=完成÷计划天的完成率）</div>
+      <div style="font-size:9px;color:var(--ink-m);opacity:.7;margin-bottom:8px;line-height:1.5">数字含义：<span style="font-family:var(--mo);color:var(--gr);font-weight:600">完成天数</span> / <span style="font-family:var(--mo);color:var(--ac);font-weight:600">计划天数</span> / <span style="font-family:var(--mo);color:var(--ink-m);font-weight:600">当年总天数</span>（进度条=完成天数占全年比例）</div>
       <div style="max-height:320px;overflow-y:auto;padding-right:2px">${yTopHtml}</div>
     </div>
   </div>`;
@@ -4367,12 +4374,10 @@ let dragSrcTodo=null;
 function initTodoDrag(e,handle){
   const card=handle.closest('.tcard');
   card.setAttribute('draggable','true');
-  // Reset draggable after mouse up in case dragstart didn't fire
-  const resetDraggable=()=>{
-    card.setAttribute('draggable','false');
-    document.removeEventListener('mouseup',resetDraggable);
-  };
-  document.addEventListener('mouseup',resetDraggable);
+  card.ondragstart=ev=>todoDragStart(ev,card);
+  card.ondragover=ev=>todoDragOver(ev,card);
+  card.ondrop=ev=>todoDrop(ev,card);
+  card.ondragend=()=>todoDragEnd(card);
 }
 function todoDragStart(e,card){dragSrcTodo=card;card.classList.add('dragging');e.dataTransfer.effectAllowed='move'}
 function todoDragOver(e,card){e.preventDefault();document.querySelectorAll('.tcard').forEach(c=>c.classList.remove('drag-over'));if(card!==dragSrcTodo)card.classList.add('drag-over')}
@@ -5582,20 +5587,20 @@ function handleFullRestore(e) {
     }
     cdlgConfirm(`即将用备份文件恢复全部数据，当前数据将被覆盖。\n备份时间：${bundle._exportedAt||'未知'}\n包含：${Object.keys(bundle._keys).length} 个数据条目\n\n确认继续？`, '恢复完整备份', true).then(ok => {
       if (!ok) { e.target.value=''; return; }
-      // ── 1. 先将当前数据自动下载备份，防止意外覆盖 ──
+      // ── 1. 先自动下载当前数据备份，防止意外覆盖丢失 ──
       try {
         const curBundle = _buildFullBackupBundle();
-        if (Object.keys(curBundle._keys).length > 1) { // 有实际数据才备份
+        if (Object.keys(curBundle._keys).length > 1) {
           const curJson = JSON.stringify(curBundle, null, 2);
           const curUrl = URL.createObjectURL(new Blob([curJson], {type:'application/json'}));
           const curA = document.createElement('a');
-          const curDate = new Date().toISOString().slice(0,10);
-          curA.href = curUrl; curA.download = `恢复前自动备份_${curDate}.json`;
+          curA.href = curUrl;
+          curA.download = `恢复前自动备份_${new Date().toISOString().slice(0,10)}.json`;
           document.body.appendChild(curA); curA.click(); document.body.removeChild(curA);
           setTimeout(() => URL.revokeObjectURL(curUrl), 2000);
         }
       } catch(backupErr) { console.warn('auto-backup before restore failed:', backupErr); }
-      // ── 2. 清空并恢复 ──
+      // ── 2. 清空并写入备份数据 ──
       localStorage.clear();
       let successCount = 0, failCount = 0;
       Object.entries(bundle._keys).forEach(([k, v]) => {
@@ -5604,21 +5609,17 @@ function handleFullRestore(e) {
       });
       e.target.value='';
       closeFullBackupModal();
-      // ── 3. 刷新所有视图 ──
-      initTitle();
-      initDarkMode();
-      renderDaily();
-      checkStorageUsage();
+      // ── 3. 刷新界面 ──
+      initTitle(); initDarkMode(); renderDaily(); checkStorageUsage();
       if(document.getElementById('view-journal')?.classList.contains('active')) renderJournal();
-      // Verify
       const restoredKeys = Object.keys(bundle._keys).length;
       const actualKeys = localStorage.length;
       if (failCount > 0) {
-        cdlgAlert(`⚠️ 恢复完成，但有 ${failCount} 个条目写入失败（可能存储空间不足）。成功恢复 ${successCount} 个条目，请检查数据完整性。`);
+        cdlgAlert(`⚠️ 恢复完成，但 ${failCount} 个条目写入失败（可能存储空间不足）。成功恢复 ${successCount} 个条目，请检查数据完整性。`);
       } else if(Math.abs(restoredKeys - actualKeys) <= 2) {
-        cdlgAlert(`✅ 恢复成功！共还原 ${actualKeys} 个数据条目（计划记录、模板、总结日志等全部恢复）。`);
+        cdlgAlert(`✅ 恢复成功！共还原 ${actualKeys} 个数据条目。`);
       } else {
-        cdlgAlert(`⚠️ 恢复完成，但数据条目数量可能有差异（预期 ${restoredKeys}，实际 ${actualKeys}）。建议检查数据是否完整。`);
+        cdlgAlert(`⚠️ 恢复完成，数据条目数量略有差异（预期 ${restoredKeys}，实际 ${actualKeys}），建议核查数据是否完整。`);
       }
     });
   };
