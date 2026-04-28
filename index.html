@@ -994,8 +994,8 @@ body.dark-mode .snap-item:hover{background:var(--ac-p)}
     <div class="sc g"><div class="sv" id="w-otdone">0</div><div class="sl">临时完成</div></div>
     <div class="sc b"><div class="sv" id="w-memos">0</div><div class="sl">小任务完成</div></div>
   </div>
+  <div id="w-time-summary" style="display:none;margin-bottom:10px;padding:10px 14px;background:var(--card-bg);border:1px solid var(--bdr);border-radius:4px"></div>
   <div id="wgrid" style="display:grid;grid-template-columns:repeat(7,1fr);gap:8px;margin-top:12px"></div>
-  <div id="w-time-summary" style="display:none;margin-top:10px;padding:10px 14px;background:var(--card-bg);border:1px solid var(--bdr);border-radius:4px"></div>
 </div>
 </div>
 
@@ -1046,8 +1046,7 @@ body.dark-mode .snap-item:hover{background:var(--ac-p)}
   </div>
   <!-- 年度摘要面板 -->
   <div id="y-summary" style="margin-bottom:14px;background:var(--card-bg);border:1px solid var(--bdr);border-radius:4px;overflow:hidden;display:none"></div>
-  <!-- 年度热力图 -->
-  <div id="y-heatmap-wrap" style="margin-bottom:14px;background:var(--card-bg);border:1px solid var(--bdr);border-radius:4px;padding:14px 16px;overflow-x:auto"></div>
+  <div id="y-heatmap-wrap" style="display:none"></div>
   <div class="ygrid" id="ygrid"></div>
 </div>
 </div>
@@ -2244,7 +2243,7 @@ function buildCard(pre){
   const labelDotStyle=pre?.labelColor?`background:${pre.labelColor};border-color:${pre.labelColor}`:'';
   c.innerHTML=`
 <div class="ttop">
-  <span class="drag-handle">⠿</span>
+  <span class="drag-handle" title="拖动排序" onmousedown="initTodoDrag(event,this)">⠿</span>
   <div style="position:relative;flex-shrink:0">
     <div class="todo-label-dot${pre?.labelColor?'':' no-label'}" style="${labelDotStyle}" title="${pre?.label||'点击设置分类标签'}" onclick="openLabelPicker(this)"></div>
     <div class="label-picker" id="lp_${id}">
@@ -2694,17 +2693,17 @@ function updateStats(){
   window._lastLabelPlanMap=labelPlanMap;
   window._lastFmtM=fmtM;
   // 同时收集按事项的时长数据
-  const itemTimeMap={}; // txt -> {txt, labelColor, labelName, planMins, actualMins}
-  function ensureItem(txt,lc,ln){if(!itemTimeMap[txt])itemTimeMap[txt]={txt,labelColor:lc,labelName:ln,planMins:0,actualMins:0};return itemTimeMap[txt];}
+  const itemTimeMap={}; // txt -> {txt, labelColor, labelName, planMins, actualMins, isTodo}
+  function ensureItem(txt,lc,ln,isTodo){if(!itemTimeMap[txt])itemTimeMap[txt]={txt,labelColor:lc,labelName:ln,planMins:0,actualMins:0,isTodo:!!isTodo};return itemTimeMap[txt];}
   cs.filter(c=>c.dataset.isSkipped!=='1').forEach(c=>{
     const ps=c.querySelector('.eps')?.value||'';const pe=c.querySelector('.epe')?.value||'';
     const txt=c.querySelector('.ttxt')?.value||'';
     const lc=c.dataset.labelColor||'';const ln=c.dataset.label||'';
     if(!txt)return;
-    if(ps&&pe){const d=timeToMin(pe)-timeToMin(ps);if(d>0)ensureItem(txt,lc,ln).planMins+=d;}
+    if(ps&&pe){const d=timeToMin(pe)-timeToMin(ps);if(d>0)ensureItem(txt,lc,ln,true).planMins+=d;}
     [...c.querySelectorAll('.todo-segs .time-seg')].forEach(s=>{
       const as=s.querySelector('.seg-s')?.value||'';const ae=s.querySelector('.seg-e')?.value||'';
-      if(as&&ae){const d=timeToMin(ae)-timeToMin(as);if(d>0)ensureItem(txt,lc,ln).actualMins+=d;}
+      if(as&&ae){const d=timeToMin(ae)-timeToMin(as);if(d>0)ensureItem(txt,lc,ln,true).actualMins+=d;}
     });
   });
   document.querySelectorAll('.otask').forEach(el=>{
@@ -2712,10 +2711,10 @@ function updateStats(){
     const txt=el.querySelector('.otask-txt')?.value||'';
     const lc=el.dataset.labelColor||'';const ln=el.dataset.label||'';
     if(!txt)return;
-    if(ps&&pe){const d=timeToMin(pe)-timeToMin(ps);if(d>0)ensureItem(txt,lc,ln).planMins+=d;}
+    if(ps&&pe){const d=timeToMin(pe)-timeToMin(ps);if(d>0)ensureItem(txt,lc,ln,false).planMins+=d;}
     [...el.querySelectorAll('.otask-segs-wrap .time-seg')].forEach(s=>{
       const as=s.querySelector('.seg-s')?.value||'';const ae=s.querySelector('.seg-e')?.value||'';
-      if(as&&ae){const d=timeToMin(ae)-timeToMin(as);if(d>0)ensureItem(txt,lc,ln).actualMins+=d;}
+      if(as&&ae){const d=timeToMin(ae)-timeToMin(as);if(d>0)ensureItem(txt,lc,ln,false).actualMins+=d;}
     });
   });
   window._lastItemTimeMap=itemTimeMap;
@@ -2760,17 +2759,27 @@ function renderItemTimeBreakdown(itemTimeMap,fmtM){
   rows.appendChild(hdr);
   const entries=Object.values(itemTimeMap).filter(e=>e.planMins||e.actualMins);
   if(!entries.length){rows.innerHTML='<div style="font-size:11px;color:var(--ink-m);text-align:center;padding:8px 0">暂无事项时长数据</div>';return;}
-  entries.sort((a,b)=>b.planMins-a.planMins);
-  entries.forEach(g=>{
-    const eff=g.planMins>0?Math.round(g.actualMins/g.planMins*100):0;
-    const row=document.createElement('div');
-    row.style.cssText='display:grid;grid-template-columns:1fr 80px 80px 80px;gap:8px;align-items:center;padding:5px 0;border-bottom:1px dashed var(--paper-l)';
-    const effColor=eff>=100?'var(--gr)':eff>=80?'var(--bl)':eff>0?'var(--am)':'var(--ink-m)';
-    const dotColor=g.labelColor&&g.labelColor!=='var(--ink-m)'?g.labelColor:'#9ca3af';
-    const labelBadge=g.labelColor&&g.labelName?`<span style="display:inline-flex;align-items:center;gap:2px;font-size:8px;padding:1px 5px;border-radius:8px;background:${g.labelColor}22;color:${g.labelColor};border:1px solid ${g.labelColor}44;white-space:nowrap;margin-left:4px"><span style="width:5px;height:5px;border-radius:50%;background:${g.labelColor};display:inline-block"></span>${g.labelName}</span>`:'';
-    row.innerHTML=`<span style="display:flex;align-items:center;gap:5px;font-size:11px;color:var(--ink);flex-wrap:wrap">${g.txt}${labelBadge}</span><span style="text-align:right;font-family:var(--mo);font-size:11px;color:var(--ink-m)">${fmtM(g.planMins)}</span><span style="text-align:right;font-family:var(--mo);font-size:11px;color:var(--gr)">${fmtM(g.actualMins)}</span><span style="text-align:right;font-family:var(--mo);font-size:11px;font-weight:600;color:${effColor}">${g.planMins>0?eff+'%':'—'}</span>`;
-    rows.appendChild(row);
-  });
+  // Sort: fixed (isTodo) first, then temp; within each group sort by planMins desc
+  const todoEntries=entries.filter(e=>e.isTodo).sort((a,b)=>b.planMins-a.planMins);
+  const otaskEntries=entries.filter(e=>!e.isTodo).sort((a,b)=>b.planMins-a.planMins);
+  function renderSection(arr,label,color){
+    if(!arr.length)return;
+    const secHdr=document.createElement('div');
+    secHdr.style.cssText=`font-size:9px;font-weight:600;color:${color};letter-spacing:.5px;padding:5px 0 3px;margin-top:4px`;
+    secHdr.textContent=label;
+    rows.appendChild(secHdr);
+    arr.forEach(g=>{
+      const eff=g.planMins>0?Math.round(g.actualMins/g.planMins*100):0;
+      const row=document.createElement('div');
+      row.style.cssText='display:grid;grid-template-columns:1fr 80px 80px 80px;gap:8px;align-items:center;padding:5px 0;border-bottom:1px dashed var(--paper-l)';
+      const effColor=eff>=100?'var(--gr)':eff>=80?'var(--bl)':eff>0?'var(--am)':'var(--ink-m)';
+      const labelBadge=g.labelColor&&g.labelName?`<span style="display:inline-flex;align-items:center;gap:2px;font-size:8px;padding:1px 5px;border-radius:8px;background:${g.labelColor}22;color:${g.labelColor};border:1px solid ${g.labelColor}44;white-space:nowrap;margin-left:4px"><span style="width:5px;height:5px;border-radius:50%;background:${g.labelColor};display:inline-block"></span>${g.labelName}</span>`:'';
+      row.innerHTML=`<span style="display:flex;align-items:center;gap:5px;font-size:11px;color:var(--ink);flex-wrap:wrap">${g.txt}${labelBadge}</span><span style="text-align:right;font-family:var(--mo);font-size:11px;color:var(--ink-m)">${fmtM(g.planMins)}</span><span style="text-align:right;font-family:var(--mo);font-size:11px;color:var(--gr)">${fmtM(g.actualMins)}</span><span style="text-align:right;font-family:var(--mo);font-size:11px;font-weight:600;color:${effColor}">${g.planMins>0?eff+'%':'—'}</span>`;
+      rows.appendChild(row);
+    });
+  }
+  renderSection(todoEntries,'每日固定安排','var(--ac)');
+  renderSection(otaskEntries,'临时事项','var(--bl)');
 }
 function renderLabelTimeBreakdown(labelPlanMap,fmtM){
   const rows=document.getElementById('label-time-rows');
@@ -3131,8 +3140,8 @@ function renderWeekly(){
   let wPlanMin=0,wActMin=0;
   const wLabelMap={}; // labelColor -> {name, planMins, actualMins}
   function wEnsureLabel(lc,ln){const k=lc||'__none__';if(!wLabelMap[k])wLabelMap[k]={name:ln||'无标签',color:lc||'var(--ink-m)',planMins:0,actualMins:0};return wLabelMap[k];}
-  const wItemMap={}; // txt -> {txt, labelColor, labelName, planMins, actualMins, days}
-  function wEnsureItem(txt,lc,ln){const k=txt+'|'+(lc||'');if(!wItemMap[k])wItemMap[k]={txt,labelColor:lc,labelName:ln,planMins:0,actualMins:0,days:0};return wItemMap[k];}
+  const wItemMap={}; // txt -> {txt, labelColor, labelName, planMins, actualMins, days, isTodo}
+  function wEnsureItem(txt,lc,ln,isTodo){const k=txt+'|'+(lc||'');if(!wItemMap[k])wItemMap[k]={txt,labelColor:lc,labelName:ln,planMins:0,actualMins:0,days:0,isTodo:!!isTodo};return wItemMap[k];}
   const fmtMw=m=>{if(!m)return'—';const h=Math.floor(m/60),mn=m%60;return(h?h+'h':'')+(mn?mn+'m':'');};
 
   // ── 新布局：垂直堆叠，每天一行大卡片 ──
@@ -3154,13 +3163,13 @@ function renderWeekly(){
     // 累计计划和实际时间
     todos.filter(t=>!t.isSkipped).forEach(t=>{
       const lc=t.labelColor||'';const ln=t.label||'';
-      if(t.planStart&&t.planEnd){const d=timeToMin(t.planEnd)-timeToMin(t.planStart);if(d>0){wPlanMin+=d;wEnsureLabel(lc,ln).planMins+=d;if(t.text){const it=wEnsureItem(t.text,lc,ln);it.planMins+=d;}}}
-      (t.actualSegs||[]).forEach(s=>{if(s.start&&s.end){const d=timeToMin(s.end)-timeToMin(s.start);if(d>0){wActMin+=d;wEnsureLabel(lc,ln).actualMins+=d;if(t.text)wEnsureItem(t.text,lc,ln).actualMins+=d;}}});
+      if(t.planStart&&t.planEnd){const d=timeToMin(t.planEnd)-timeToMin(t.planStart);if(d>0){wPlanMin+=d;wEnsureLabel(lc,ln).planMins+=d;if(t.text){const it=wEnsureItem(t.text,lc,ln,true);it.planMins+=d;}}}
+      (t.actualSegs||[]).forEach(s=>{if(s.start&&s.end){const d=timeToMin(s.end)-timeToMin(s.start);if(d>0){wActMin+=d;wEnsureLabel(lc,ln).actualMins+=d;if(t.text)wEnsureItem(t.text,lc,ln,true).actualMins+=d;}}});
     });
     otasks.forEach(o=>{
       const lc=o.labelColor||'';const ln=o.label||'';
-      if(o.planStart&&o.planEnd){const d=timeToMin(o.planEnd)-timeToMin(o.planStart);if(d>0){wPlanMin+=d;wEnsureLabel(lc,ln).planMins+=d;if(o.text){const it=wEnsureItem(o.text,lc,ln);it.planMins+=d;}}}
-      (o.actualSegs||[]).forEach(s=>{if(s.start&&s.end){const d=timeToMin(s.end)-timeToMin(s.start);if(d>0){wActMin+=d;wEnsureLabel(lc,ln).actualMins+=d;if(o.text)wEnsureItem(o.text,lc,ln).actualMins+=d;}}});
+      if(o.planStart&&o.planEnd){const d=timeToMin(o.planEnd)-timeToMin(o.planStart);if(d>0){wPlanMin+=d;wEnsureLabel(lc,ln).planMins+=d;if(o.text){const it=wEnsureItem(o.text,lc,ln,false);it.planMins+=d;}}}
+      (o.actualSegs||[]).forEach(s=>{if(s.start&&s.end){const d=timeToMin(s.end)-timeToMin(s.start);if(d>0){wActMin+=d;wEnsureLabel(lc,ln).actualMins+=d;if(o.text)wEnsureItem(o.text,lc,ln,false).actualMins+=d;}}});
     });
     const isToday=ds===today;
     const WDN=['周日','周一','周二','周三','周四','周五','周六'];
@@ -3306,8 +3315,11 @@ function renderWeekly(){
       const labelKeys=Object.keys(wLabelMap);
       const labelHtml=labelKeys.length?`<div style="margin-top:8px;border-top:1px solid var(--paper-l);padding-top:6px"><div style="font-size:10px;font-weight:600;color:var(--ink-m);letter-spacing:.6px;margin-bottom:5px">⏱ 按标签分类时长</div><div style="display:flex;flex-direction:column;gap:3px">${labelKeys.map(k=>{const g=wLabelMap[k];const dot=g.color&&g.color!=='var(--ink-m)'?`<span style="width:7px;height:7px;border-radius:50%;background:${g.color};display:inline-block;flex-shrink:0"></span>`:'';const eff=g.planMins>0?Math.round(g.actualMins/g.planMins*100):0;const effColor=eff>=100?'var(--gr)':eff>=80?'var(--bl)':eff>0?'var(--am)':'var(--ink-m)';return`<div style="display:grid;grid-template-columns:1fr 70px 70px 60px;gap:6px;align-items:center;font-size:10px"><span style="display:flex;align-items:center;gap:3px;color:var(--ink-m)">${dot}${g.name}</span><span style="font-family:var(--mo);color:var(--am);text-align:right">${fmtMw(g.planMins)}</span><span style="font-family:var(--mo);color:var(--gr);text-align:right">${fmtMw(g.actualMins)}</span><span style="font-family:var(--mo);font-weight:600;color:${effColor};text-align:right">${g.planMins>0?eff+'%':'—'}</span></div>`}).join('')}</div></div>`:'';
       // 按事项分类
-      const itemEntries=Object.values(wItemMap).filter(e=>e.planMins||e.actualMins).sort((a,b)=>b.planMins-a.planMins);
-      const itemHtml=itemEntries.length?`<div style="margin-top:8px;border-top:1px solid var(--paper-l);padding-top:6px"><div style="font-size:10px;font-weight:600;color:var(--ink-m);letter-spacing:.6px;margin-bottom:5px">⏱ 按事项分类时长</div><div style="display:grid;grid-template-columns:1fr 70px 70px 60px;gap:4px;padding-bottom:4px;border-bottom:1px solid var(--paper-l);font-size:9px;color:var(--ink-m);letter-spacing:.4px"><span>事项</span><span style="text-align:right">计划</span><span style="text-align:right">实际</span><span style="text-align:right">效率</span></div><div style="display:flex;flex-direction:column;gap:2px;margin-top:3px">${itemEntries.map(g=>{const eff=g.planMins>0?Math.round(g.actualMins/g.planMins*100):0;const effColor=eff>=100?'var(--gr)':eff>=80?'var(--bl)':eff>0?'var(--am)':'var(--ink-m)';const labelBadge=g.labelColor&&g.labelName?`<span style="display:inline-flex;align-items:center;gap:2px;font-size:8px;padding:0 4px;border-radius:8px;background:${g.labelColor}22;color:${g.labelColor};border:1px solid ${g.labelColor}44;margin-left:3px;white-space:nowrap"><span style="width:4px;height:4px;border-radius:50%;background:${g.labelColor};display:inline-block"></span>${g.labelName}</span>`:'';return`<div style="display:grid;grid-template-columns:1fr 70px 70px 60px;gap:6px;align-items:center;padding:3px 0;border-bottom:1px dashed var(--paper-l);font-size:10px"><span style="color:var(--ink);display:flex;align-items:center;flex-wrap:wrap;gap:2px;min-width:0"><span style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%">${g.txt}</span>${labelBadge}</span><span style="font-family:var(--mo);color:var(--am);text-align:right">${fmtMw(g.planMins)}</span><span style="font-family:var(--mo);color:var(--gr);text-align:right">${fmtMw(g.actualMins)}</span><span style="font-family:var(--mo);font-weight:600;color:${effColor};text-align:right">${g.planMins>0?eff+'%':'—'}</span></div>`}).join('')}</div></div>`:'';
+      const itemEntries=Object.values(wItemMap).filter(e=>e.planMins||e.actualMins);
+      const wTodoItems=itemEntries.filter(e=>e.isTodo).sort((a,b)=>b.planMins-a.planMins);
+      const wOtaskItems=itemEntries.filter(e=>!e.isTodo).sort((a,b)=>b.planMins-a.planMins);
+      function buildWItemRows(arr){return arr.map(g=>{const eff=g.planMins>0?Math.round(g.actualMins/g.planMins*100):0;const effColor=eff>=100?'var(--gr)':eff>=80?'var(--bl)':eff>0?'var(--am)':'var(--ink-m)';const labelBadge=g.labelColor&&g.labelName?`<span style="display:inline-flex;align-items:center;gap:2px;font-size:8px;padding:0 4px;border-radius:8px;background:${g.labelColor}22;color:${g.labelColor};border:1px solid ${g.labelColor}44;margin-left:3px;white-space:nowrap"><span style="width:4px;height:4px;border-radius:50%;background:${g.labelColor};display:inline-block"></span>${g.labelName}</span>`:'';return`<div style="display:grid;grid-template-columns:1fr 70px 70px 60px;gap:6px;align-items:center;padding:3px 0;border-bottom:1px dashed var(--paper-l);font-size:10px"><span style="color:var(--ink);display:flex;align-items:center;flex-wrap:wrap;gap:2px;min-width:0"><span style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%">${g.txt}</span>${labelBadge}</span><span style="font-family:var(--mo);color:var(--am);text-align:right">${fmtMw(g.planMins)}</span><span style="font-family:var(--mo);color:var(--gr);text-align:right">${fmtMw(g.actualMins)}</span><span style="font-family:var(--mo);font-weight:600;color:${effColor};text-align:right">${g.planMins>0?eff+'%':'—'}</span></div>`;}).join('');}
+      const itemHtml=itemEntries.length?`<div style="margin-top:8px;border-top:1px solid var(--paper-l);padding-top:6px"><div style="font-size:10px;font-weight:600;color:var(--ink-m);letter-spacing:.6px;margin-bottom:5px">⏱ 按事项分类时长</div><div style="display:grid;grid-template-columns:1fr 70px 70px 60px;gap:4px;padding-bottom:4px;border-bottom:1px solid var(--paper-l);font-size:9px;color:var(--ink-m);letter-spacing:.4px"><span>事项</span><span style="text-align:right">计划</span><span style="text-align:right">实际</span><span style="text-align:right">效率</span></div>${wTodoItems.length?`<div style="font-size:9px;font-weight:600;color:var(--ac);letter-spacing:.4px;padding:4px 0 2px">每日固定安排</div>${buildWItemRows(wTodoItems)}`:''}${wOtaskItems.length?`<div style="font-size:9px;font-weight:600;color:var(--bl);letter-spacing:.4px;padding:4px 0 2px;margin-top:2px">临时事项</div>${buildWItemRows(wOtaskItems)}`:''}` + `</div>`:'';
       wTimeEl.innerHTML=`<div style="display:flex;gap:12px;flex-wrap:wrap"><div style="display:flex;align-items:center;gap:5px;font-size:11px"><span style="color:var(--ink-m)">计划总时长</span><span style="font-family:var(--mo);font-weight:600;color:var(--am)">${fmtMw(wPlanMin)}</span></div><div style="display:flex;align-items:center;gap:5px;font-size:11px"><span style="color:var(--ink-m)">实际总时长</span><span style="font-family:var(--mo);font-weight:600;color:var(--gr)">${fmtMw(wActMin)}</span></div></div>${labelHtml}${itemHtml}`;
       wTimeEl.style.display='block';
     } else {
@@ -3663,11 +3675,13 @@ function renderYearly(){
     if(hasData){ydy++;}
     yt+=total;yd+=done;yot+=otasks.length;yod+=otasks.filter(o=>o.done).length;ymd+=memos.filter(m=>m.done).length;
     // label + task stats
-    todos.filter(t=>!t.isSkipped).forEach(t=>{
+    todos.forEach(t=>{
       const lc=t.labelColor||'';const ln=t.label||'';
-      const yl=yEnsureLabel(lc,ln);yl.todoTotal++;if(t.done)yl.todoDone++;
-      if(t.planStart&&t.planEnd){const pm=timeToMin(t.planEnd)-timeToMin(t.planStart);if(pm>0){yPlanMin+=pm;yl.planMins+=pm;}}
-      (t.actualSegs||[]).forEach(s=>{if(s.start&&s.end){const am=timeToMin(s.end)-timeToMin(s.start);if(am>0){yActMin+=am;yl.actualMins+=am;if(t.text){const tk=t.text.trim();yTaskActualMap[tk]=(yTaskActualMap[tk]||0)+am;}}}});
+      if(!t.isSkipped){
+        const yl=yEnsureLabel(lc,ln);yl.todoTotal++;if(t.done)yl.todoDone++;
+        if(t.planStart&&t.planEnd){const pm=timeToMin(t.planEnd)-timeToMin(t.planStart);if(pm>0){yPlanMin+=pm;yl.planMins+=pm;}}
+        (t.actualSegs||[]).forEach(s=>{if(s.start&&s.end){const am=timeToMin(s.end)-timeToMin(s.start);if(am>0){yActMin+=am;yl.actualMins+=am;if(t.text){const tk=t.text.trim();yTaskActualMap[tk]=(yTaskActualMap[tk]||0)+am;}}}});
+      }
       if(t.text){const k=t.text.trim();yTaskFreq[k]=(yTaskFreq[k]||0)+1;if(t.labelColor&&!yTaskLabelMap[k])yTaskLabelMap[k]={color:t.labelColor,label:t.label||''};if(!yTaskDayMap[k])yTaskDayMap[k]={planned:0,done:0};yTaskDayMap[k].planned++;if(t.done&&!t.isSkipped)yTaskDayMap[k].done++;}
     });
     otasks.forEach(o=>{
@@ -3793,122 +3807,8 @@ function renderYearly(){
   if(sumWrapEl){sumWrapEl.innerHTML='';sumWrapEl.appendChild(ySumWrap);sumWrapEl.style.display='block';}
   else heatWrap.appendChild(ySumWrap);
 
-  // ── 3. 热力图 ──
-  const heatTitle=document.createElement('div');
-  heatTitle.style.cssText='font-size:10px;color:var(--ink-m);letter-spacing:.8px;font-weight:500;margin-bottom:10px';
-  heatTitle.innerHTML='📅 全年打卡热力图 <span style="font-weight:400;opacity:.6">— 颜色深度代表当日计划完成率</span>';
-  heatWrap.appendChild(heatTitle);
-
-  // Build week columns first, then add month labels above them
-  // Step 1: build all week data
-  const allWeeks=[]; // [{cells:[{dayNum,monthNum,key,rate,hasData,isToday}], firstMonth}]
-  let curWeek={cells:[],firstMonth:-1};
-
-  // Fill empty slots before Jan 1
-  const firstDow2=jan1.getDay();
-  for(let e=0;e<firstDow2;e++) curWeek.cells.push(null); // null = empty
-
-  for(let di=0;;di++){
-    const dt2=new Date(currentYear,0,1+di);
-    if(dt2.getFullYear()!==currentYear) break;
-    const dow=dt2.getDay();
-    if(dow===0&&curWeek.cells.length>0){
-      allWeeks.push(curWeek);
-      curWeek={cells:[],firstMonth:-1};
-    }
-    const key=fmt(dt2);
-    const info=dayMap[key]||{};
-    const monthNum=dt2.getMonth()+1;
-    if(curWeek.firstMonth===-1) curWeek.firstMonth=monthNum;
-    curWeek.cells.push({dayNum:dt2.getDate(),monthNum,key,rate:info.rate||0,hasData:info.hasData,isToday:key===fmt(new Date())});
-  }
-  if(curWeek.cells.length>0) allWeeks.push(curWeek);
-
-  // Step 2: render — outer wrapper has month label row + cell row
-  const heatOuter=document.createElement('div');
-  heatOuter.style.cssText='display:flex;gap:0;min-width:max-content';
-
-  // Left side: weekday labels (no month label above them)
-  const wdSide=document.createElement('div');
-  wdSide.style.cssText='display:flex;flex-direction:column;flex-shrink:0;width:22px;margin-right:2px';
-  // Month label placeholder (same height as month label row)
-  const wdTop=document.createElement('div');wdTop.style.cssText='height:14px';wdSide.appendChild(wdTop);
-  // Weekday labels
-  ['日','一','二','三','四','五','六'].forEach((w,i)=>{
-    const lbl=document.createElement('div');
-    lbl.style.cssText=`height:16px;margin-top:2px;font-size:8px;color:var(--ink-m);line-height:16px;text-align:right;padding-right:3px;${i%2===0?'':'opacity:.4'}`;
-    lbl.textContent=i%2===0?w:'';
-    wdSide.appendChild(lbl);
-  });
-  heatOuter.appendChild(wdSide);
-
-  // Right side: week columns with month labels above
-  const colsWrap=document.createElement('div');
-  colsWrap.style.cssText='display:flex;gap:2px';
-
-  // Track month labels: put label above first week of each month
-  let lastLabelMonth=-1;
-  allWeeks.forEach(week=>{
-    const colDiv=document.createElement('div');
-    colDiv.style.cssText='display:flex;flex-direction:column;gap:2px;flex-shrink:0';
-
-    // Month label above column
-    const mLbl=document.createElement('div');
-    mLbl.style.cssText='height:14px;font-size:9px;color:var(--ink-m);white-space:nowrap;overflow:visible;line-height:14px';
-    const thisMonth=week.cells.find(c=>c!==null)?.monthNum||-1;
-    if(thisMonth!==-1&&thisMonth!==lastLabelMonth){
-      mLbl.textContent=MCN[thisMonth-1].replace('月','');
-      lastLabelMonth=thisMonth;
-    }
-    colDiv.appendChild(mLbl);
-
-    // Day cells
-    week.cells.forEach(cell=>{
-      if(cell===null){
-        // empty placeholder
-        const empty=document.createElement('div');empty.style.cssText='width:16px;height:16px';
-        colDiv.appendChild(empty);
-      } else {
-        const div=document.createElement('div');
-        let bg='var(--paper-l)';
-        if(cell.hasData){
-          if(cell.rate>=100) bg='var(--gr)';
-          else if(cell.rate>=75) bg='rgba(16,185,129,.6)';
-          else if(cell.rate>=50) bg='rgba(92,110,248,.55)';
-          else if(cell.rate>=25) bg='rgba(92,110,248,.3)';
-          else bg='rgba(92,110,248,.15)';
-        }
-        div.style.cssText=`width:16px;height:16px;border-radius:2px;background:${bg};cursor:pointer;transition:transform .1s;flex-shrink:0;display:flex;align-items:center;justify-content:center;${cell.isToday?'outline:1.5px solid var(--ac);outline-offset:1px':''}`;
-        div.title=`${cell.monthNum}/${cell.dayNum}${cell.hasData?' — 完成率 '+cell.rate+'%':'（无记录）'}`;
-        const numLbl=document.createElement('span');
-        numLbl.style.cssText=`font-size:7px;line-height:1;color:${cell.rate>=50&&cell.hasData?'rgba(255,255,255,.9)':'var(--ink-m)'};font-family:var(--mo);pointer-events:none;user-select:none;font-weight:500`;
-        numLbl.textContent=cell.dayNum;
-        div.appendChild(numLbl);
-        const capturedDate=new Date(currentYear,cell.monthNum-1,cell.dayNum);
-        div.onclick=()=>{currentDate=capturedDate;document.querySelectorAll('.nb')[0].click()};
-        div.onmouseenter=()=>{div.style.transform='scale(1.3)'};
-        div.onmouseleave=()=>{div.style.transform=''};
-        colDiv.appendChild(div);
-      }
-    });
-    colsWrap.appendChild(colDiv);
-  });
-
-  heatOuter.appendChild(colsWrap);
-  heatWrap.appendChild(heatOuter);
-
-  // 图例
-  const legend=document.createElement('div');
-  legend.style.cssText='display:flex;align-items:center;gap:6px;margin-top:8px;font-size:9px;color:var(--ink-m)';
-  legend.innerHTML=`<span>少</span>
-    <div style="width:16px;height:16px;border-radius:2px;background:var(--paper-l)"></div>
-    <div style="width:16px;height:16px;border-radius:2px;background:rgba(92,110,248,.15)"></div>
-    <div style="width:16px;height:16px;border-radius:2px;background:rgba(92,110,248,.3)"></div>
-    <div style="width:16px;height:16px;border-radius:2px;background:rgba(92,110,248,.55)"></div>
-    <div style="width:16px;height:16px;border-radius:2px;background:rgba(16,185,129,.6)"></div>
-    <div style="width:16px;height:16px;border-radius:2px;background:var(--gr)"></div>
-    <span>100%</span>`;
-  heatWrap.appendChild(legend);
+  // ── 3. 热力图（已隐藏，跳过渲染）──
+  // heatmap removed per user request
 
   // ── 4. 月卡片（按标签显示时长）──
   for(let m=0;m<12;m++){
