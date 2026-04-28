@@ -736,7 +736,6 @@ body.dark-mode .clear-day-btn:hover{background:rgba(239,68,68,.25)}
   .hdr{padding:0 10px}
   .site-name{font-size:14px}
   .hbtn{font-size:11px;padding:3px 7px}
-  .snap-btn{display:none}
   /* 导航 */
   .dnav{flex-wrap:wrap;gap:6px}
   /* 移动端底部Tab栏 */
@@ -787,29 +786,7 @@ body.dark-mode .mob-tab{background:var(--paper-w)}
 body.dark-mode .cdlg-box{background:#1a1b2e}
 body.dark-mode .cdlg-inp{background:var(--paper-l);color:var(--ink)}
 
-/* ── SNAPSHOT / UNDO ── */
-.snap-btn{background:none;border:1px solid rgba(255,255,255,.3);color:var(--paper);font-family:var(--ss);font-size:12px;padding:4px 10px;cursor:pointer;border-radius:2px;transition:all var(--t);display:flex;align-items:center;gap:4px}
-.snap-btn:hover{background:rgba(255,255,255,.15)}
-.snap-btn:disabled{opacity:.35;cursor:default}
-.snap-modal{display:none;position:fixed;inset:0;z-index:800;background:rgba(10,10,30,.6);backdrop-filter:blur(4px);align-items:center;justify-content:center}
-.snap-modal.open{display:flex}
-.snap-box{background:var(--card-bg);border:1px solid var(--bdr);border-radius:6px;width:min(440px,94vw);max-height:80vh;display:flex;flex-direction:column;box-shadow:0 16px 56px rgba(0,0,0,.35);overflow:hidden}
-.snap-head{padding:14px 18px 12px;border-bottom:1px solid var(--bdr);display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
-.snap-title{font-family:var(--sf);font-size:14px;font-weight:600;color:var(--ink)}
-.snap-sub{font-size:11px;color:var(--ink-m);margin-top:2px}
-.snap-body{flex:1;overflow-y:auto;padding:10px 14px;display:flex;flex-direction:column;gap:6px}
-.snap-item{border:1px solid var(--bdr);border-radius:4px;padding:10px 14px;cursor:pointer;transition:all var(--t);display:flex;align-items:center;gap:12px}
-.snap-item:hover{border-color:var(--ac);background:var(--ac-p)}
-.snap-item-left{flex:1;min-width:0}
-.snap-item-time{font-family:var(--mo);font-size:11px;font-weight:600;color:var(--ink)}
-.snap-item-label{font-size:10px;color:var(--am);font-family:var(--ss);margin-top:1px}
-.snap-item-desc{font-size:10px;color:var(--ink-m);margin-top:2px}
-.snap-item-restore{font-size:11px;color:var(--ac);font-family:var(--ss);white-space:nowrap;flex-shrink:0}
-.snap-item:hover .snap-item-restore{color:var(--ac)}
-.snap-empty{text-align:center;padding:30px;font-size:12px;color:var(--ink-m);opacity:.6}
-.snap-foot{padding:10px 14px;border-top:1px solid var(--bdr);font-size:10px;color:var(--ink-m);flex-shrink:0}
-body.dark-mode .snap-box{background:#1a1b2e}
-body.dark-mode .snap-item:hover{background:var(--ac-p)}
+
 </style>
 </head>
 <body>
@@ -848,7 +825,6 @@ body.dark-mode .snap-item:hover{background:var(--ac-p)}
   </nav>
   <div class="hdr-r">
     <button class="dark-toggle" id="dark-toggle-btn" onclick="toggleDarkMode()" title="切换深色模式">🌙</button>
-    <button class="snap-btn" id="snap-undo-btn" onclick="openSnapModal()" title="撤销 / 恢复历史版本" disabled>↩ 撤销</button>
     <button class="tpl-btn" onclick="openTplModal()" title="计划模板">📋 模板</button>
     <button class="hbtn" onclick="toggleExport()">导出 ↓</button>
     <button class="hbtn" id="full-backup-btn" onclick="openFullBackupModal()" title="一键备份所有数据为 JSON，防止数据丢失" style="background:rgba(16,185,129,.18);border-color:rgba(16,185,129,.5);font-weight:600;display:flex;align-items:center;gap:5px">💾 <span id="full-backup-ts" style="font-size:11px;opacity:.8">一键备份</span></button>
@@ -1342,21 +1318,6 @@ body.dark-mode .snap-item:hover{background:var(--ac-p)}
 </div>
 
 
-<!-- ─────────── SNAPSHOT / UNDO MODAL ─────────── -->
-<div class="snap-modal" id="snap-modal">
-  <div class="snap-box">
-    <div class="snap-head">
-      <div>
-        <div class="snap-title">↩ 撤销 — 恢复历史版本</div>
-        <div class="snap-sub" id="snap-sub">选择一个时间点恢复</div>
-      </div>
-      <button class="tpl-close" onclick="closeSnapModal()">×</button>
-    </div>
-    <div class="snap-body" id="snap-body"></div>
-    <div class="snap-foot">💡 每次套用模板、清除全天前会自动保存快照，最多保留 5 个</div>
-  </div>
-</div>
-
 <div class="saved" id="saved">已保存</div>
 
 <!-- ─────────── 移动端底部 Tab ─────────── -->
@@ -1420,119 +1381,6 @@ function cdlgPrompt(msg, defaultVal, title){
   });
 }
 
-
-// ── SNAPSHOT / UNDO SYSTEM ──
-const SNAP_MAX = 5;
-
-function snapKey(dateStr) { return 'snap_' + dateStr; }
-
-function snapSave(dateStr, label) {
-  // Save current state of the given date as a snapshot
-  const dayKey = 'plan_' + dateStr;
-  const raw = localStorage.getItem(dayKey);
-  if (!raw) return; // nothing to snapshot
-  
-  const snapStorageKey = snapKey(dateStr);
-  let snaps = [];
-  try { snaps = JSON.parse(localStorage.getItem(snapStorageKey) || '[]'); } catch {}
-  
-  const entry = {
-    ts: Date.now(),
-    label: label || '操作前',
-    data: raw  // store as raw string to avoid double-parse
-  };
-  snaps.unshift(entry);
-  // Keep only last SNAP_MAX
-  snaps = snaps.slice(0, SNAP_MAX);
-  try { localStorage.setItem(snapStorageKey, JSON.stringify(snaps)); } catch(e) {
-    // Storage full — remove oldest snap and retry
-    snaps = snaps.slice(0, SNAP_MAX - 1);
-    try { localStorage.setItem(snapStorageKey, JSON.stringify(snaps)); } catch {}
-  }
-  updateSnapBtn();
-}
-
-function snapLoadAll(dateStr) {
-  try { return JSON.parse(localStorage.getItem(snapKey(dateStr)) || '[]'); } catch { return []; }
-}
-
-function updateSnapBtn() {
-  const btn = document.getElementById('snap-undo-btn');
-  if (!btn) return;
-  const dateStr = fmt(currentDate);
-  const snaps = snapLoadAll(dateStr);
-  btn.disabled = snaps.length === 0;
-}
-
-function openSnapModal() {
-  const dateStr = fmt(currentDate);
-  const snaps = snapLoadAll(dateStr);
-  const body = document.getElementById('snap-body');
-  const sub = document.getElementById('snap-sub');
-  body.innerHTML = '';
-  
-  const d = currentDate;
-  sub.textContent = `${d.getFullYear()}年${d.getMonth()+1}月${d.getDate()}日 — 选择一个时间点恢复`;
-  
-  if (!snaps.length) {
-    body.innerHTML = '<div class="snap-empty">暂无快照<br>套用模板或清除全天前会自动保存</div>';
-  } else {
-    snaps.forEach((snap, i) => {
-      const item = document.createElement('div');
-      item.className = 'snap-item';
-      const ts = new Date(snap.ts);
-      const timeStr = `${String(ts.getHours()).padStart(2,'0')}:${String(ts.getMinutes()).padStart(2,'0')}:${String(ts.getSeconds()).padStart(2,'0')}`;
-      // Parse snap to show summary
-      let desc = '';
-      try {
-        const sd = JSON.parse(snap.data);
-        const tc = (sd.todos||[]).length, oc = (sd.otasks||[]).length, mc = (sd.memos||[]).length;
-        const parts = [];
-        if (tc) parts.push(`${tc}个固定安排`);
-        if (oc) parts.push(`${oc}个临时事项`);
-        if (mc) parts.push(`${mc}个小任务`);
-        desc = parts.length ? parts.join(' · ') : '空白状态';
-      } catch {}
-      item.innerHTML = `
-        <div class="snap-item-left">
-          <div class="snap-item-time">${timeStr}</div>
-          <div class="snap-item-label">${snap.label}</div>
-          <div class="snap-item-desc">${desc}</div>
-        </div>
-        <div class="snap-item-restore">点击恢复 →</div>`;
-      item.onclick = () => snapRestore(dateStr, snap);
-      body.appendChild(item);
-    });
-  }
-  document.getElementById('snap-modal').classList.add('open');
-}
-
-function closeSnapModal() {
-  document.getElementById('snap-modal').classList.remove('open');
-}
-
-async function snapRestore(dateStr, snap) {
-  const ts = new Date(snap.ts);
-  const timeStr = `${String(ts.getHours()).padStart(2,'0')}:${String(ts.getMinutes()).padStart(2,'0')}`;
-  const ok = await cdlgConfirm(`恢复到 ${timeStr} 的版本（${snap.label}）？\n当前数据将被覆盖。`, '确认恢复', true);
-  if (!ok) return;
-  
-  // Save current state as a snapshot before restoring (so user can undo the undo)
-  snapSave(dateStr, '恢复前自动保存');
-  
-  localStorage.setItem('plan_' + dateStr, snap.data);
-  closeSnapModal();
-  
-  // Reload view
-  if (fmt(currentDate) === dateStr) {
-    renderDaily();
-  }
-  const toast = document.getElementById('saved');
-  toast.style.background = 'var(--ac)';
-  toast.textContent = `↩ 已恢复到 ${timeStr} 的版本`;
-  toast.classList.add('show');
-  setTimeout(() => { toast.classList.remove('show'); toast.textContent = '已保存'; toast.style.background = ''; }, 2500);
-}
 
 // ── CONSTANTS ──
 const HOURS=['06:00','07:00','08:00','09:00','10:00','11:00','12:00','13:00',
@@ -1709,7 +1557,6 @@ function renderDaily(){
   updateStats();
   renderUnifiedTimeline();
   renderWeather(d.weather||'');
-  updateSnapBtn();
 }
 
 function updateDD(){
@@ -3080,7 +2927,6 @@ function restoreOtaskFromDeferred(div){
 function moveTdToNextDay(btn){
   const c=btn.closest('.tcard');
   if(c.dataset.movedToNext) return; // already moved
-  snapSave(fmt(currentDate), '移动事项前');
   const text=c.querySelector('.ttxt')?.value||'';
   const ps=c.querySelector('.eps')?.value||'';
   const pe=c.querySelector('.epe')?.value||'';
@@ -4894,8 +4740,7 @@ function apvConfirm() {
     return;
   }
 
-  // Save snapshot BEFORE writing new data
-  snapSave(fmt(targetDate), '套用模板前');
+  // Apply template
   dayData.date = fmt(targetDate);
   localStorage.setItem(dateKey, JSON.stringify(dayData));
   closeTplModal();
@@ -4946,7 +4791,6 @@ async function tplSaveToday(){
 async function clearAllDay(){
   const ok=await cdlgConfirm('每日固定安排、临时事项、小任务全部清空','确定清除全天所有事项？',true);
   if(!ok)return;
-  snapSave(fmt(currentDate), '清除全天前');
   document.getElementById('tlist').innerHTML='';
   document.getElementById('otask-list').innerHTML='';
   document.getElementById('memo-list').innerHTML='';
@@ -5703,7 +5547,7 @@ function handleFullRestore(e) {
 
 function openFullBackupModal() {
   // Count data
-  let planDays = 0, snapDays = 0, templates = 0, totalSkipped = 0, journals = 0;
+  let planDays = 0, templates = 0, totalSkipped = 0, journals = 0;
   for (let i = 0; i < localStorage.length; i++) {
     const k = localStorage.key(i);
     if (k && k.startsWith('plan_')) {
@@ -5713,7 +5557,6 @@ function openFullBackupModal() {
         if (d && d.todos) totalSkipped += d.todos.filter(t => t.isSkipped).length;
       } catch {}
     }
-    if (k && k.startsWith('snap_')) snapDays++;
   }
   try { templates = (JSON.parse(localStorage.getItem('todo_templates') || '[]')).length; } catch {}
   try { journals = (JSON.parse(localStorage.getItem('journals_v1') || '[]')).length; } catch {}
@@ -5721,7 +5564,6 @@ function openFullBackupModal() {
 
   const pct = getStorageUsagePercent();
   document.getElementById('fbk-days').textContent = planDays;
-  document.getElementById('fbk-snaps').textContent = snapDays;
   document.getElementById('fbk-tpls').textContent = templates;
   document.getElementById('fbk-skipped').textContent = totalSkipped;
   document.getElementById('fbk-name').textContent = siteName;
@@ -6011,25 +5853,25 @@ const REMIND_SETTINGS_KEY = 'backup_remind_settings';
 const REMIND_SNOOZE_KEY   = 'backup_remind_snooze';
 
 function getRemindSettings() {
-  try { return JSON.parse(localStorage.getItem(REMIND_SETTINGS_KEY) || 'null') || {banner:true, notify:false, hours:24}; }
-  catch { return {banner:true, notify:false, hours:24}; }
+  try { return JSON.parse(localStorage.getItem(REMIND_SETTINGS_KEY) || 'null') || {banner:true, notify:false, time:'17:50'}; }
+  catch { return {banner:true, notify:false, time:'17:50'}; }
 }
 
 function saveRemindSettings() {
   const banner = document.getElementById('remind-banner-chk')?.checked ?? true;
   const notify = document.getElementById('remind-notify-chk')?.checked ?? false;
-  const hours  = Math.max(1, parseInt(document.getElementById('remind-hours-inp')?.value) || 24);
-  localStorage.setItem(REMIND_SETTINGS_KEY, JSON.stringify({banner, notify, hours}));
+  const time   = document.getElementById('remind-time-inp')?.value || '17:50';
+  localStorage.setItem(REMIND_SETTINGS_KEY, JSON.stringify({banner, notify, time}));
 }
 
 function loadRemindSettingsIntoModal() {
   const s = getRemindSettings();
   const bannerChk = document.getElementById('remind-banner-chk');
   const notifyChk = document.getElementById('remind-notify-chk');
-  const hoursInp  = document.getElementById('remind-hours-inp');
+  const timeInp   = document.getElementById('remind-time-inp');
   if (bannerChk) bannerChk.checked = s.banner;
   if (notifyChk) notifyChk.checked = s.notify;
-  if (hoursInp)  hoursInp.value    = s.hours;
+  if (timeInp)   timeInp.value     = s.time || '17:50';
   updateNotifyStatus();
 }
 
@@ -6069,52 +5911,56 @@ async function toggleNotifyPermission() {
 }
 
 function snoozeBackupRemind() {
-  // 稍后提醒：2小时后再提示
-  localStorage.setItem(REMIND_SNOOZE_KEY, (Date.now() + 2 * 3600000).toString());
+  // 稍后提醒：30分钟后再提示
+  localStorage.setItem(REMIND_SNOOZE_KEY, (Date.now() + 30 * 60000).toString());
   document.getElementById('backup-remind-bar').style.display = 'none';
 }
 
 function checkBackupRemind() {
-  const ts   = localStorage.getItem(FULL_BACKUP_TS_KEY);
   const s    = getRemindSettings();
-  const intervalMs = s.hours * 3600000;
-  const now  = Date.now();
+  const now  = new Date();
+  const hh   = now.getHours();
+  const mm   = now.getMinutes();
 
-  // 检查是否需要提醒
-  const overdue = !ts || (now - parseInt(ts)) > intervalMs;
-  if (!overdue) return;
+  // 解析设定时间
+  const [th, tm] = (s.time || '17:50').split(':').map(Number);
+
+  // 只在设定时间的那一分钟触发（hh:mm === th:tm）
+  if (hh !== th || mm !== tm) return;
+
+  // 检查今天是否已经提醒过（避免同一分钟内多次触发）
+  const todayKey = 'backup_reminded_' + now.toISOString().slice(0,10);
+  if (localStorage.getItem(todayKey)) return;
 
   // 检查 snooze
   const snooze = localStorage.getItem(REMIND_SNOOZE_KEY);
-  if (snooze && now < parseInt(snooze)) return;
+  if (snooze && Date.now() < parseInt(snooze)) return;
 
-  const diffH = ts ? Math.round((now - parseInt(ts)) / 3600000) : null;
-  const msg   = diffH !== null
-    ? `📅 已 ${diffH >= 24 ? Math.round(diffH/24)+'天' : diffH+'小时'} 未备份，建议立即备份`
-    : '📅 尚未备份过，建议立即备份以防数据丢失';
+  // 标记今天已提醒
+  localStorage.setItem(todayKey, '1');
+
+  const ts   = localStorage.getItem(FULL_BACKUP_TS_KEY);
+  const diffH = ts ? Math.round((Date.now() - parseInt(ts)) / 3600000) : null;
+  const msg  = diffH !== null
+    ? `📅 已 ${diffH >= 24 ? Math.round(diffH/24)+'天' : diffH+'小时'} 未备份，下班前记得备份！`
+    : '📅 尚未备份过，下班前记得备份以防数据丢失！';
 
   // 横幅提醒
   if (s.banner) {
-    const bar = document.getElementById('backup-remind-bar');
+    const bar   = document.getElementById('backup-remind-bar');
     const msgEl = document.getElementById('backup-remind-msg');
     if (bar && msgEl) { msgEl.textContent = msg; bar.style.display = 'flex'; }
   }
 
   // 浏览器通知
   if (s.notify && 'Notification' in window && Notification.permission === 'granted') {
-    // 避免重复通知：记录上次通知时间
-    const lastNotifyKey = 'backup_last_notify';
-    const lastNotify = parseInt(localStorage.getItem(lastNotifyKey) || '0');
-    if (now - lastNotify > intervalMs * 0.9) {
-      new Notification('💾 工作计划 — 备份提醒', {
-        body: diffH !== null
-          ? `已 ${diffH >= 24 ? Math.round(diffH/24)+'天' : diffH+'小时'} 未备份，点击立即备份`
-          : '尚未备份过，建议立即备份',
-        icon: 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32"><text y="26" font-size="28">💾</text></svg>',
-        tag: 'backup-remind'
-      });
-      localStorage.setItem(lastNotifyKey, now.toString());
-    }
+    new Notification('💾 工作计划 — 下班备份提醒', {
+      body: diffH !== null
+        ? `已 ${diffH >= 24 ? Math.round(diffH/24)+'天' : diffH+'小时'} 未备份，点击立即备份`
+        : '尚未备份过，建议立即备份',
+      icon: 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32"><text y="26" font-size="28">💾</text></svg>',
+      tag: 'backup-remind'
+    });
   }
 }
 
@@ -6124,7 +5970,7 @@ document.addEventListener('DOMContentLoaded', function() {
   setInterval(updateFullBackupBtn, 60000);
   // 备份提醒：启动时检查一次，之后每15分钟检查
   checkBackupRemind();
-  setInterval(checkBackupRemind, 15 * 60000);
+  setInterval(checkBackupRemind, 60000); // 每分钟检查一次，精确捕捉提醒时间点
 });
 </script>
 <!-- ═══ FULL BACKUP MODAL ═══ -->
@@ -6145,10 +5991,6 @@ document.addEventListener('DOMContentLoaded', function() {
         <div style="background:var(--paper-w);border:1px solid var(--bdr);border-radius:6px;padding:10px 12px">
           <div style="font-family:var(--mo);font-size:20px;font-weight:500;color:var(--ac)" id="fbk-days">0</div>
           <div style="font-size:11px;color:var(--ink-m);margin-top:2px">天计划记录</div>
-        </div>
-        <div style="background:var(--paper-w);border:1px solid var(--bdr);border-radius:6px;padding:10px 12px">
-          <div style="font-family:var(--mo);font-size:20px;font-weight:500;color:var(--bl)" id="fbk-snaps">0</div>
-          <div style="font-size:11px;color:var(--ink-m);margin-top:2px">天历史快照</div>
         </div>
         <div style="background:var(--paper-w);border:1px solid var(--bdr);border-radius:6px;padding:10px 12px">
           <div style="font-family:var(--mo);font-size:20px;font-weight:500;color:var(--gr)" id="fbk-tpls">0</div>
@@ -6182,9 +6024,8 @@ document.addEventListener('DOMContentLoaded', function() {
           浏览器通知
         </label>
         <div style="display:flex;align-items:center;gap:5px;margin-left:auto">
-          <span style="font-size:11px;color:var(--ink-m);white-space:nowrap">间隔</span>
-          <input type="number" id="remind-hours-inp" min="1" max="720" value="24" onchange="saveRemindSettings()" style="width:54px;border:1px solid var(--bdr);background:var(--paper-w);color:var(--ink);font-family:var(--mo);font-size:12px;padding:3px 6px;border-radius:3px;outline:none;text-align:center">
-          <span style="font-size:11px;color:var(--ink-m)">小时</span>
+          <span style="font-size:11px;color:var(--ink-m);white-space:nowrap">提醒时间</span>
+          <input type="time" id="remind-time-inp" value="17:50" onchange="saveRemindSettings()" style="border:1px solid var(--bdr);background:var(--paper-w);color:var(--ink);font-family:var(--mo);font-size:12px;padding:3px 6px;border-radius:3px;outline:none">
         </div>
       </div>
       <div id="remind-notify-status" style="font-size:10px;color:var(--ink-m);margin-top:5px;display:none"></div>
