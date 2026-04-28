@@ -860,6 +860,15 @@ body.dark-mode .snap-item:hover{background:var(--ac-p)}
   <span class="sw-msg"></span>
   <button onclick="toggleExport();this.closest('#storage-warn').style.display='none'" style="background:#f59e0b;border:none;color:white;font-size:11px;padding:3px 10px;border-radius:2px;cursor:pointer;white-space:nowrap">立即导出</button>
 </div>
+<!-- 备份提醒横幅 -->
+<div id="backup-remind-bar" style="display:none;align-items:center;justify-content:space-between;gap:12px;background:#ecfdf5;border-bottom:1px solid #10b981;padding:6px 20px;font-size:12px;font-family:var(--ss);color:#065f46;z-index:189">
+  <span id="backup-remind-msg">📅 已超过设定时间未备份，建议立即备份</span>
+  <div style="display:flex;gap:8px;align-items:center;flex-shrink:0">
+    <button onclick="openFullBackupModal();document.getElementById('backup-remind-bar').style.display='none'" style="background:#10b981;border:none;color:white;font-size:11px;padding:3px 10px;border-radius:2px;cursor:pointer;white-space:nowrap">立即备份</button>
+    <button onclick="snoozeBackupRemind()" style="background:none;border:1px solid #10b981;color:#065f46;font-size:11px;padding:3px 10px;border-radius:2px;cursor:pointer;white-space:nowrap">稍后提醒</button>
+    <button onclick="document.getElementById('backup-remind-bar').style.display='none'" style="background:none;border:none;color:#065f46;font-size:14px;cursor:pointer;line-height:1;opacity:.6;padding:0 2px">✕</button>
+  </div>
+</div>
 <!-- ─────────── DAILY VIEW ─────────── -->
 <div id="view-daily" class="vw active">
 <div class="app">
@@ -5673,7 +5682,7 @@ function handleFullRestore(e) {
       e.target.value='';
       closeFullBackupModal();
       // ── 3. 刷新界面 ──
-      initTitle(); initDarkMode(); renderDaily(); checkStorageUsage();
+      initTitle(); initDarkMode(); renderDaily(); checkStorageUsage(); updateFullBackupBtn();
       if(document.getElementById('view-weekly')?.classList.contains('active')) renderWeekly();
       if(document.getElementById('view-monthly')?.classList.contains('active')) renderMonthly();
       if(document.getElementById('view-yearly')?.classList.contains('active')) renderYearly();
@@ -5733,6 +5742,7 @@ function openFullBackupModal() {
     lastEl.style.cssText = 'font-size:11px;padding:6px 10px;border-radius:3px;border:1px solid;background:#fee2e2;color:#991b1b;border-color:#f87171';
   }
   document.getElementById('full-backup-modal').style.display = 'flex';
+  loadRemindSettingsIntoModal();
 }
 
 function closeFullBackupModal() {
@@ -5993,9 +6003,128 @@ async function deleteJournal() {
   renderJournal();
 }
 
+
+// ══════════════════════════════════════════════
+// 备份提醒系统
+// ══════════════════════════════════════════════
+const REMIND_SETTINGS_KEY = 'backup_remind_settings';
+const REMIND_SNOOZE_KEY   = 'backup_remind_snooze';
+
+function getRemindSettings() {
+  try { return JSON.parse(localStorage.getItem(REMIND_SETTINGS_KEY) || 'null') || {banner:true, notify:false, hours:24}; }
+  catch { return {banner:true, notify:false, hours:24}; }
+}
+
+function saveRemindSettings() {
+  const banner = document.getElementById('remind-banner-chk')?.checked ?? true;
+  const notify = document.getElementById('remind-notify-chk')?.checked ?? false;
+  const hours  = Math.max(1, parseInt(document.getElementById('remind-hours-inp')?.value) || 24);
+  localStorage.setItem(REMIND_SETTINGS_KEY, JSON.stringify({banner, notify, hours}));
+}
+
+function loadRemindSettingsIntoModal() {
+  const s = getRemindSettings();
+  const bannerChk = document.getElementById('remind-banner-chk');
+  const notifyChk = document.getElementById('remind-notify-chk');
+  const hoursInp  = document.getElementById('remind-hours-inp');
+  if (bannerChk) bannerChk.checked = s.banner;
+  if (notifyChk) notifyChk.checked = s.notify;
+  if (hoursInp)  hoursInp.value    = s.hours;
+  updateNotifyStatus();
+}
+
+function updateNotifyStatus() {
+  const statusEl = document.getElementById('remind-notify-status');
+  const chk      = document.getElementById('remind-notify-chk');
+  if (!statusEl || !chk) return;
+  if (!('Notification' in window)) {
+    statusEl.textContent = '此浏览器不支持通知功能';
+    statusEl.style.display = 'block';
+    chk.disabled = true; return;
+  }
+  if (Notification.permission === 'denied') {
+    statusEl.textContent = '⚠️ 通知权限已被拒绝，请在浏览器设置中手动开启';
+    statusEl.style.display = 'block';
+    chk.checked = false; chk.disabled = true;
+  } else if (Notification.permission === 'granted') {
+    statusEl.textContent = '✅ 通知权限已获取';
+    statusEl.style.display = 'block'; chk.disabled = false;
+  } else {
+    statusEl.style.display = chk.checked ? 'block' : 'none';
+    statusEl.textContent = chk.checked ? '点击保存后首次检查时将请求通知权限' : '';
+    chk.disabled = false;
+  }
+}
+
+async function toggleNotifyPermission() {
+  const chk = document.getElementById('remind-notify-chk');
+  if (!chk?.checked) { saveRemindSettings(); updateNotifyStatus(); return; }
+  if (!('Notification' in window)) { chk.checked = false; return; }
+  if (Notification.permission === 'default') {
+    const perm = await Notification.requestPermission();
+    if (perm !== 'granted') { chk.checked = false; }
+  }
+  saveRemindSettings();
+  updateNotifyStatus();
+}
+
+function snoozeBackupRemind() {
+  // 稍后提醒：2小时后再提示
+  localStorage.setItem(REMIND_SNOOZE_KEY, (Date.now() + 2 * 3600000).toString());
+  document.getElementById('backup-remind-bar').style.display = 'none';
+}
+
+function checkBackupRemind() {
+  const ts   = localStorage.getItem(FULL_BACKUP_TS_KEY);
+  const s    = getRemindSettings();
+  const intervalMs = s.hours * 3600000;
+  const now  = Date.now();
+
+  // 检查是否需要提醒
+  const overdue = !ts || (now - parseInt(ts)) > intervalMs;
+  if (!overdue) return;
+
+  // 检查 snooze
+  const snooze = localStorage.getItem(REMIND_SNOOZE_KEY);
+  if (snooze && now < parseInt(snooze)) return;
+
+  const diffH = ts ? Math.round((now - parseInt(ts)) / 3600000) : null;
+  const msg   = diffH !== null
+    ? `📅 已 ${diffH >= 24 ? Math.round(diffH/24)+'天' : diffH+'小时'} 未备份，建议立即备份`
+    : '📅 尚未备份过，建议立即备份以防数据丢失';
+
+  // 横幅提醒
+  if (s.banner) {
+    const bar = document.getElementById('backup-remind-bar');
+    const msgEl = document.getElementById('backup-remind-msg');
+    if (bar && msgEl) { msgEl.textContent = msg; bar.style.display = 'flex'; }
+  }
+
+  // 浏览器通知
+  if (s.notify && 'Notification' in window && Notification.permission === 'granted') {
+    // 避免重复通知：记录上次通知时间
+    const lastNotifyKey = 'backup_last_notify';
+    const lastNotify = parseInt(localStorage.getItem(lastNotifyKey) || '0');
+    if (now - lastNotify > intervalMs * 0.9) {
+      new Notification('💾 工作计划 — 备份提醒', {
+        body: diffH !== null
+          ? `已 ${diffH >= 24 ? Math.round(diffH/24)+'天' : diffH+'小时'} 未备份，点击立即备份`
+          : '尚未备份过，建议立即备份',
+        icon: 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32"><text y="26" font-size="28">💾</text></svg>',
+        tag: 'backup-remind'
+      });
+      localStorage.setItem(lastNotifyKey, now.toString());
+    }
+  }
+}
+
+
 document.addEventListener('DOMContentLoaded', function() {
   updateFullBackupBtn();
   setInterval(updateFullBackupBtn, 60000);
+  // 备份提醒：启动时检查一次，之后每15分钟检查
+  checkBackupRemind();
+  setInterval(checkBackupRemind, 15 * 60000);
 });
 </script>
 <!-- ═══ FULL BACKUP MODAL ═══ -->
@@ -6039,6 +6168,26 @@ document.addEventListener('DOMContentLoaded', function() {
         </div>
       </div>
       <div id="fbk-lastbackup" style="font-size:11px;padding:6px 10px;border-radius:3px;border:1px solid var(--bdr);background:var(--paper-w);color:var(--ink-m)">检查中…</div>
+    </div>
+    <!-- Reminder settings -->
+    <div style="padding:0 20px 14px;border-bottom:1px solid var(--bdr)">
+      <div style="font-size:11px;font-weight:600;color:var(--ink-m);letter-spacing:.8px;margin-bottom:8px">⏰ 备份提醒设置</div>
+      <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+        <label style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--ink);cursor:pointer">
+          <input type="checkbox" id="remind-banner-chk" onchange="saveRemindSettings()" style="accent-color:#10b981;width:14px;height:14px">
+          页面横幅提醒
+        </label>
+        <label style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--ink);cursor:pointer">
+          <input type="checkbox" id="remind-notify-chk" onchange="toggleNotifyPermission()" style="accent-color:#10b981;width:14px;height:14px">
+          浏览器通知
+        </label>
+        <div style="display:flex;align-items:center;gap:5px;margin-left:auto">
+          <span style="font-size:11px;color:var(--ink-m);white-space:nowrap">间隔</span>
+          <input type="number" id="remind-hours-inp" min="1" max="720" value="24" onchange="saveRemindSettings()" style="width:54px;border:1px solid var(--bdr);background:var(--paper-w);color:var(--ink);font-family:var(--mo);font-size:12px;padding:3px 6px;border-radius:3px;outline:none;text-align:center">
+          <span style="font-size:11px;color:var(--ink-m)">小时</span>
+        </div>
+      </div>
+      <div id="remind-notify-status" style="font-size:10px;color:var(--ink-m);margin-top:5px;display:none"></div>
     </div>
     <!-- Actions -->
     <div style="padding:0 20px 20px;display:flex;flex-direction:column;gap:8px">
