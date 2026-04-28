@@ -3627,38 +3627,164 @@ function renderYearly(){
   const heatWrap=document.getElementById('y-heatmap-wrap');heatWrap.innerHTML='';
   let yt=0,yd=0,ydy=0,yot=0,yod=0,ymd=0;
 
+  // ── 年度汇总数据 ──
+  let yPlanMin=0,yActMin=0,yBestRate=0,yBestMonth='',yStreakMax=0,yStreakCur=0;
+  const yLabelMap={}; // key→{name,color,planMins,actualMins,todoTotal,todoDone,otaskTotal,otaskDone}
+  function yEnsureLabel(lc,ln){const k=lc||'__none__';if(!yLabelMap[k])yLabelMap[k]={name:ln||'无标签',color:lc||'',planMins:0,actualMins:0,todoTotal:0,todoDone:0,otaskTotal:0,otaskDone:0};return yLabelMap[k];}
+  const yTaskFreq={};const yTaskLabelMap={};const yTaskDayMap={};const yTaskActualMap={};
+  const fmtMy=m=>{if(!m)return'—';const h=Math.floor(m/60),mn=m%60;return(h?h+'h':'')+(mn?mn+'m':'');};
+
   // ── 1. 收集全年每日数据 ──
-  const dayMap={};// key=fmt, value={rate,total,done,hasData}
+  const dayMap={};
   const jan1=new Date(currentYear,0,1);
-  const dec31Time=new Date(currentYear,11,31).getTime();
+  const dec31=new Date(currentYear,11,31);
+  const dec31Time=dec31.getTime();
   for(let dt=new Date(jan1);dt.getTime()<=dec31Time;dt.setDate(dt.getDate()+1)){
     const key=fmt(dt);
     const data=load(dt);
     if(!data){dayMap[key]={rate:0,total:0,done:0,hasData:false};continue;}
-    const todos=(data.todos||[]).filter(t=>!t.movedToNext);const otasks=(data.otasks||[]).filter(o=>!o.movedToNext);const memos=(data.memos||[]).filter(m=>!m.movedToNext);
+    const todos=(data.todos||[]).filter(t=>!t.movedToNext);
+    const otasks=(data.otasks||[]).filter(o=>!o.movedToNext);
+    const memos=(data.memos||[]).filter(m=>!m.movedToNext);
     const total=todos.length,done=todos.filter(t=>t.done).length;
     const hasData=total>0||otasks.length>0||memos.length>0;
     const rate=total?Math.round(done/total*100):0;
     dayMap[key]={rate,total,done,hasData,otasks:otasks.length,memos:memos.length};
+    if(hasData){ydy++;}
+    yt+=total;yd+=done;yot+=otasks.length;yod+=otasks.filter(o=>o.done).length;ymd+=memos.filter(m=>m.done).length;
+    // label + task stats
+    todos.filter(t=>!t.isSkipped).forEach(t=>{
+      const lc=t.labelColor||'';const ln=t.label||'';
+      const yl=yEnsureLabel(lc,ln);yl.todoTotal++;if(t.done)yl.todoDone++;
+      if(t.planStart&&t.planEnd){const pm=timeToMin(t.planEnd)-timeToMin(t.planStart);if(pm>0){yPlanMin+=pm;yl.planMins+=pm;}}
+      (t.actualSegs||[]).forEach(s=>{if(s.start&&s.end){const am=timeToMin(s.end)-timeToMin(s.start);if(am>0){yActMin+=am;yl.actualMins+=am;if(t.text){const tk=t.text.trim();yTaskActualMap[tk]=(yTaskActualMap[tk]||0)+am;}}}});
+      if(t.text){const k=t.text.trim();yTaskFreq[k]=(yTaskFreq[k]||0)+1;if(t.labelColor&&!yTaskLabelMap[k])yTaskLabelMap[k]={color:t.labelColor,label:t.label||''};if(!yTaskDayMap[k])yTaskDayMap[k]={planned:0,done:0};yTaskDayMap[k].planned++;if(t.done&&!t.isSkipped)yTaskDayMap[k].done++;}
+    });
+    otasks.forEach(o=>{
+      const lc=o.labelColor||'';const ln=o.label||'';
+      const yl=yEnsureLabel(lc,ln);yl.otaskTotal++;if(o.done)yl.otaskDone++;
+      if(o.planStart&&o.planEnd){const pm=timeToMin(o.planEnd)-timeToMin(o.planStart);if(pm>0){yPlanMin+=pm;yl.planMins+=pm;}}
+      (o.actualSegs||[]).forEach(s=>{if(s.start&&s.end){const am=timeToMin(s.end)-timeToMin(s.start);if(am>0){yActMin+=am;yl.actualMins+=am;}}});
+    });
+    // streak
+    if(total&&done===total){yStreakCur++;if(yStreakCur>yStreakMax)yStreakMax=yStreakCur;}
+    else if(total)yStreakCur=0;
   }
-
-  // ── 2. 热力图 ──
-  heatWrap.innerHTML=`<div style="font-size:10px;color:var(--ink-m);letter-spacing:.8px;font-weight:500;margin-bottom:10px">📅 全年打卡热力图 <span style="font-weight:400;opacity:.6">— 颜色深度代表当日计划完成率</span></div>`;
-
-  // 月份标签行
-  const monthRow=document.createElement('div');
-  monthRow.style.cssText='display:flex;gap:3px;margin-bottom:4px;padding-left:24px';
-  // 计算每月第一周在第几列
-  const colsPerMonth=[];let colOffset=0;
+  // best month
   for(let m=0;m<12;m++){
-    const first=new Date(currentYear,m,1);
-    const firstCol=m===0?first.getDay():colOffset;
-    colsPerMonth.push(firstCol);
+    let mt=0,md=0;
     const dim=new Date(currentYear,m+1,0).getDate();
-    if(m===0) colOffset=first.getDay()+dim;
-    else colOffset+=dim;
+    for(let d=1;d<=dim;d++){const info=dayMap[fmt(new Date(currentYear,m,d))];if(info){mt+=info.total;md+=info.done;}}
+    const r=mt?Math.round(md/mt*100):0;
+    if(r>yBestRate){yBestRate=r;yBestMonth=MCN[m];}
   }
-  // 简化：直接按月名均匀分布
+
+  // ── 2. 年度摘要面板（3列）──
+  const ySumWrap=document.createElement('div');
+  ySumWrap.style.cssText='margin-bottom:14px;background:var(--card-bg);border:1px solid var(--bdr);border-radius:4px;overflow:hidden';
+
+  const yGlobalRate=yt?Math.round(yd/yt*100):0;
+  const yEffStr=(yPlanMin&&yActMin)?Math.round(yActMin/yPlanMin*100)+'%':'—';
+  const yLabelKeys=Object.keys(yLabelMap);
+
+  // 列1：年度完成概览
+  const yOverviewHtml=`
+    <div style="display:flex;align-items:flex-end;gap:6px;margin-bottom:6px">
+      <span style="font-family:var(--mo);font-size:28px;font-weight:600;color:${yGlobalRate>=80?'var(--gr)':yGlobalRate>=60?'var(--bl)':'var(--ac)'};line-height:1">${yGlobalRate}%</span>
+      <span style="font-size:11px;color:var(--ink-m);margin-bottom:4px">固定安排完成率</span>
+    </div>
+    <div style="height:5px;background:var(--paper-l);border-radius:3px;overflow:hidden;margin-bottom:8px">
+      <div style="height:100%;width:${yGlobalRate}%;background:${yGlobalRate>=80?'var(--gr)':yGlobalRate>=60?'var(--bl)':'var(--ac)'};border-radius:3px;transition:width .4s"></div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px;font-size:10px;margin-bottom:8px">
+      <div style="display:flex;flex-direction:column;gap:1px;padding:5px 8px;background:var(--paper-w);border-radius:3px">
+        <span style="color:var(--ac);font-family:var(--mo);font-size:13px;font-weight:600">${yd}/${yt}</span><span style="color:var(--ink-m)">固定安排</span>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:1px;padding:5px 8px;background:var(--paper-w);border-radius:3px">
+        <span style="color:var(--bl);font-family:var(--mo);font-size:13px;font-weight:600">${yod}/${yot}</span><span style="color:var(--ink-m)">临时事项</span>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:1px;padding:5px 8px;background:var(--paper-w);border-radius:3px">
+        <span style="color:var(--am);font-family:var(--mo);font-size:13px;font-weight:600">✓${ymd}</span><span style="color:var(--ink-m)">小任务</span>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:1px;padding:5px 8px;background:var(--paper-w);border-radius:3px">
+        <span style="color:var(--gr);font-family:var(--mo);font-size:13px;font-weight:600">${ydy}天</span><span style="color:var(--ink-m)">有记录</span>
+      </div>
+    </div>
+    ${yLabelKeys.length?`<div style="font-size:9px;color:var(--ink-m);letter-spacing:.5px;margin-bottom:4px;font-weight:600">按标签</div><div style="display:flex;flex-direction:column;gap:3px">${yLabelKeys.map(k=>{const g=yLabelMap[k];const dot=g.color?`<span style="width:6px;height:6px;border-radius:50%;background:${g.color};display:inline-block;flex-shrink:0"></span>`:'';return`<div style="display:flex;align-items:center;gap:5px;font-size:10px;padding:3px 5px;background:var(--paper-w);border-radius:3px"><span style="display:flex;align-items:center;gap:3px;flex:1;color:var(--ink)">${dot}${g.name}</span>${g.todoTotal?`<span style="font-family:var(--mo);font-size:9px;color:var(--ac)">固${g.todoDone}/${g.todoTotal}</span>`:''} ${g.otaskTotal?`<span style="font-family:var(--mo);font-size:9px;color:var(--bl)">临${g.otaskDone}/${g.otaskTotal}</span>`:''}</div>`;}).join('')}</div>`:''}`;
+
+  // 列2：时间统计
+  const yTimeHtml=`
+    <div style="display:flex;flex-direction:column;gap:6px;margin-bottom:10px">
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:5px 8px;background:rgba(245,158,11,.07);border-radius:3px;border-left:3px solid var(--am)">
+        <span style="font-size:10px;color:var(--ink-m)">计划总时长</span>
+        <span style="font-family:var(--mo);font-size:13px;font-weight:600;color:var(--am)">${fmtMy(yPlanMin)}</span>
+      </div>
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:5px 8px;background:rgba(16,185,129,.07);border-radius:3px;border-left:3px solid var(--gr)">
+        <span style="font-size:10px;color:var(--ink-m)">实际总时长</span>
+        <span style="font-family:var(--mo);font-size:13px;font-weight:600;color:var(--gr)">${fmtMy(yActMin)}</span>
+      </div>
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:5px 8px;background:rgba(92,110,248,.07);border-radius:3px;border-left:3px solid var(--ac)">
+        <span style="font-size:10px;color:var(--ink-m)">时间执行率</span>
+        <span style="font-family:var(--mo);font-size:13px;font-weight:600;color:var(--ac)">${yEffStr}</span>
+      </div>
+    </div>
+    <div style="display:flex;gap:10px;font-size:10px;margin-bottom:8px">
+      ${yBestMonth?`<div style="flex:1;padding:5px 8px;background:var(--paper-w);border-radius:3px"><div style="color:var(--ink-m);margin-bottom:2px">完成率最佳月</div><div style="font-family:var(--mo);font-weight:600;color:var(--gr)">${yBestMonth} <span style="font-size:9px;opacity:.8">${yBestRate}%</span></div></div>`:''}
+      ${yStreakMax>1?`<div style="flex:1;padding:5px 8px;background:var(--paper-w);border-radius:3px"><div style="color:var(--ink-m);margin-bottom:2px">最长全勤连续</div><div style="font-family:var(--mo);font-weight:600;color:var(--am)">${yStreakMax}天 🔥</div></div>`:''}
+    </div>
+    ${yLabelKeys.length?`<div style="font-size:9px;color:var(--ink-m);letter-spacing:.5px;margin-bottom:4px;font-weight:600">按标签</div><div style="display:flex;flex-direction:column;gap:2px">${yLabelKeys.map(k=>{const g=yLabelMap[k];const dot=g.color?`<span style="width:6px;height:6px;border-radius:50%;background:${g.color};display:inline-block;flex-shrink:0"></span>`:'';const totalPl=g.planMins,totalAc=g.actualMins;const eff=totalPl>0?Math.round(totalAc/totalPl*100):0;const effColor=eff>=100?'var(--gr)':eff>=80?'var(--bl)':eff>0?'var(--am)':'var(--ink-m)';return`<div style="display:flex;align-items:center;gap:5px;font-size:10px;padding:3px 5px;background:var(--paper-w);border-radius:3px"><span style="display:flex;align-items:center;gap:3px;flex:1;color:var(--ink)">${dot}${g.name}</span><span style="font-family:var(--mo);color:var(--am)">${fmtMy(totalPl)}</span><span style="color:var(--ink-m);font-size:9px">/</span><span style="font-family:var(--mo);color:var(--gr)">${fmtMy(totalAc)}</span><span style="font-family:var(--mo);font-size:9px;font-weight:600;color:${effColor}">${totalPl>0?eff+'%':'—'}</span></div>`;}).join('')}</div>`:''}`;
+
+  // 列3：固定安排完成情况（全部，按计划次数排序）
+  const yTopTasks=Object.entries(yTaskFreq).sort((a,b)=>b[1]-a[1]);
+  const yTopHtml=yTopTasks.length?yTopTasks.map(([name,cnt])=>{
+    const di=yTaskDayMap[name]||{planned:cnt,done:0};
+    const doneDays=di.done,plannedDays=di.planned;
+    const pct=Math.round(doneDays/366*100);// pct of year
+    const doneColor=doneDays>=plannedDays?'var(--gr)':doneDays>=plannedDays*0.8?'var(--bl)':'var(--ac)';
+    const lbl=yTaskLabelMap[name];
+    const labelHtml=lbl?`<span style="display:inline-flex;align-items:center;gap:2px;font-size:8px;padding:1px 4px;border-radius:8px;background:${lbl.color}22;color:${lbl.color};border:1px solid ${lbl.color}44;white-space:nowrap;flex-shrink:0"><span style="width:4px;height:4px;border-radius:50%;background:${lbl.color};display:inline-block"></span>${lbl.label}</span>`:'';
+    const actMin=yTaskActualMap[name]||0;
+    const actStr=actMin>0?fmtMy(actMin):'';
+    return`<div style="margin-bottom:7px;padding-bottom:6px;border-bottom:1px dashed var(--paper-l)">
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:4px;margin-bottom:3px">
+        <span style="font-size:10px;color:var(--ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1;min-width:0">${name}</span>
+        ${labelHtml}
+      </div>
+      <div style="display:flex;align-items:center;gap:5px;margin-bottom:2px">
+        <div style="flex:1;height:3px;background:var(--paper-l);border-radius:2px;overflow:hidden">
+          <div style="height:100%;width:${Math.round(plannedDays/3.66)}%;background:rgba(92,110,248,.25);border-radius:2px"></div>
+          <div style="height:100%;width:${pct}%;background:${doneColor};border-radius:2px;margin-top:-3px"></div>
+        </div>
+        <span style="font-family:var(--mo);font-size:9px;color:${doneColor};flex-shrink:0;white-space:nowrap;font-weight:600">${doneDays}/${plannedDays}天</span>
+      </div>
+      ${actStr?`<div style="font-size:9px;color:var(--ink-m);font-family:var(--mo)">实际累计：${actStr}</div>`:''}
+    </div>`;
+  }).join(''):`<div style="font-size:11px;color:var(--ink-m);opacity:.5;text-align:center;padding:16px 0">暂无数据</div>`;
+
+  ySumWrap.innerHTML=`<div style="display:grid;grid-template-columns:1fr 1fr 1fr;border-bottom:1px solid var(--bdr)">
+    <div style="padding:12px 16px;border-right:1px solid var(--bdr)">
+      <div style="font-size:10px;color:var(--ink-m);letter-spacing:.8px;margin-bottom:8px;font-weight:500">📊 年度完成概览</div>
+      ${yOverviewHtml}
+    </div>
+    <div style="padding:12px 16px;border-right:1px solid var(--bdr)">
+      <div style="font-size:10px;color:var(--ink-m);letter-spacing:.8px;margin-bottom:8px;font-weight:500">⏱ 时间统计 · 按标签</div>
+      ${yTimeHtml}
+    </div>
+    <div style="padding:12px 16px">
+      <div style="font-size:10px;color:var(--ink-m);letter-spacing:.8px;margin-bottom:4px;font-weight:500">🔁 固定安排完成情况</div>
+      <div style="font-size:9px;color:var(--ink-m);opacity:.7;margin-bottom:8px;line-height:1.5"><span style="font-family:var(--mo);color:var(--gr);font-weight:600">完成</span> / <span style="font-family:var(--mo);color:var(--ac);font-weight:600">计划</span> 天数</div>
+      <div style="max-height:320px;overflow-y:auto;padding-right:2px">${yTopHtml}</div>
+    </div>
+  </div>`;
+  heatWrap.appendChild(ySumWrap);
+
+  // ── 3. 热力图 ──
+  const heatTitle=document.createElement('div');
+  heatTitle.style.cssText='font-size:10px;color:var(--ink-m);letter-spacing:.8px;font-weight:500;margin-bottom:10px';
+  heatTitle.innerHTML='📅 全年打卡热力图 <span style="font-weight:400;opacity:.6">— 颜色深度代表当日计划完成率</span>';
+  heatWrap.appendChild(heatTitle);
+
+  // 月份标签行 — 按周数正确计算宽度
   const monthLabelRow=document.createElement('div');
   monthLabelRow.style.cssText='display:flex;margin-bottom:3px;padding-left:26px;gap:0';
   for(let m2=0;m2<12;m2++){
@@ -3686,24 +3812,27 @@ function renderYearly(){
   });
   heatGrid.appendChild(wdCol);
 
-  // 格子区（按周列排列）
+  // 格子区
   const cellsWrap=document.createElement('div');
   cellsWrap.style.cssText='display:flex;gap:2px;flex:1';
 
   // 填充第一周前的空格
-  const firstDow=jan1.getDay();// 0=日
+  const firstDow=jan1.getDay();
   let weekCol=document.createElement('div');
   weekCol.style.cssText='display:flex;flex-direction:column;gap:2px';
   for(let e=0;e<firstDow;e++){
-    const empty=document.createElement('div');
-    empty.style.cssText='width:16px;height:16px';
+    const empty=document.createElement('div');empty.style.cssText='width:16px;height:16px';
     weekCol.appendChild(empty);
   }
 
-  for(let dt2=new Date(jan1);dt2.getTime()<=dec31Time;dt2.setDate(dt2.getDate()+1)){
+  // Iterate every day of year — use date arithmetic that won't skip DST
+  const totalDays=Math.round((dec31Time-jan1.getTime())/86400000)+1;
+  for(let di=0;di<totalDays;di++){
+    const dt2=new Date(currentYear,0,1+di);
     const key=fmt(dt2);
     const info=dayMap[key]||{};
     const dow=dt2.getDay();
+    // Start new week column on Sunday (except the very first iteration if it's also Sunday after filling empties)
     if(dow===0&&weekCol.children.length>0){
       cellsWrap.appendChild(weekCol);
       weekCol=document.createElement('div');
@@ -3712,7 +3841,6 @@ function renderYearly(){
     const cell=document.createElement('div');
     const rate2=info.rate||0;
     const hasData=info.hasData;
-    // 颜色：无数据=纸色，有数据按完成率渐变
     let bg='var(--paper-l)';
     if(hasData){
       if(rate2>=100) bg='var(--gr)';
@@ -3722,23 +3850,20 @@ function renderYearly(){
       else bg='rgba(92,110,248,.15)';
     }
     const isToday=key===fmt(new Date());
-    const dayNum=dt2.getDate();
-    const monthNum=dt2.getMonth()+1;
-    // Show day number on cell (small, visible especially on hover)
+    const dayNum=dt2.getDate();const monthNum=dt2.getMonth()+1;
     cell.style.cssText=`position:relative;width:16px;height:16px;border-radius:2px;background:${bg};cursor:pointer;transition:transform .1s;flex-shrink:0;display:flex;align-items:center;justify-content:center;${isToday?'outline:1.5px solid var(--ac);outline-offset:1px':''}`;
     cell.title=`${monthNum}/${dayNum}${hasData?' — 完成率 '+rate2+'%':'（无记录）'}`;
-    // Day number label
     const numLbl=document.createElement('span');
-    const lightBg=!hasData||(rate2<50&&rate2>0);
     const textColor=rate2>=50&&hasData?'rgba(255,255,255,.9)':'var(--ink-m)';
     numLbl.style.cssText=`font-size:7px;line-height:1;color:${textColor};font-family:var(--mo);pointer-events:none;user-select:none;font-weight:500`;
     numLbl.textContent=dayNum;
     cell.appendChild(numLbl);
     cell.onclick=(()=>{const d2=new Date(dt2);return()=>{currentDate=d2;document.querySelectorAll('.nb')[0].click()}})();
-    cell.onmouseenter=()=>{cell.style.transform='scale(1.3)';};
-    cell.onmouseleave=()=>{cell.style.transform='';};
+    cell.onmouseenter=()=>{cell.style.transform='scale(1.3)'};
+    cell.onmouseleave=()=>{cell.style.transform=''};
     weekCol.appendChild(cell);
   }
+  // Always append the last partial week
   if(weekCol.children.length>0) cellsWrap.appendChild(weekCol);
   heatGrid.appendChild(cellsWrap);
   heatWrap.appendChild(heatGrid);
@@ -3756,16 +3881,20 @@ function renderYearly(){
     <span>100%</span>`;
   heatWrap.appendChild(legend);
 
-  // ── 3. 月卡片（4列，每张带迷你日历色块 + 详细数据） ──
+  // ── 4. 月卡片（按标签显示时长）──
   for(let m=0;m<12;m++){
     const dim=new Date(currentYear,m+1,0).getDate();
     let mt=0,md=0,mdy=0,mot=0,mod=0,mmd=0;
     let bestDayRate=0,bestDayNum=0,totalPlanMin=0,totalActMin=0;
-    const dayRates=[];// for sparkline
+    const mLabelMap={};
+    function mEnsureL(lc,ln){const k=lc||'__none__';if(!mLabelMap[k])mLabelMap[k]={name:ln||'无标签',color:lc||'',planMins:0,actualMins:0};return mLabelMap[k];}
+    const dayRates=[];
     for(let d=1;d<=dim;d++){
       const data=load(new Date(currentYear,m,d));
       if(!data){dayRates.push(null);continue;}
-      const todos=(data.todos||[]).filter(t=>!t.movedToNext);const otasks=(data.otasks||[]).filter(o=>!o.movedToNext);const memos=(data.memos||[]).filter(m=>!m.movedToNext);
+      const todos=(data.todos||[]).filter(t=>!t.movedToNext);
+      const otasks=(data.otasks||[]).filter(o=>!o.movedToNext);
+      const memos=(data.memos||[]).filter(mm=>!mm.movedToNext);
       const hasAny=todos.length||otasks.length||memos.length;
       if(hasAny)mdy++;
       const dn=todos.filter(t=>t.done).length;
@@ -3773,23 +3902,27 @@ function renderYearly(){
       const r=todos.length?Math.round(dn/todos.length*100):0;
       dayRates.push(todos.length?r:null);
       if(r>bestDayRate){bestDayRate=r;bestDayNum=d;}
-      todos.forEach(t=>{
-        if(t.planStart&&t.planEnd){totalPlanMin+=Math.max(0,timeToMin(t.planEnd)-timeToMin(t.planStart));}
-        (t.actualSegs||[]).forEach(s=>{if(s.start&&s.end)totalActMin+=Math.max(0,timeToMin(s.end)-timeToMin(s.start));});
+      todos.filter(t=>!t.isSkipped).forEach(t=>{
+        const lc=t.labelColor||'';const ln=t.label||'';
+        if(t.planStart&&t.planEnd){const pm=Math.max(0,timeToMin(t.planEnd)-timeToMin(t.planStart));totalPlanMin+=pm;if(pm>0)mEnsureL(lc,ln).planMins+=pm;}
+        (t.actualSegs||[]).forEach(s=>{if(s.start&&s.end){const am=Math.max(0,timeToMin(s.end)-timeToMin(s.start));totalActMin+=am;if(am>0)mEnsureL(lc,ln).actualMins+=am;}});
+      });
+      otasks.forEach(o=>{
+        const lc=o.labelColor||'';const ln=o.label||'';
+        if(o.planStart&&o.planEnd){const pm=Math.max(0,timeToMin(o.planEnd)-timeToMin(o.planStart));totalPlanMin+=pm;if(pm>0)mEnsureL(lc,ln).planMins+=pm;}
+        (o.actualSegs||[]).forEach(s=>{if(s.start&&s.end){const am=Math.max(0,timeToMin(s.end)-timeToMin(s.start));totalActMin+=am;if(am>0)mEnsureL(lc,ln).actualMins+=am;}});
       });
     }
-    yt+=mt;yd+=md;ydy+=mdy;yot+=mot;yod+=mod;ymd+=mmd;
+    yt+=0;yd+=0;// already counted above
     const r=mt?Math.round(md/mt*100):0;
-    const planH=Math.floor(totalPlanMin/60),planMm=totalPlanMin%60;
-    const actH=Math.floor(totalActMin/60),actMm=totalActMin%60;
-    const planStr=totalPlanMin?`${planH}h${planMm?planMm+'m':''}`:'—';
-    const actStr=totalActMin?`${actH}h${actMm?actMm+'m':''}`:'—';
+    const planStr=totalPlanMin?fmtMy(totalPlanMin):'—';
+    const actStr=totalActMin?fmtMy(totalActMin):'—';
 
     const card=document.createElement('div');
     card.className='ymc';
-    card.onclick=()=>{currentMonth=m;currentYear=currentYear;document.querySelectorAll('.nb')[2].click()};
+    card.onclick=()=>{currentMonth=m;document.querySelectorAll('.nb')[2].click()};
 
-    // 迷你日历色块（每天一个小点，按完成率着色）
+    // 迷你日历色块
     const firstDow2=new Date(currentYear,m,1).getDay();
     let miniCal=`<div style="display:grid;grid-template-columns:repeat(7,1fr);gap:1.5px;margin-bottom:8px">`;
     for(let e=0;e<firstDow2;e++) miniCal+=`<div style="height:7px;border-radius:1px"></div>`;
@@ -3800,7 +3933,6 @@ function renderYearly(){
     }
     miniCal+=`</div>`;
 
-    // 统计行
     const statsHtml=`
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px;margin-bottom:8px;font-size:10px">
         <div style="padding:4px 6px;background:var(--paper-w);border-radius:3px;display:flex;flex-direction:column;gap:1px">
@@ -3821,20 +3953,26 @@ function renderYearly(){
         </div>
       </div>`;
 
-    // 时间 + 最佳日
+    // 时间 + 按标签
+    const mLabelKeys=Object.keys(mLabelMap);
+    const labelTimeHtml=mLabelKeys.length?`
+      <div style="margin-top:4px;font-size:9px;color:var(--ink-m);font-weight:600;margin-bottom:3px">按标签</div>
+      <div style="display:flex;flex-direction:column;gap:2px">
+        ${mLabelKeys.map(k=>{const g=mLabelMap[k];const dot=g.color?`<span style="width:5px;height:5px;border-radius:50%;background:${g.color};display:inline-block;flex-shrink:0"></span>`:'';const eff=g.planMins>0?Math.round(g.actualMins/g.planMins*100):0;const effColor=eff>=100?'var(--gr)':eff>=80?'var(--bl)':eff>0?'var(--am)':'var(--ink-m)';return`<div style="display:flex;align-items:center;gap:3px;font-size:9px;padding:2px 4px;background:var(--paper-w);border-radius:2px"><span style="display:flex;align-items:center;gap:2px;flex:1;color:var(--ink);overflow:hidden;white-space:nowrap;text-overflow:ellipsis">${dot}${g.name}</span><span style="font-family:var(--mo);color:var(--am);flex-shrink:0">${fmtMy(g.planMins)}</span><span style="color:var(--ink-m);font-size:8px;flex-shrink:0">/</span><span style="font-family:var(--mo);color:var(--gr);flex-shrink:0">${fmtMy(g.actualMins)}</span><span style="font-family:var(--mo);font-size:8px;font-weight:600;color:${effColor};flex-shrink:0">${g.planMins>0?eff+'%':'—'}</span></div>`;}).join('')}
+      </div>`:'';
+
     const extraHtml=`
       <div style="display:flex;flex-direction:column;gap:3px;font-size:9px;color:var(--ink-m);border-top:1px dashed var(--paper-l);padding-top:6px;margin-top:2px">
         ${totalPlanMin?`<div style="display:flex;justify-content:space-between"><span>计划时长</span><span style="font-family:var(--mo);color:var(--am)">${planStr}</span></div>`:''}
         ${totalActMin?`<div style="display:flex;justify-content:space-between"><span>实际时长</span><span style="font-family:var(--mo);color:var(--gr)">${actStr}</span></div>`:''}
         ${bestDayNum?`<div style="display:flex;justify-content:space-between"><span>最佳完成日</span><span style="font-family:var(--mo);color:var(--gr)">${m+1}/${bestDayNum} ${bestDayRate}%</span></div>`:''}
+        ${labelTimeHtml}
       </div>`;
 
     card.innerHTML=`
       <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:6px;padding-bottom:5px;border-bottom:1px solid var(--paper-l)">
         <div class="ymn" style="margin:0;border:none;padding:0">${MCN[m]}</div>
-        <div style="display:flex;align-items:center;gap:6px">
-          <span style="font-family:var(--mo);font-size:13px;font-weight:600;color:${r>=80?'var(--gr)':r>=60?'var(--bl)':mt?'var(--ac)':'var(--ink-m)'}">${mt?r+'%':'—'}</span>
-        </div>
+        <span style="font-family:var(--mo);font-size:13px;font-weight:600;color:${r>=80?'var(--gr)':r>=60?'var(--bl)':mt?'var(--ac)':'var(--ink-m)'}">${mt?r+'%':'—'}</span>
       </div>
       ${miniCal}
       <div style="height:4px;background:var(--paper-l);border-radius:2px;overflow:hidden;margin-bottom:8px">
@@ -3846,8 +3984,10 @@ function renderYearly(){
   }
 
   const yr=yt?Math.round(yd/yt*100):0;
-  document.getElementById('y-days').textContent=ydy;document.getElementById('y-todos').textContent=yt;
-  document.getElementById('y-done').textContent=yd;document.getElementById('y-rate').textContent=yr+'%';
+  document.getElementById('y-days').textContent=ydy;
+  document.getElementById('y-todos').textContent=yt;
+  document.getElementById('y-done').textContent=yd;
+  document.getElementById('y-rate').textContent=yr+'%';
   const yotEl=document.getElementById('y-otasks');if(yotEl)yotEl.textContent=yot;
   const yodEl=document.getElementById('y-otdone');if(yodEl)yodEl.textContent=yod+'/'+yot;
   const ymdEl=document.getElementById('y-memos');if(ymdEl)ymdEl.textContent=ymd;
