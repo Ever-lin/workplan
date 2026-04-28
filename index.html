@@ -86,7 +86,7 @@ body{font-family:var(--ss);background:var(--paper);color:var(--ink);min-height:1
 .sc.a .sv{color:var(--ac)}.sc.b .sv{color:var(--bl)}.sc.g .sv{color:var(--gr)}
 
 /* ── MAIN LAYOUT ── */
-.pgrid{display:grid;grid-template-columns:1fr 1fr;background:white;border:1.5px solid var(--bdr);border-radius:2px;overflow:hidden;box-shadow:0 2px 10px var(--shd);position:relative}
+.pgrid{display:grid;grid-template-columns:1fr 1fr;background:white;border:1.5px solid var(--bdr);border-radius:2px;overflow:visible;box-shadow:0 2px 10px var(--shd);position:relative}
 .pgrid::after{content:'';position:absolute;top:0;bottom:0;left:50%;width:1px;background:repeating-linear-gradient(to bottom,var(--bdr) 0,var(--bdr) 4px,transparent 4px,transparent 8px);z-index:10;pointer-events:none}
 .pl{padding:16px 14px 16px 16px;border-right:1px solid var(--bdr);display:flex;flex-direction:column;gap:12px;background:var(--paper)}
 .pr{padding:16px 16px 16px 14px;display:flex;flex-direction:column;gap:12px;background:white}
@@ -301,7 +301,7 @@ body.dark-mode .tbtn-skip.skipped{background:#1f2937;border-color:#4b5563;color:
 
 /* OTHER TASKS (no-time) */
 .otask-list{display:flex;flex-direction:column;gap:5px}
-.otask{display:flex;flex-direction:column;gap:0;border:1px solid var(--bdr);border-radius:2px;background:white;overflow:hidden}
+.otask{display:flex;flex-direction:column;gap:0;border:1px solid var(--bdr);border-radius:2px;background:white;overflow:visible;position:relative}
 .otask.ck{background:var(--gr-l);border-color:#6ee7b7}
 .otask-top{display:flex;align-items:center;gap:6px;padding:5px 8px}
 .otask-chk{width:15px;height:15px;border:1.5px solid var(--bdr);border-radius:2px;cursor:default;flex-shrink:0;display:flex;align-items:center;justify-content:center;background:white;transition:all var(--t);font-size:9px}
@@ -1605,12 +1605,12 @@ function gather(){
     const exec=el.querySelector('.otask-exec');
     const actualSegs=[...el.querySelectorAll('.otask-segs-wrap .time-seg')].map(s=>({start:s.querySelector('.seg-s')?.value||'',end:s.querySelector('.seg-e')?.value||''})).filter(s=>s.start||s.end);
     const noteChecklist=[...el.querySelectorAll('.otask-checklist .note-cl-row')].map(r=>({text:r.querySelector('.note-cl-inp')?.value||'',done:r.querySelector('.note-cl-dot')?.classList.contains('ck')||false})).filter(r=>r.text);
-    if(v)otasks.push({text:v,done:el.classList.contains('ck'),actualSegs,noteChecklist,note:el.querySelector('.otnote')?.value||'',planStart:el.querySelector('.ops')?.value||'',planEnd:el.querySelector('.ope')?.value||'',execOpen:exec?exec.style.display!=='none':false,movedToNext:el.dataset.movedToNext||'',deferredFrom:el.dataset.deferredFrom||''});
+    if(v)otasks.push({text:v,done:el.classList.contains('ck'),actualSegs,noteChecklist,note:el.querySelector('.otnote')?.value||'',planStart:el.querySelector('.ops')?.value||'',planEnd:el.querySelector('.ope')?.value||'',execOpen:exec?exec.style.display!=='none':false,movedToNext:el.dataset.movedToNext||'',deferredFrom:el.dataset.deferredFrom||'',label:el.dataset.label||'',labelColor:el.dataset.labelColor||''});
   });
   const memos=[];
   document.querySelectorAll('.memo-item').forEach(el=>{
     const v=el.querySelector('.memo-ta')?.value||'';
-    if(v)memos.push({text:v,done:el.classList.contains('ck'),movedToNext:el.dataset.movedToNext||''});
+    if(v)memos.push({text:v,done:el.classList.contains('ck'),movedToNext:el.dataset.movedToNext||'',label:el.dataset.label||'',labelColor:el.dataset.labelColor||''});
   });
   return{
     date:fmt(currentDate),
@@ -2775,7 +2775,29 @@ function addOtask(pre){
 
   const drag=document.createElement('span');drag.className='drag-handle';drag.title='拖动排序';drag.textContent='⠿';
 
-  topRow.appendChild(drag);topRow.appendChild(chk);topRow.appendChild(inp);topRow.appendChild(mv);topRow.appendChild(toggle);topRow.appendChild(del);
+  // label dot + picker
+  const otaskId = 'ot_'+(pre?.text||'').slice(0,4)+'_'+Math.random().toString(36).slice(2,6);
+  div.dataset.otaskId = otaskId;
+  if(pre?.labelColor) div.dataset.labelColor=pre.labelColor;
+  if(pre?.label) div.dataset.label=pre.label;
+  const labelDotWrap=document.createElement('div');labelDotWrap.style.cssText='position:relative;flex-shrink:0';
+  const labelDotStyle=pre?.labelColor?`background:${pre.labelColor};border-color:${pre.labelColor}`:'';
+  labelDotWrap.innerHTML=`<div class="todo-label-dot${pre?.labelColor?'':' no-label'}" style="${labelDotStyle}" title="${pre?.label||'点击设置分类标签'}" onclick="openOtaskLabelPicker(this)"></div>
+    <div class="label-picker" id="olp_${otaskId}">
+      <div class="label-picker-title">分类标签 <span id="olp-manage-btn_${otaskId}" onclick="toggleOtaskLabelManage('${otaskId}')" style="font-size:9px;color:var(--ac);cursor:pointer;font-weight:400">＋ 管理</span></div>
+      <div class="label-preset-list" id="olpl_${otaskId}"></div>
+      <div id="olp-manage-area_${otaskId}" style="display:none">
+        <div class="label-preset-divider">新建标签</div>
+        <div class="label-add-swatch-row" id="olp-add-swatches_${otaskId}"></div>
+        <div class="label-add-row">
+          <input class="label-add-inp" id="olpn_${otaskId}" placeholder="标签名称" maxlength="10">
+          <button class="label-add-btn" onclick="addOtaskPresetLabel('${otaskId}')">添加</button>
+        </div>
+      </div>
+    </div>`;
+  // init picker on open
+
+  topRow.appendChild(drag);topRow.appendChild(chk);topRow.appendChild(labelDotWrap);topRow.appendChild(inp);topRow.appendChild(mv);topRow.appendChild(toggle);topRow.appendChild(del);
 
   // exec section: plan time + actual segs + note (collapsible)
   const execSec=document.createElement('div');execSec.className='otask-exec';
@@ -3147,7 +3169,7 @@ function renderMonthly(){
   // ── 收集全月数据用于摘要 ──
   const allDayData=[];
   let bestRate=0,bestDay=null,streakMax=0,streakCur=0,streakEnd=null,streakEndTmp=null;
-  const taskFreq={};
+  const taskFreq={};const taskLabelMap={}; // name→{color,label}
   let totalPlanMin=0,totalActMin=0,planDays=0;
 
   for(let d=1;d<=dim;d++){
@@ -3170,8 +3192,8 @@ function renderMonthly(){
     // 最长连续完成天（全部完成）
     if(todos.length&&dn===todos.length){streakCur++;if(streakCur>streakMax){streakMax=streakCur;streakEndTmp=d;}}
     else streakCur=0;
-    // 任务频率
-    todos.forEach(t=>{if(t.text){const k=t.text.trim();taskFreq[k]=(taskFreq[k]||0)+1;}});
+    // 任务频率 + 标签
+    todos.forEach(t=>{if(t.text){const k=t.text.trim();taskFreq[k]=(taskFreq[k]||0)+1;if(t.labelColor&&!taskLabelMap[k])taskLabelMap[k]={color:t.labelColor,label:t.label||''};}});
     // 计划 vs 实际时间
     todos.forEach(t=>{
       if(t.planStart&&t.planEnd){const pm=timeToMin(t.planEnd)-timeToMin(t.planStart);if(pm>0)totalPlanMin+=pm;planDays++;}
@@ -3246,10 +3268,13 @@ function renderMonthly(){
           ${topTasks.length?topTasks.map(([name,cnt],i)=>{
             const pct=Math.round(cnt/dim*100);
             const colors=['var(--ac)','var(--bl)','var(--gr)','var(--am)','var(--ink-m)','var(--ac)','var(--bl)','var(--gr)','var(--am)','var(--ink-m)'];
+            const lbl=taskLabelMap[name];
+            const labelHtml=lbl?`<span style="display:inline-flex;align-items:center;gap:2px;font-size:8px;padding:1px 5px;border-radius:8px;background:${lbl.color}22;color:${lbl.color};border:1px solid ${lbl.color}44;white-space:nowrap;flex-shrink:0"><span style="width:5px;height:5px;border-radius:50%;background:${lbl.color};display:inline-block"></span>${lbl.label}</span>`:'';
             return `<div style="margin-bottom:6px">
-              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:2px">
+              <div style="display:flex;justify-content:space-between;align-items:center;gap:5px;margin-bottom:2px">
                 <span style="font-size:10px;color:var(--ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1;min-width:0">${name}</span>
-                <span style="font-family:var(--mo);font-size:9px;color:${colors[i]};flex-shrink:0;margin-left:6px">${cnt}天</span>
+                ${labelHtml}
+                <span style="font-family:var(--mo);font-size:9px;color:${colors[i]};flex-shrink:0">${cnt}天</span>
               </div>
               <div style="height:3px;background:var(--paper-l);border-radius:2px;overflow:hidden">
                 <div style="height:100%;width:${pct}%;background:${colors[i]};border-radius:2px"></div>
@@ -3808,6 +3833,8 @@ function addMemo(pre){
   div.addEventListener('drop',e=>memoListDrop(e,div));
   div.addEventListener('dragend',()=>memoListDragEnd());
   if(pre?.movedToNext)div.dataset.movedToNext=pre.movedToNext;
+  if(pre?.labelColor)div.dataset.labelColor=pre.labelColor;
+  if(pre?.label)div.dataset.label=pre.label;
 
   const topRow=document.createElement('div');topRow.className='memo-item-top';
 
@@ -3828,6 +3855,25 @@ function addMemo(pre){
     setTimeout(()=>applyMemoDeferredStyle(div,pre.movedToNext),0);
   }
 
+  // memo label dot
+  const memoId='mo_'+Math.random().toString(36).slice(2,6);
+  div.dataset.memoId=memoId;
+  const mLabelDotWrap=document.createElement('div');mLabelDotWrap.style.cssText='position:relative;flex-shrink:0';
+  const mLdStyle=pre?.labelColor?`background:${pre.labelColor};border-color:${pre.labelColor}`:'';
+  mLabelDotWrap.innerHTML=`<div class="todo-label-dot${pre?.labelColor?'':' no-label'}" style="${mLdStyle}" title="${pre?.label||'点击设置分类标签'}" onclick="openMemoLabelPicker(this)"></div>
+    <div class="label-picker" id="mlp_${memoId}">
+      <div class="label-picker-title">分类标签 <span id="mlp-manage-btn_${memoId}" onclick="toggleMemoLabelManage('${memoId}')" style="font-size:9px;color:var(--ac);cursor:pointer;font-weight:400">＋ 管理</span></div>
+      <div class="label-preset-list" id="mlpl_${memoId}"></div>
+      <div id="mlp-manage-area_${memoId}" style="display:none">
+        <div class="label-preset-divider">新建标签</div>
+        <div class="label-add-swatch-row" id="mlp-add-swatches_${memoId}"></div>
+        <div class="label-add-row">
+          <input class="label-add-inp" id="mlpn_${memoId}" placeholder="标签名称" maxlength="10">
+          <button class="label-add-btn" onclick="addMemoPresetLabel('${memoId}')">添加</button>
+        </div>
+      </div>
+    </div>`;
+
   const del=document.createElement('button');del.className='memo-del';del.textContent='×';
   del.onclick=()=>{
     // If this memo was deferred FROM another day, clear that day's movedToNext mark
@@ -3844,7 +3890,7 @@ function addMemo(pre){
     div.remove();saveDayData();renderUnifiedTimeline();
   };
 
-  topRow.appendChild(drag);topRow.appendChild(chk);topRow.appendChild(inp);topRow.appendChild(mv);topRow.appendChild(del);
+  topRow.appendChild(drag);topRow.appendChild(chk);topRow.appendChild(mLabelDotWrap);topRow.appendChild(inp);topRow.appendChild(mv);topRow.appendChild(del);
   div.appendChild(topRow);
   list.appendChild(div);
 }
@@ -4164,11 +4210,21 @@ function tplAddRow(type, pre) {
   const isTodo = type === 'todo';
   const placeholder = type === 'todo' ? '工作计划标题' : type === 'otask' ? '临时事项标题' : '小任务标题';
   row.innerHTML = `
-    <div class="tpl-todo-main" style="grid-template-columns:16px 1fr${isTodo?' 70px 70px':''} 26px">
+    <div class="tpl-todo-main" style="grid-template-columns:16px 1fr${isTodo?' 70px 70px':''} auto 26px">
       <span class="tpl-drag-handle" title="拖动排序">⠿</span>
       <input class="tpl-todo-inp tpl-row-text" placeholder="${placeholder}" value="${(pre?.text||'').replace(/"/g,'&quot;')}">
       ${isTodo ? `<input class="tpl-todo-inp tpl-row-ps" list="dl-t" placeholder="09:00" value="${pre?.planStart||''}" style="font-family:var(--mo);font-size:10px">` : ''}
       ${isTodo ? `<input class="tpl-todo-inp tpl-row-pe" list="dl-t" placeholder="10:00" value="${pre?.planEnd||''}" style="font-family:var(--mo);font-size:10px">` : ''}
+      <div style="position:relative;flex-shrink:0" class="tpl-label-wrap">
+        <div class="todo-label-dot tpl-label-dot${pre?.labelColor?'':' no-label'}" style="${pre?.labelColor?`background:${pre.labelColor};border-color:${pre.labelColor}`:''}" title="${pre?.label||'设置标签'}" data-label="${pre?.label||''}" data-color="${pre?.labelColor||''}" onclick="openTplLabelPicker(this)"></div>
+        <div class="label-picker tpl-label-picker" style="display:none;z-index:700">
+          <div class="label-picker-title">标签</div>
+          <div class="tpl-label-preset-list" style="display:flex;flex-direction:column;gap:2px;max-height:180px;overflow-y:auto;margin-bottom:6px">
+            <button style="width:100%;padding:4px 7px;background:none;border:1px dashed var(--bdr);border-radius:4px;font-family:var(--ss);font-size:10px;color:var(--ink-m);cursor:pointer;text-align:left;margin-bottom:3px" onclick="applyTplLabel(this.closest('.tpl-label-wrap').querySelector('.tpl-label-dot'),'','')">× 清除标签</button>
+            ${getLabels().map(lbl=>`<div onclick="applyTplLabel(this.closest('.tpl-label-wrap').querySelector('.tpl-label-dot'),'${lbl.color}','${lbl.name}')" style="display:flex;align-items:center;gap:7px;padding:5px 8px;border-radius:5px;cursor:pointer;border:1px solid transparent" onmouseenter="this.style.background='var(--paper-w)'" onmouseleave="this.style.background=''"><div style="width:11px;height:11px;border-radius:50%;background:${lbl.color};flex-shrink:0"></div><span style="font-size:11px;color:var(--ink)">${lbl.name}</span></div>`).join('')}
+          </div>
+        </div>
+      </div>
       <button class="tpl-del-row" title="删除" onclick="this.closest('.tpl-todo-row').remove()">×</button>
     </div>
     ${type !== 'memo' ? `
@@ -4224,7 +4280,9 @@ function tplGatherRows() {
     [...document.querySelectorAll('#'+listId+' .tpl-todo-row')].map(row => ({
       text: row.querySelector('.tpl-row-text')?.value.trim() || '',
       ...(hasTime ? {planStart: row.querySelector('.tpl-row-ps')?.value||'', planEnd: row.querySelector('.tpl-row-pe')?.value||''} : {}),
-      noteChecklist: [...(row.querySelectorAll('.tpl-cl-inp')||[])].map(i=>({text:i.value.trim(),done:false})).filter(i=>i.text)
+      noteChecklist: [...(row.querySelectorAll('.tpl-cl-inp')||[])].map(i=>({text:i.value.trim(),done:false})).filter(i=>i.text),
+      label: row.querySelector('.tpl-label-dot')?.dataset.label||'',
+      labelColor: row.querySelector('.tpl-label-dot')?.dataset.color||''
     })).filter(t => t.text);
   return {
     todos: gather('tpl-todo-list', true),
@@ -4384,18 +4442,19 @@ function apvConfirm() {
         text:t.text, planStart:t.planStart||'', planEnd:t.planEnd||'',
         note:noteOverride, noteChecklist, done:false, actualSegs:[],
         execOpen:noteChecklist.length>0,
-        priority:dayData.todos.length+1
+        priority:dayData.todos.length+1,
+        label:t.label||'', labelColor:t.labelColor||''
       });
       added++;
     } else if (stype === 'otask') {
       const o = (tpl.otasks||[])[idx]; if(!o) return;
       if (dayData.otasks.some(ex=>ex.text===o.text)) return;
-      dayData.otasks.push({text:o.text, done:false, planStart:o.planStart||'', planEnd:o.planEnd||'', note:noteOverride, actualSegs:[], execOpen:!!(noteOverride||o.planStart)});
+      dayData.otasks.push({text:o.text, done:false, planStart:o.planStart||'', planEnd:o.planEnd||'', note:noteOverride, actualSegs:[], execOpen:!!(noteOverride||o.planStart), label:o.label||'', labelColor:o.labelColor||''});
       added++;
     } else if (stype === 'memo') {
       const m = (tpl.memos||[])[idx]; if(!m) return;
       if (dayData.memos.some(ex=>ex.text===m.text)) return;
-      dayData.memos.push({text:m.text, done:false});
+      dayData.memos.push({text:m.text, done:false, label:m.label||'', labelColor:m.labelColor||''});
       added++;
     }
   });
@@ -4442,7 +4501,7 @@ async function tplSaveToday(){
   if(name===null)return;
   const finalName=name.trim()||`${dateStr}的固定安排模板`;
 
-  const tplTodos=todos.map(t=>({text:t.text,planStart:t.planStart||'',planEnd:t.planEnd||'',noteChecklist:(t.noteChecklist||[]).map(i=>({text:i.text,done:false}))}));
+  const tplTodos=todos.map(t=>({text:t.text,planStart:t.planStart||'',planEnd:t.planEnd||'',noteChecklist:(t.noteChecklist||[]).map(i=>({text:i.text,done:false})),label:t.label||'',labelColor:t.labelColor||''}));
 
   const id='tpl_'+Date.now();
   const arr=tplLoadAll();
@@ -4671,7 +4730,166 @@ function openLabelPicker(dot){
 function closeLabelPicker(id){
   const p=document.getElementById('lp_'+id);if(p)p.classList.remove('open');
 }
-// Close label pickers when clicking outside
+// ── TEMPLATE LABEL PICKER ──
+function openTplLabelPicker(dot){
+  const picker=dot.nextElementSibling;if(!picker)return;
+  const isOpen=picker.style.display!=='none';
+  document.querySelectorAll('.tpl-label-picker').forEach(p=>p.style.display='none');
+  if(!isOpen)picker.style.display='block';
+}
+function applyTplLabel(dot,color,name){
+  dot.dataset.color=color;dot.dataset.label=name;
+  if(color){dot.style.background=color;dot.style.borderColor=color;dot.classList.remove('no-label');}
+  else{dot.style.background='';dot.style.borderColor='';dot.classList.add('no-label');}
+  dot.title=name||'设置标签';
+  dot.nextElementSibling.style.display='none';
+}
+document.addEventListener('click',e=>{
+  if(!e.target.closest('.tpl-label-wrap'))
+    document.querySelectorAll('.tpl-label-picker').forEach(p=>p.style.display='none');
+});
+
+// ── OTASK / MEMO LABEL PICKER ──
+function openOtaskLabelPicker(dot){
+  const div=dot.closest('.otask');
+  const id=div?.dataset.otaskId;
+  if(!id)return;
+  document.querySelectorAll('.label-picker.open').forEach(p=>{if(p.id!=='olp_'+id)p.classList.remove('open');});
+  const picker=document.getElementById('olp_'+id);
+  if(picker){
+    const wasOpen=picker.classList.contains('open');
+    picker.classList.toggle('open');
+    if(!wasOpen){
+      const cur=div.dataset.labelColor||'';
+      const curN=div.dataset.label||'';
+      initOtaskLabelPicker(div,id,cur,curN);
+    }
+  }
+}
+function initOtaskLabelPicker(div,id,currentColor,currentName){
+  renderOtaskLabelList(div,id,currentColor,currentName);
+  const swRow=document.getElementById('olp-add-swatches_'+id);
+  if(swRow){
+    swRow.innerHTML='';
+    _lpAddColor['o'+id]=LABEL_COLORS[0];
+    LABEL_COLORS.forEach(c=>{
+      const s=document.createElement('div');
+      s.className='label-swatch'+(c===LABEL_COLORS[0]?' active':'');
+      s.style.cssText=`background:${c};border-color:${c}`;
+      s.onclick=()=>{_lpAddColor['o'+id]=c;swRow.querySelectorAll('.label-swatch').forEach(el=>el.classList.remove('active'));s.classList.add('active');};
+      swRow.appendChild(s);
+    });
+  }
+}
+function renderOtaskLabelList(div,id,currentColor,currentName){
+  const list=document.getElementById('olpl_'+id);if(!list)return;
+  list.innerHTML='';
+  const clearRow=document.createElement('button');clearRow.className='label-preset-clear';clearRow.innerHTML='× 清除标签';
+  clearRow.onclick=()=>{applyOtaskLabel(div,id,'','');renderOtaskLabelList(div,id,'','');};
+  list.appendChild(clearRow);
+  getLabels().forEach((lbl,i)=>{
+    const row=document.createElement('div');
+    const isActive=lbl.color===currentColor&&lbl.name===currentName;
+    const isDefault=DEFAULT_LABELS.some(d=>d.name===lbl.name);
+    row.className='label-preset-row'+(isActive?' active':'');
+    row.innerHTML=`<div class="label-preset-dot" style="background:${lbl.color}"></div><span class="label-preset-name">${lbl.name}</span>${isActive?'<span class="label-preset-check">✓</span>':''}<span class="label-preset-del" style="font-size:11px;color:${isDefault?'var(--bdr)':'var(--ink-m)'};cursor:${isDefault?'default':'pointer'};padding:0 2px;margin-left:auto;flex-shrink:0" ${isDefault?'':'onmouseenter="this.style.color=\'#ef4444\'" onmouseleave="this.style.color=\'var(--ink-m)\'"'}>×</span>`;
+    row.onclick=(e)=>{if(e.target.classList.contains('label-preset-del'))return;applyOtaskLabel(div,id,lbl.color,lbl.name);renderOtaskLabelList(div,id,lbl.color,lbl.name);};
+    const delBtn=row.querySelector('.label-preset-del');
+    if(!isDefault&&delBtn)delBtn.onclick=(e)=>{e.stopPropagation();const arr=getLabels().filter((_,j)=>j!==i);saveLabels(arr);if(lbl.color===currentColor)applyOtaskLabel(div,id,'','');renderOtaskLabelList(div,id,lbl.color===currentColor?'':currentColor,lbl.color===currentColor?'':currentName);};
+    list.appendChild(row);
+  });
+}
+function applyOtaskLabel(div,id,color,name){
+  if(color){div.dataset.labelColor=color;div.dataset.label=name;}
+  else{delete div.dataset.labelColor;delete div.dataset.label;}
+  const dot=div.querySelector('.todo-label-dot');
+  if(dot){if(color){dot.style.background=color;dot.style.borderColor=color;dot.classList.remove('no-label');}else{dot.style.background='';dot.style.borderColor='';dot.classList.add('no-label');}dot.title=name||color||'点击设置分类标签';}
+  // Update inline label tag in topRow
+  const topRow=div.querySelector('.otask-top');
+  if(topRow){
+    topRow.querySelector('.otask-label-tag')?.remove();
+    if(color&&name){const tag=document.createElement('span');tag.className='label-tag otask-label-tag';tag.style.cssText=`background:${color}22;color:${color};border:1px solid ${color}44`;tag.innerHTML=`<span class="label-dot-sm" style="background:${color}"></span>${name}`;const toggle=topRow.querySelector('.otask-toggle');if(toggle)topRow.insertBefore(tag,toggle);else topRow.appendChild(tag);}
+  }
+  if(color){const labels=getLabels();if(!labels.some(l=>l.color===color&&l.name===name)){labels.unshift({color,name:name||''});saveLabels(labels.slice(0,20));}}
+  saveDayData();
+}
+function toggleOtaskLabelManage(id){
+  const area=document.getElementById('olp-manage-area_'+id);if(!area)return;
+  const isOpen=area.style.display!=='none';area.style.display=isOpen?'none':'block';
+  const btn=document.getElementById('olp-manage-btn_'+id);if(btn)btn.textContent=isOpen?'＋ 管理':'✕ 收起';
+}
+function addOtaskPresetLabel(id){
+  const inp=document.getElementById('olpn_'+id);const name=inp?.value.trim();
+  if(!name){inp&&(inp.style.borderColor='#ef4444');return;}
+  const color=_lpAddColor['o'+id]||LABEL_COLORS[0];
+  const labels=getLabels();if(labels.some(l=>l.name===name)){cdlgAlert('该标签已存在');return;}
+  labels.push({name,color});saveLabels(labels);if(inp)inp.value='';
+  const picker=document.getElementById('olp_'+id);const div=picker?.closest('.otask');
+  renderOtaskLabelList(div,id,div?.dataset.labelColor||'',div?.dataset.label||'');
+}
+
+// ── MEMO LABEL PICKER ──
+function openMemoLabelPicker(dot){
+  const div=dot.closest('.memo-item');
+  const id=div?.dataset.memoId;
+  if(!id)return;
+  document.querySelectorAll('.label-picker.open').forEach(p=>{if(p.id!=='mlp_'+id)p.classList.remove('open');});
+  const picker=document.getElementById('mlp_'+id);
+  if(picker){
+    const wasOpen=picker.classList.contains('open');
+    picker.classList.toggle('open');
+    if(!wasOpen){initMemoLabelPicker(div,id,div.dataset.labelColor||'',div.dataset.label||'');}
+  }
+}
+function initMemoLabelPicker(div,id,currentColor,currentName){
+  renderMemoLabelList(div,id,currentColor,currentName);
+  const swRow=document.getElementById('mlp-add-swatches_'+id);
+  if(swRow){
+    swRow.innerHTML='';_lpAddColor['m'+id]=LABEL_COLORS[0];
+    LABEL_COLORS.forEach(c=>{const s=document.createElement('div');s.className='label-swatch'+(c===LABEL_COLORS[0]?' active':'');s.style.cssText=`background:${c};border-color:${c}`;s.onclick=()=>{_lpAddColor['m'+id]=c;swRow.querySelectorAll('.label-swatch').forEach(el=>el.classList.remove('active'));s.classList.add('active');};swRow.appendChild(s);});
+  }
+}
+function renderMemoLabelList(div,id,currentColor,currentName){
+  const list=document.getElementById('mlpl_'+id);if(!list)return;list.innerHTML='';
+  const clearRow=document.createElement('button');clearRow.className='label-preset-clear';clearRow.innerHTML='× 清除标签';
+  clearRow.onclick=()=>{applyMemoLabel(div,id,'','');renderMemoLabelList(div,id,'','');};list.appendChild(clearRow);
+  getLabels().forEach((lbl,i)=>{
+    const row=document.createElement('div');const isActive=lbl.color===currentColor&&lbl.name===currentName;
+    const isDefault=DEFAULT_LABELS.some(d=>d.name===lbl.name);
+    row.className='label-preset-row'+(isActive?' active':'');
+    row.innerHTML=`<div class="label-preset-dot" style="background:${lbl.color}"></div><span class="label-preset-name">${lbl.name}</span>${isActive?'<span class="label-preset-check">✓</span>':''}<span class="label-preset-del" style="font-size:11px;color:${isDefault?'var(--bdr)':'var(--ink-m)'};cursor:${isDefault?'default':'pointer'};padding:0 2px;margin-left:auto;flex-shrink:0" ${isDefault?'':'onmouseenter="this.style.color=\'#ef4444\'" onmouseleave="this.style.color=\'var(--ink-m)\'"'}>×</span>`;
+    row.onclick=(e)=>{if(e.target.classList.contains('label-preset-del'))return;applyMemoLabel(div,id,lbl.color,lbl.name);renderMemoLabelList(div,id,lbl.color,lbl.name);};
+    const delBtn=row.querySelector('.label-preset-del');
+    if(!isDefault&&delBtn)delBtn.onclick=(e)=>{e.stopPropagation();const arr=getLabels().filter((_,j)=>j!==i);saveLabels(arr);if(lbl.color===currentColor)applyMemoLabel(div,id,'','');renderMemoLabelList(div,id,lbl.color===currentColor?'':currentColor,lbl.color===currentColor?'':currentName);};
+    list.appendChild(row);
+  });
+}
+function applyMemoLabel(div,id,color,name){
+  if(color){div.dataset.labelColor=color;div.dataset.label=name;}else{delete div.dataset.labelColor;delete div.dataset.label;}
+  const dot=div.querySelector('.todo-label-dot');
+  if(dot){if(color){dot.style.background=color;dot.style.borderColor=color;dot.classList.remove('no-label');}else{dot.style.background='';dot.style.borderColor='';dot.classList.add('no-label');}dot.title=name||color||'点击设置分类标签';}
+  const topRow=div.querySelector('.memo-item-top');
+  if(topRow){topRow.querySelector('.memo-label-tag')?.remove();if(color&&name){const tag=document.createElement('span');tag.className='label-tag memo-label-tag';tag.style.cssText=`background:${color}22;color:${color};border:1px solid ${color}44`;tag.innerHTML=`<span class="label-dot-sm" style="background:${color}"></span>${name}`;const del=topRow.querySelector('.memo-del');if(del)topRow.insertBefore(tag,del);else topRow.appendChild(tag);}}
+  if(color){const labels=getLabels();if(!labels.some(l=>l.color===color&&l.name===name)){labels.unshift({color,name:name||''});saveLabels(labels.slice(0,20));}}
+  saveDayData();
+}
+function toggleMemoLabelManage(id){
+  const area=document.getElementById('mlp-manage-area_'+id);if(!area)return;
+  const isOpen=area.style.display!=='none';area.style.display=isOpen?'none':'block';
+  const btn=document.getElementById('mlp-manage-btn_'+id);if(btn)btn.textContent=isOpen?'＋ 管理':'✕ 收起';
+}
+function addMemoPresetLabel(id){
+  const inp=document.getElementById('mlpn_'+id);const name=inp?.value.trim();
+  if(!name){inp&&(inp.style.borderColor='#ef4444');return;}
+  const color=_lpAddColor['m'+id]||LABEL_COLORS[0];
+  const labels=getLabels();if(labels.some(l=>l.name===name)){cdlgAlert('该标签已存在');return;}
+  labels.push({name,color});saveLabels(labels);if(inp)inp.value='';
+  const picker=document.getElementById('mlp_'+id);const div=picker?.closest('.memo-item');
+  renderMemoLabelList(div,id,div?.dataset.labelColor||'',div?.dataset.label||'');
+}
+
+// Close all label pickers (extend existing listener)
+
 document.addEventListener('click',e=>{
   if(!e.target.closest('.todo-label-dot')&&!e.target.closest('.label-picker'))
     document.querySelectorAll('.label-picker.open').forEach(p=>p.classList.remove('open'));
