@@ -414,21 +414,32 @@ body.dark-mode .utl-row.card-hover{background:rgba(92,110,248,.16) !important}
 .todo-label-dot:hover{transform:scale(1.3)}
 .todo-label-dot.no-label{background:var(--paper-l);border:1.5px dashed var(--bdr)}
 .todo-label-dot.no-label:hover{border-color:var(--ac)}
-.label-picker{display:none;position:absolute;top:calc(100% + 6px);left:0;z-index:600;background:var(--card-bg);border:1px solid var(--bdr);border-radius:6px;box-shadow:0 6px 20px var(--shd);padding:10px 12px;width:220px}
+.label-picker{display:none;position:absolute;top:calc(100% + 6px);left:0;z-index:600;background:var(--card-bg);border:1px solid var(--bdr);border-radius:8px;box-shadow:0 8px 24px var(--shd);padding:10px 12px;width:240px}
 .label-picker.open{display:block}
-.label-picker-title{font-size:10px;color:var(--ink-m);letter-spacing:.8px;margin-bottom:8px;font-weight:500}
-.label-picker-swatches{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px}
-.label-swatch{width:20px;height:20px;border-radius:50%;cursor:pointer;border:2px solid transparent;transition:all .15s;flex-shrink:0}
+.label-picker-title{font-size:10px;color:var(--ink-m);letter-spacing:.8px;margin-bottom:8px;font-weight:500;display:flex;align-items:center;justify-content:space-between}
+.label-preset-list{display:flex;flex-direction:column;gap:3px;margin-bottom:8px;max-height:220px;overflow-y:auto}
+.label-preset-row{display:flex;align-items:center;gap:7px;padding:5px 8px;border-radius:5px;cursor:pointer;border:1px solid transparent;transition:all .12s}
+.label-preset-row:hover{background:var(--paper-w);border-color:var(--bdr)}
+.label-preset-row.active{border-color:var(--bdr);background:var(--paper-w)}
+.label-preset-dot{width:11px;height:11px;border-radius:50%;flex-shrink:0}
+.label-preset-name{font-size:11px;color:var(--ink);flex:1}
+.label-preset-check{font-size:10px;color:var(--gr);font-weight:700;flex-shrink:0}
+.label-preset-clear{width:100%;padding:5px 8px;background:none;border:1px dashed var(--bdr);border-radius:5px;font-family:var(--ss);font-size:10px;color:var(--ink-m);cursor:pointer;transition:all .12s;text-align:left;margin-bottom:4px}
+.label-preset-clear:hover{border-color:#ef4444;color:#ef4444}
+.label-preset-divider{font-size:9px;color:var(--ink-m);letter-spacing:.6px;padding:4px 2px 2px;opacity:.7}
+.label-add-row{display:flex;gap:5px;margin-top:6px;border-top:1px solid var(--paper-l);padding-top:8px}
+.label-add-inp{flex:1;border:1px solid var(--bdr);border-radius:4px;font-family:var(--ss);font-size:11px;padding:4px 7px;color:var(--ink);background:var(--paper-w);outline:none}
+.label-add-inp:focus{border-color:var(--ac)}
+.label-add-btn{background:var(--ac);border:none;color:white;font-size:10px;padding:4px 8px;border-radius:4px;cursor:pointer;white-space:nowrap;font-family:var(--ss)}
+.label-add-swatch-row{display:flex;flex-wrap:wrap;gap:4px;margin-top:6px}
+.label-swatch{width:16px;height:16px;border-radius:50%;cursor:pointer;border:2px solid transparent;transition:all .12s;flex-shrink:0}
 .label-swatch:hover{transform:scale(1.2)}
 .label-swatch.active{border-color:var(--ink)!important;box-shadow:0 0 0 1px white inset}
-.label-swatch.clear{background:var(--paper-l);border:1.5px dashed var(--bdr)}
-.label-swatch.clear:hover{border-color:var(--ac)}
-.label-name-inp{width:100%;border:1px solid var(--bdr);border-radius:3px;font-family:var(--ss);font-size:11px;padding:4px 7px;color:var(--ink);background:var(--paper-w);outline:none;margin-top:4px}
-.label-name-inp:focus{border-color:var(--ac)}
+.label-name-inp{display:none}
 .label-tag{display:inline-flex;align-items:center;gap:4px;font-size:9px;padding:1px 6px;border-radius:10px;white-space:nowrap;font-family:var(--ss);font-weight:500;letter-spacing:.2px}
 .label-dot-sm{width:6px;height:6px;border-radius:50%;flex-shrink:0}
 body.dark-mode .label-picker{background:var(--paper-w)}
-body.dark-mode .label-name-inp{background:var(--paper-l);color:var(--ink)}
+body.dark-mode .label-add-inp{background:var(--paper-l);color:var(--ink)}
 
 /* ── SORT ORDER MEMORY ── */
 .sort-lock-btn{font-size:9px;padding:1px 7px;border:1px solid var(--bdr);border-radius:2px;background:none;color:var(--ink-m);cursor:pointer;font-family:var(--ss);transition:all var(--t);white-space:nowrap;flex-shrink:0}
@@ -1072,7 +1083,7 @@ body.dark-mode .snap-item:hover{background:var(--ac-p)}
 
 <!-- ─────────── JOURNAL EDITOR MODAL ─────────── -->
 <div id="jnl-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:800;align-items:center;justify-content:center" onclick="if(event.target===this)closeJournalEditor()">
-  <div style="background:var(--card-bg);border-radius:8px;box-shadow:0 16px 56px rgba(0,0,0,.3);width:min(720px,95vw);max-height:90vh;display:flex;flex-direction:column;overflow:hidden">
+  <div style="background:var(--card-bg);border-radius:8px;box-shadow:0 16px 56px rgba(0,0,0,.3);width:min(960px,96vw);max-height:92vh;display:flex;flex-direction:column;overflow:hidden">
     <!-- 模态头 -->
     <div style="background:linear-gradient(135deg,var(--ac),#7c3aed);padding:16px 20px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0">
       <div>
@@ -1119,21 +1130,21 @@ body.dark-mode .snap-item:hover{background:var(--ac-p)}
       <div id="jnl-structured" style="display:flex;flex-direction:column;gap:8px">
         <div>
           <div style="font-size:10px;color:var(--ink-m);letter-spacing:.6px;margin-bottom:4px">✅ 今天完成了什么</div>
-          <textarea id="jnl-done" rows="2" placeholder="写下今天完成的事情..." style="width:100%;border:1px solid var(--bdr);background:var(--paper-w);color:var(--ink);font-family:var(--ss);font-size:12px;padding:7px 10px;border-radius:3px;outline:none;resize:vertical;line-height:1.7" onfocus="this.style.borderColor='var(--gr)'" onblur="this.style.borderColor='var(--bdr)'"></textarea>
+          <textarea id="jnl-done" rows="3" placeholder="写下今天完成的事情..." style="width:100%;border:1px solid var(--bdr);background:var(--paper-w);color:var(--ink);font-family:var(--ss);font-size:12px;padding:7px 10px;border-radius:3px;outline:none;resize:vertical;line-height:1.7" onfocus="this.style.borderColor='var(--gr)'" onblur="this.style.borderColor='var(--bdr)'"></textarea>
         </div>
         <div>
           <div style="font-size:10px;color:var(--ink-m);letter-spacing:.6px;margin-bottom:4px">💡 收获与思考</div>
-          <textarea id="jnl-insight" rows="2" placeholder="今天学到了什么、有什么新认识..." style="width:100%;border:1px solid var(--bdr);background:var(--paper-w);color:var(--ink);font-family:var(--ss);font-size:12px;padding:7px 10px;border-radius:3px;outline:none;resize:vertical;line-height:1.7" onfocus="this.style.borderColor='var(--bl)'" onblur="this.style.borderColor='var(--bdr)'"></textarea>
+          <textarea id="jnl-insight" rows="3" placeholder="今天学到了什么、有什么新认识..." style="width:100%;border:1px solid var(--bdr);background:var(--paper-w);color:var(--ink);font-family:var(--ss);font-size:12px;padding:7px 10px;border-radius:3px;outline:none;resize:vertical;line-height:1.7" onfocus="this.style.borderColor='var(--bl)'" onblur="this.style.borderColor='var(--bdr)'"></textarea>
         </div>
         <div>
           <div style="font-size:10px;color:var(--ink-m);letter-spacing:.6px;margin-bottom:4px">🚀 明天/下一步计划</div>
-          <textarea id="jnl-next" rows="2" placeholder="明天打算做什么、需要改进什么..." style="width:100%;border:1px solid var(--bdr);background:var(--paper-w);color:var(--ink);font-family:var(--ss);font-size:12px;padding:7px 10px;border-radius:3px;outline:none;resize:vertical;line-height:1.7" onfocus="this.style.borderColor='var(--am)'" onblur="this.style.borderColor='var(--bdr)'"></textarea>
+          <textarea id="jnl-next" rows="3" placeholder="明天打算做什么、需要改进什么..." style="width:100%;border:1px solid var(--bdr);background:var(--paper-w);color:var(--ink);font-family:var(--ss);font-size:12px;padding:7px 10px;border-radius:3px;outline:none;resize:vertical;line-height:1.7" onfocus="this.style.borderColor='var(--am)'" onblur="this.style.borderColor='var(--bdr)'"></textarea>
         </div>
       </div>
       <!-- 自由正文 -->
       <div>
         <div style="font-size:10px;color:var(--ink-m);letter-spacing:.6px;margin-bottom:4px">📄 正文 / 详细内容</div>
-        <textarea id="jnl-body" rows="5" placeholder="在这里写下更多内容..." style="width:100%;border:1px solid var(--bdr);background:var(--paper-w);color:var(--ink);font-family:var(--ss);font-size:12px;padding:7px 10px;border-radius:3px;outline:none;resize:vertical;line-height:1.7" onfocus="this.style.borderColor='var(--ac)'" onblur="this.style.borderColor='var(--bdr)'"></textarea>
+        <textarea id="jnl-body" rows="8" placeholder="在这里写下更多内容..." style="width:100%;border:1px solid var(--bdr);background:var(--paper-w);color:var(--ink);font-family:var(--ss);font-size:12px;padding:7px 10px;border-radius:3px;outline:none;resize:none;line-height:1.7;min-height:140px;overflow:hidden" onfocus="this.style.borderColor='var(--ac)'" onblur="this.style.borderColor='var(--bdr)'" oninput="this.style.height='auto';this.style.height=this.scrollHeight+'px'"></textarea>
       </div>
       <!-- 标签 -->
       <div>
@@ -2202,9 +2213,17 @@ function buildCard(pre){
   <div style="position:relative;flex-shrink:0">
     <div class="todo-label-dot${pre?.labelColor?'':' no-label'}" style="${labelDotStyle}" title="${pre?.label||'点击设置分类标签'}" onclick="openLabelPicker(this)"></div>
     <div class="label-picker" id="lp_${id}">
-      <div class="label-picker-title">分类标签</div>
-      <div class="label-picker-swatches" id="lps_${id}"></div>
-      <input class="label-name-inp" id="lpn_${id}" placeholder="标签名称（可选）" maxlength="12" value="${(pre?.label||'').replace(/"/g,'&quot;')}">
+      <div class="label-picker-title">分类标签 <span id="lp-manage-btn_${id}" onclick="toggleLabelManage('${id}')" style="font-size:9px;color:var(--ac);cursor:pointer;font-weight:400">＋ 管理</span></div>
+      <div class="label-preset-list" id="lpl_${id}"></div>
+      <div id="lp-manage-area_${id}" style="display:none">
+        <div class="label-preset-divider">新建标签</div>
+        <div class="label-add-swatch-row" id="lp-add-swatches_${id}"></div>
+        <div class="label-add-row">
+          <input class="label-add-inp" id="lpn_${id}" placeholder="标签名称" maxlength="10">
+          <button class="label-add-btn" onclick="addPresetLabel('${id}')">添加</button>
+        </div>
+      </div>
+      <input class="label-name-inp" id="lpn2_${id}" style="display:none">
     </div>
   </div>
   <div class="tpri${pc}" onclick="cyclePri(this)" title="点击切换优先级">${priority}</div>
@@ -4469,53 +4488,113 @@ function initDarkMode(){
 // ── LABEL / TAG SYSTEM ──
 const LABEL_COLORS=['#5c6ef8','#0ea5e9','#10b981','#f59e0b','#ef4444','#e879f9','#f97316','#06b6d4','#84cc16','#ec4899','#8b5cf6','#6b7280'];
 const LABELS_KEY='user_labels';
+// Default preset labels
+const DEFAULT_LABELS=[
+  {name:'工作',color:'#5c6ef8'},
+  {name:'学习',color:'#0ea5e9'},
+  {name:'健康',color:'#10b981'},
+  {name:'生活',color:'#f59e0b'},
+  {name:'重要',color:'#ef4444'},
+  {name:'个人',color:'#e879f9'},
+];
 
 function getLabels(){
-  try{return JSON.parse(localStorage.getItem(LABELS_KEY)||'[]');}catch{return[];}
+  const stored = localStorage.getItem(LABELS_KEY);
+  if (!stored) return [...DEFAULT_LABELS];
+  try {
+    const arr = JSON.parse(stored);
+    // Merge defaults that aren't already present
+    DEFAULT_LABELS.forEach(dl => {
+      if (!arr.some(l => l.name === dl.name)) arr.unshift(dl);
+    });
+    return arr;
+  } catch { return [...DEFAULT_LABELS]; }
 }
 function saveLabels(arr){localStorage.setItem(LABELS_KEY,JSON.stringify(arr));}
 
+let _lpAddColor = {}; // track selected color per picker id
+
 function initLabelPicker(card, id, currentColor, currentName){
-  const swatchContainer=document.getElementById('lps_'+id);
-  const nameInp=document.getElementById('lpn_'+id);
-  if(!swatchContainer)return;
-
-  function renderSwatches(){
-    swatchContainer.innerHTML='';
-    // 清除按钮
-    const clearEl=document.createElement('div');
-    clearEl.className='label-swatch clear'+(currentColor===''?' active':'');
-    clearEl.title='无标签';
-    clearEl.onclick=()=>{applyLabel(card,id,'','');currentColor='';currentName='';renderSwatches();};
-    swatchContainer.appendChild(clearEl);
-    // 预设颜色
-    LABEL_COLORS.forEach(c=>{
-      const s=document.createElement('div');
-      s.className='label-swatch'+(currentColor===c?' active':'');
-      s.style.background=c;s.style.borderColor=c;
-      s.title=c;
-      s.onclick=()=>{applyLabel(card,id,c,nameInp?.value||'');currentColor=c;renderSwatches();};
-      swatchContainer.appendChild(s);
-    });
-    // 用户已用过的自定义标签
-    const labels=getLabels();
-    labels.filter(l=>l.color&&!LABEL_COLORS.includes(l.color)).forEach(l=>{
-      const s=document.createElement('div');
-      s.className='label-swatch'+(currentColor===l.color?' active':'');
-      s.style.background=l.color;s.style.borderColor=l.color;
-      s.title=l.name||l.color;
-      s.onclick=()=>{applyLabel(card,id,l.color,l.name||'');currentColor=l.color;nameInp&&(nameInp.value=l.name||'');renderSwatches();};
-      swatchContainer.appendChild(s);
+  renderLabelPickerList(card, id, currentColor, currentName);
+  // Init add-swatches
+  const swRow = document.getElementById('lp-add-swatches_'+id);
+  if (swRow) {
+    swRow.innerHTML = '';
+    _lpAddColor[id] = LABEL_COLORS[0];
+    LABEL_COLORS.forEach(c => {
+      const s = document.createElement('div');
+      s.className = 'label-swatch' + (c===LABEL_COLORS[0]?' active':'');
+      s.style.cssText = `background:${c};border-color:${c}`;
+      s.onclick = () => {
+        _lpAddColor[id] = c;
+        swRow.querySelectorAll('.label-swatch').forEach(el=>el.classList.remove('active'));
+        s.classList.add('active');
+      };
+      swRow.appendChild(s);
     });
   }
-  renderSwatches();
+}
 
-  if(nameInp){
-    nameInp.oninput=()=>{
-      if(currentColor)applyLabel(card,id,currentColor,nameInp.value);
+function renderLabelPickerList(card, id, currentColor, currentName) {
+  const list = document.getElementById('lpl_'+id);
+  if (!list) return;
+  list.innerHTML = '';
+  const labels = getLabels();
+
+  // Clear row
+  const clearRow = document.createElement('button');
+  clearRow.className = 'label-preset-clear';
+  clearRow.innerHTML = '× 清除标签';
+  clearRow.onclick = () => { applyLabel(card,id,'',''); renderLabelPickerList(card,id,'',''); };
+  list.appendChild(clearRow);
+
+  labels.forEach((lbl,i) => {
+    const row = document.createElement('div');
+    const isActive = lbl.color === currentColor && lbl.name === currentName;
+    row.className = 'label-preset-row' + (isActive?' active':'');
+    row.innerHTML = `<div class="label-preset-dot" style="background:${lbl.color}"></div><span class="label-preset-name">${lbl.name}</span>${isActive?'<span class="label-preset-check">✓</span>':''}`;
+    row.onclick = () => {
+      applyLabel(card, id, lbl.color, lbl.name);
+      renderLabelPickerList(card, id, lbl.color, lbl.name);
     };
-    nameInp.onkeydown=e=>{if(e.key==='Enter'||e.key==='Escape'){closeLabelPicker(id);}};
-  }
+    // Long-press or right-click to delete custom labels
+    row.oncontextmenu = e => {
+      e.preventDefault();
+      const isDefault = DEFAULT_LABELS.some(d=>d.name===lbl.name);
+      if (isDefault) return;
+      const arr = getLabels().filter((_,j)=>j!==i);
+      saveLabels(arr);
+      renderLabelPickerList(card, id, currentColor, currentName);
+    };
+    list.appendChild(row);
+  });
+}
+
+function toggleLabelManage(id) {
+  const area = document.getElementById('lp-manage-area_'+id);
+  if (!area) return;
+  const isOpen = area.style.display !== 'none';
+  area.style.display = isOpen ? 'none' : 'block';
+  const btn = document.getElementById('lp-manage-btn_'+id);
+  if (btn) btn.textContent = isOpen ? '＋ 管理' : '✕ 收起';
+}
+
+function addPresetLabel(id) {
+  const inp = document.getElementById('lpn_'+id);
+  const name = inp?.value.trim();
+  if (!name) { inp && (inp.style.borderColor='#ef4444'); return; }
+  const color = _lpAddColor[id] || LABEL_COLORS[0];
+  const labels = getLabels();
+  if (labels.some(l=>l.name===name)) { cdlgAlert('该标签已存在'); return; }
+  labels.push({name, color});
+  saveLabels(labels);
+  if (inp) inp.value = '';
+  // find the card for this picker
+  const picker = document.getElementById('lp_'+id);
+  const card = picker?.closest('.tcard');
+  const cur = card?.dataset.labelColor||'';
+  const curN = card?.dataset.label||'';
+  renderLabelPickerList(card, id, cur, curN);
 }
 
 function applyLabel(card,id,color,name){
@@ -4564,7 +4643,16 @@ function openLabelPicker(dot){
   // Close all other pickers
   document.querySelectorAll('.label-picker.open').forEach(p=>{if(p.id!=='lp_'+id)p.classList.remove('open');});
   const picker=document.getElementById('lp_'+id);
-  if(picker){picker.classList.toggle('open');if(picker.classList.contains('open'))picker.querySelector('.label-name-inp')?.focus();}
+  if(picker){
+    const wasOpen=picker.classList.contains('open');
+    picker.classList.toggle('open');
+    if(!wasOpen){
+      // Init the list fresh each time it opens
+      const cur=card.dataset.labelColor||'';
+      const curN=card.dataset.label||'';
+      initLabelPicker(card,id,cur,curN);
+    }
+  }
 }
 function closeLabelPicker(id){
   const p=document.getElementById('lp_'+id);if(p)p.classList.remove('open');
@@ -5047,6 +5135,9 @@ function openJournalEditor(j, preType) {
   document.getElementById('jnl-insight').value = j?.insight || '';
   document.getElementById('jnl-next').value = j?.next_txt || '';
   document.getElementById('jnl-body').value = j?.body || '';
+  const bodyTa = document.getElementById('jnl-body');
+  bodyTa.style.height = 'auto';
+  setTimeout(() => { bodyTa.style.height = bodyTa.scrollHeight + 'px'; }, 0);
   document.getElementById('jnl-tags-inp').value = (j?.tags||[]).join(' ');
 
   // Mood
