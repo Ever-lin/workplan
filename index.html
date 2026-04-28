@@ -1829,6 +1829,9 @@ function renderUnifiedTimeline(){
         planSegs.push({idx,sm,em,txt:t.txt,type:ev.type,hasActual:true,el:null});
       });
     } else if(t.ps){
+      // Plan-only: skip if event is done (already completed, no longer competing for time)
+      // or if it's an incomplete plan (already flagged separately)
+      if(t.done||t.isIncomplete||t.isMakeup) return;
       const sm=timeToMin(t.ps),em=t.pe?timeToMin(t.pe):sm+1;
       planSegs.push({idx,sm,em,txt:t.txt,type:ev.type,hasActual:false,el:null});
     }
@@ -2125,8 +2128,10 @@ function renderUnifiedTimeline(){
   document.querySelectorAll('.memo-item').forEach(el=>{
     const done=el.classList.contains('ck');
     const txt=el.querySelector('.memo-ta')?.value||'';
+    const labelColor=el.dataset.labelColor||'';
+    const labelName=el.dataset.label||'';
     if(!txt||!done)return;
-    miniDone.push({type:'memo',txt,note:'',labelColor:'',labelName:''});
+    miniDone.push({type:'memo',txt,note:'',labelColor,labelName});
   });
 
   // Render incomplete mini-section (above done section)
@@ -2144,6 +2149,13 @@ function renderUnifiedTimeline(){
       const inner=document.createElement('div');inner.style.cssText='flex:1;display:flex;flex-direction:column;gap:2px;min-width:0';
       const txtEl=document.createElement('span');txtEl.className='utl-mini-txt is-incomplete-txt';txtEl.textContent=item.txt;
       inner.appendChild(txtEl);
+      if(item.labelColor&&item.labelName){
+        const metaRow=document.createElement('div');metaRow.style.cssText='display:flex;flex-wrap:wrap;gap:3px;margin-top:1px';
+        const ltag=document.createElement('span');
+        ltag.style.cssText=`display:inline-flex;align-items:center;gap:2px;font-size:8px;padding:1px 5px;border-radius:8px;background:${item.labelColor}22;color:${item.labelColor};border:1px solid ${item.labelColor}44;white-space:nowrap`;
+        ltag.innerHTML=`<span style="width:5px;height:5px;border-radius:50%;background:${item.labelColor};display:inline-block"></span>${item.labelName}`;
+        metaRow.appendChild(ltag);inner.appendChild(metaRow);
+      }
       if(item.note){const noteEl=document.createElement('span');noteEl.className='utl-mini-note';noteEl.textContent='↳ '+item.note;inner.appendChild(noteEl);}
       row.appendChild(icon);row.appendChild(tag);row.appendChild(inner);
       incSec.appendChild(row);
@@ -3887,7 +3899,7 @@ function renderYearly(){
     let mt=0,md=0,mdy=0,mot=0,mod=0,mmd=0;
     let bestDayRate=0,bestDayNum=0,totalPlanMin=0,totalActMin=0;
     const mLabelMap={};
-    function mEnsureL(lc,ln){const k=lc||'__none__';if(!mLabelMap[k])mLabelMap[k]={name:ln||'无标签',color:lc||'',planMins:0,actualMins:0};return mLabelMap[k];}
+    const mEnsureL=(lc,ln)=>{const k=lc||'__none__';if(!mLabelMap[k])mLabelMap[k]={name:ln||'无标签',color:lc||'',planMins:0,actualMins:0};return mLabelMap[k];};
     const dayRates=[];
     for(let d=1;d<=dim;d++){
       const data=load(new Date(currentYear,m,d));
@@ -5898,8 +5910,13 @@ function openJournalEditor(j, preType) {
   document.getElementById('jnl-next').value = j?.next_txt || '';
   document.getElementById('jnl-body').value = j?.body || '';
   const bodyTa = document.getElementById('jnl-body');
-  bodyTa.style.height = 'auto';
-  setTimeout(() => { bodyTa.style.height = bodyTa.scrollHeight + 'px'; }, 0);
+  // Show modal first so scrollHeight is measurable, then auto-size
+  document.getElementById('jnl-modal').style.display='flex';
+  // Use double rAF to ensure layout is complete before measuring
+  requestAnimationFrame(()=>requestAnimationFrame(()=>{
+    bodyTa.style.height='auto';
+    bodyTa.style.height=Math.max(bodyTa.scrollHeight,140)+'px';
+  }));
   document.getElementById('jnl-tags-inp').value = (j?.tags||[]).join(' ');
 
   // Mood
@@ -5907,8 +5924,6 @@ function openJournalEditor(j, preType) {
     el.style.opacity = el.dataset.v === j?.mood ? '1' : '.4';
     el.style.background = el.dataset.v === j?.mood ? 'var(--ac-p)' : 'transparent';
   });
-
-  document.getElementById('jnl-modal').style.display='flex';
 }
 
 function closeJournalEditor() {
