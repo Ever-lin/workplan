@@ -820,6 +820,7 @@ body.dark-mode .snap-item:hover{background:var(--ac-p)}
     <button class="nb" onclick="switchView('weekly',this)">每周</button>
     <button class="nb" onclick="switchView('monthly',this)">每月</button>
     <button class="nb" onclick="switchView('yearly',this)">每年</button>
+    <button class="nb" onclick="switchView('journal',this)">📝 总结</button>
   </nav>
   <div class="hdr-r">
     <button class="dark-toggle" id="dark-toggle-btn" onclick="toggleDarkMode()" title="切换深色模式">🌙</button>
@@ -1000,6 +1001,156 @@ body.dark-mode .snap-item:hover{background:var(--ac-p)}
 </div>
 </div>
 
+<!-- ─────────── JOURNAL VIEW ─────────── -->
+<div id="view-journal" class="vw">
+<div class="app">
+  <!-- 顶栏：新建 + 搜索 -->
+  <div class="dnav" style="gap:10px">
+    <div class="dm" style="font-size:16px">📝 总结日志</div>
+    <div style="flex:1"></div>
+    <input id="jnl-search" type="text" placeholder="搜索总结内容..." style="border:1px solid var(--bdr);background:var(--paper-w);color:var(--ink);font-family:var(--ss);font-size:12px;padding:4px 10px;border-radius:2px;width:200px;outline:none" oninput="renderJournal()" onfocus="this.style.borderColor='var(--ac)'" onblur="this.style.borderColor='var(--bdr)'">
+    <select id="jnl-filter" style="border:1px solid var(--bdr);background:var(--paper-w);color:var(--ink);font-family:var(--ss);font-size:12px;padding:4px 7px;border-radius:2px;outline:none" onchange="renderJournal()">
+      <option value="all">全部类型</option>
+      <option value="daily">每日总结</option>
+      <option value="weekly">周总结</option>
+      <option value="monthly">月总结</option>
+      <option value="yearly">年度总结</option>
+      <option value="free">随笔</option>
+    </select>
+    <button class="tb" onclick="openJournalEditor(null)" style="display:flex;align-items:center;gap:4px">＋ 新建总结</button>
+  </div>
+
+  <!-- 统计栏 -->
+  <div class="sbar" style="grid-template-columns:repeat(5,1fr);margin-bottom:12px" id="jnl-stats-bar">
+    <div class="sc a"><div class="sv" id="jnl-s-total">0</div><div class="sl">总条数</div></div>
+    <div class="sc b"><div class="sv" id="jnl-s-daily">0</div><div class="sl">每日总结</div></div>
+    <div class="sc g"><div class="sv" id="jnl-s-weekly">0</div><div class="sl">周总结</div></div>
+    <div class="sc"><div class="sv" id="jnl-s-monthly">0</div><div class="sl">月总结</div></div>
+    <div class="sc"><div class="sv" id="jnl-s-streak" style="color:var(--am)">0🔥</div><div class="sl">连续记录天</div></div>
+  </div>
+
+  <!-- 主体：左侧日历热力 + 右侧列表 -->
+  <div style="display:grid;grid-template-columns:260px 1fr;gap:12px;align-items:start">
+    <!-- 左侧：迷你热力图 + 月份导航 -->
+    <div style="background:var(--card-bg);border:1px solid var(--bdr);border-radius:4px;padding:14px">
+      <div style="font-size:10px;color:var(--ink-m);letter-spacing:.8px;font-weight:500;margin-bottom:10px">📅 总结分布</div>
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+        <button onclick="jnlCalPrevMonth()" style="background:none;border:1px solid var(--bdr);color:var(--ink);font-size:14px;width:26px;height:26px;border-radius:2px;cursor:pointer">‹</button>
+        <span id="jnl-cal-label" style="font-family:var(--sf);font-size:13px;font-weight:600;color:var(--ink)"></span>
+        <button onclick="jnlCalNextMonth()" style="background:none;border:1px solid var(--bdr);color:var(--ink);font-size:14px;width:26px;height:26px;border-radius:2px;cursor:pointer">›</button>
+      </div>
+      <div id="jnl-mini-cal" style="display:grid;grid-template-columns:repeat(7,1fr);gap:2px;margin-bottom:10px"></div>
+      <div style="font-size:9px;color:var(--ink-m);margin-top:4px;display:flex;gap:6px;align-items:center">
+        <div style="width:10px;height:10px;border-radius:2px;background:var(--paper-l);border:1px solid var(--bdr)"></div><span>无</span>
+        <div style="width:10px;height:10px;border-radius:2px;background:rgba(92,110,248,.35)"></div><span>有</span>
+        <div style="width:10px;height:10px;border-radius:2px;background:var(--ac)"></div><span>多条</span>
+      </div>
+      <!-- 快速跳转按钮 -->
+      <div style="margin-top:12px;border-top:1px solid var(--paper-l);padding-top:10px">
+        <div style="font-size:9px;color:var(--ink-m);letter-spacing:.6px;margin-bottom:6px">快速新建</div>
+        <div style="display:flex;flex-direction:column;gap:5px">
+          <button onclick="openJournalEditor(null,'daily')" style="background:var(--ac-p);border:1px solid var(--ac-l);color:var(--ac);font-family:var(--ss);font-size:11px;padding:5px 8px;border-radius:3px;cursor:pointer;text-align:left">📅 今日总结</button>
+          <button onclick="openJournalEditor(null,'weekly')" style="background:var(--bl-l);border:1px solid var(--bl);color:var(--bl);font-family:var(--ss);font-size:11px;padding:5px 8px;border-radius:3px;cursor:pointer;text-align:left">📆 本周总结</button>
+          <button onclick="openJournalEditor(null,'monthly')" style="background:var(--gr-l);border:1px solid var(--gr);color:var(--gr);font-family:var(--ss);font-size:11px;padding:5px 8px;border-radius:3px;cursor:pointer;text-align:left">🗓 本月总结</button>
+          <button onclick="openJournalEditor(null,'yearly')" style="background:var(--am-l);border:1px solid var(--am);color:var(--am);font-family:var(--ss);font-size:11px;padding:5px 8px;border-radius:3px;cursor:pointer;text-align:left">📊 年度总结</button>
+          <button onclick="openJournalEditor(null,'free')" style="background:var(--paper-w);border:1px solid var(--bdr);color:var(--ink-m);font-family:var(--ss);font-size:11px;padding:5px 8px;border-radius:3px;cursor:pointer;text-align:left">✏️ 随笔</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 右侧：总结列表 -->
+    <div>
+      <div id="jnl-list" style="display:flex;flex-direction:column;gap:8px"></div>
+      <div id="jnl-empty" style="display:none;text-align:center;padding:60px 20px;color:var(--ink-m);opacity:.5">
+        <div style="font-size:36px;margin-bottom:8px">📝</div>
+        <div style="font-size:13px">还没有总结，点击「新建总结」开始记录</div>
+      </div>
+    </div>
+  </div>
+</div>
+</div>
+
+<!-- ─────────── JOURNAL EDITOR MODAL ─────────── -->
+<div id="jnl-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:800;align-items:center;justify-content:center" onclick="if(event.target===this)closeJournalEditor()">
+  <div style="background:var(--card-bg);border-radius:8px;box-shadow:0 16px 56px rgba(0,0,0,.3);width:min(720px,95vw);max-height:90vh;display:flex;flex-direction:column;overflow:hidden">
+    <!-- 模态头 -->
+    <div style="background:linear-gradient(135deg,var(--ac),#7c3aed);padding:16px 20px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0">
+      <div>
+        <div style="font-size:15px;font-weight:700;color:#fff" id="jnl-modal-title">新建总结</div>
+        <div style="font-size:11px;color:rgba(255,255,255,.7);margin-top:2px">记录你的思考与成长</div>
+      </div>
+      <button onclick="closeJournalEditor()" style="background:rgba(255,255,255,.2);border:none;color:#fff;width:30px;height:30px;border-radius:50%;font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center">✕</button>
+    </div>
+    <!-- 表单 -->
+    <div style="padding:18px 20px;overflow-y:auto;flex:1;display:flex;flex-direction:column;gap:12px">
+      <!-- 类型 + 日期 -->
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px">
+        <div>
+          <div style="font-size:10px;color:var(--ink-m);letter-spacing:.6px;margin-bottom:4px">类型</div>
+          <select id="jnl-type-sel" style="width:100%;border:1px solid var(--bdr);background:var(--paper-w);color:var(--ink);font-family:var(--ss);font-size:12px;padding:6px 8px;border-radius:3px;outline:none" onchange="jnlTypeChanged()">
+            <option value="daily">📅 每日总结</option>
+            <option value="weekly">📆 周总结</option>
+            <option value="monthly">🗓 月总结</option>
+            <option value="yearly">📊 年度总结</option>
+            <option value="free">✏️ 随笔</option>
+          </select>
+        </div>
+        <div>
+          <div style="font-size:10px;color:var(--ink-m);letter-spacing:.6px;margin-bottom:4px">日期</div>
+          <input id="jnl-date-inp" type="date" style="width:100%;border:1px solid var(--bdr);background:var(--paper-w);color:var(--ink);font-family:var(--ss);font-size:12px;padding:6px 8px;border-radius:3px;outline:none">
+        </div>
+        <div>
+          <div style="font-size:10px;color:var(--ink-m);letter-spacing:.6px;margin-bottom:4px">情绪/心情</div>
+          <div id="jnl-mood-row" style="display:flex;gap:6px;padding-top:4px">
+            <span class="jnl-mood" data-v="🌟" title="很好" onclick="selectMood(this)" style="font-size:18px;cursor:pointer;opacity:.4;transition:all .15s;border-radius:4px;padding:2px">🌟</span>
+            <span class="jnl-mood" data-v="😊" title="不错" onclick="selectMood(this)" style="font-size:18px;cursor:pointer;opacity:.4;transition:all .15s;border-radius:4px;padding:2px">😊</span>
+            <span class="jnl-mood" data-v="😐" title="一般" onclick="selectMood(this)" style="font-size:18px;cursor:pointer;opacity:.4;transition:all .15s;border-radius:4px;padding:2px">😐</span>
+            <span class="jnl-mood" data-v="😔" title="低落" onclick="selectMood(this)" style="font-size:18px;cursor:pointer;opacity:.4;transition:all .15s;border-radius:4px;padding:2px">😔</span>
+            <span class="jnl-mood" data-v="🔥" title="充满斗志" onclick="selectMood(this)" style="font-size:18px;cursor:pointer;opacity:.4;transition:all .15s;border-radius:4px;padding:2px">🔥</span>
+          </div>
+        </div>
+      </div>
+      <!-- 标题 -->
+      <div>
+        <div style="font-size:10px;color:var(--ink-m);letter-spacing:.6px;margin-bottom:4px">标题（可选）</div>
+        <input id="jnl-title-inp" type="text" placeholder="给这篇总结一个标题..." maxlength="50" style="width:100%;border:1px solid var(--bdr);background:var(--paper-w);color:var(--ink);font-family:var(--ss);font-size:13px;padding:7px 10px;border-radius:3px;outline:none" onfocus="this.style.borderColor='var(--ac)'" onblur="this.style.borderColor='var(--bdr)'">
+      </div>
+      <!-- 结构化区块 -->
+      <div id="jnl-structured" style="display:flex;flex-direction:column;gap:8px">
+        <div>
+          <div style="font-size:10px;color:var(--ink-m);letter-spacing:.6px;margin-bottom:4px">✅ 今天完成了什么</div>
+          <textarea id="jnl-done" rows="2" placeholder="写下今天完成的事情..." style="width:100%;border:1px solid var(--bdr);background:var(--paper-w);color:var(--ink);font-family:var(--ss);font-size:12px;padding:7px 10px;border-radius:3px;outline:none;resize:vertical;line-height:1.7" onfocus="this.style.borderColor='var(--gr)'" onblur="this.style.borderColor='var(--bdr)'"></textarea>
+        </div>
+        <div>
+          <div style="font-size:10px;color:var(--ink-m);letter-spacing:.6px;margin-bottom:4px">💡 收获与思考</div>
+          <textarea id="jnl-insight" rows="2" placeholder="今天学到了什么、有什么新认识..." style="width:100%;border:1px solid var(--bdr);background:var(--paper-w);color:var(--ink);font-family:var(--ss);font-size:12px;padding:7px 10px;border-radius:3px;outline:none;resize:vertical;line-height:1.7" onfocus="this.style.borderColor='var(--bl)'" onblur="this.style.borderColor='var(--bdr)'"></textarea>
+        </div>
+        <div>
+          <div style="font-size:10px;color:var(--ink-m);letter-spacing:.6px;margin-bottom:4px">🚀 明天/下一步计划</div>
+          <textarea id="jnl-next" rows="2" placeholder="明天打算做什么、需要改进什么..." style="width:100%;border:1px solid var(--bdr);background:var(--paper-w);color:var(--ink);font-family:var(--ss);font-size:12px;padding:7px 10px;border-radius:3px;outline:none;resize:vertical;line-height:1.7" onfocus="this.style.borderColor='var(--am)'" onblur="this.style.borderColor='var(--bdr)'"></textarea>
+        </div>
+      </div>
+      <!-- 自由正文 -->
+      <div>
+        <div style="font-size:10px;color:var(--ink-m);letter-spacing:.6px;margin-bottom:4px">📄 正文 / 详细内容</div>
+        <textarea id="jnl-body" rows="5" placeholder="在这里写下更多内容..." style="width:100%;border:1px solid var(--bdr);background:var(--paper-w);color:var(--ink);font-family:var(--ss);font-size:12px;padding:7px 10px;border-radius:3px;outline:none;resize:vertical;line-height:1.7" onfocus="this.style.borderColor='var(--ac)'" onblur="this.style.borderColor='var(--bdr)'"></textarea>
+      </div>
+      <!-- 标签 -->
+      <div>
+        <div style="font-size:10px;color:var(--ink-m);letter-spacing:.6px;margin-bottom:4px">🏷 标签（空格分隔）</div>
+        <input id="jnl-tags-inp" type="text" placeholder="如：工作 学习 健康" style="width:100%;border:1px solid var(--bdr);background:var(--paper-w);color:var(--ink);font-family:var(--ss);font-size:12px;padding:6px 10px;border-radius:3px;outline:none" onfocus="this.style.borderColor='var(--ac)'" onblur="this.style.borderColor='var(--bdr)'">
+      </div>
+    </div>
+    <!-- 底部操作 -->
+    <div style="padding:12px 20px;border-top:1px solid var(--bdr);display:flex;gap:8px;align-items:center;flex-shrink:0;background:var(--paper-w)">
+      <button onclick="saveJournal()" style="background:var(--ac);border:none;color:#fff;font-family:var(--ss);font-size:13px;font-weight:600;padding:8px 22px;border-radius:4px;cursor:pointer">💾 保存</button>
+      <button onclick="closeJournalEditor()" style="background:none;border:1px solid var(--bdr);color:var(--ink-m);font-family:var(--ss);font-size:12px;padding:7px 16px;border-radius:4px;cursor:pointer">取消</button>
+      <div style="flex:1"></div>
+      <button id="jnl-del-btn" onclick="deleteJournal()" style="display:none;background:none;border:1px solid #fca5a5;color:#b91c1c;font-family:var(--ss);font-size:11px;padding:5px 12px;border-radius:4px;cursor:pointer">🗑 删除</button>
+    </div>
+  </div>
+</div>
+
 <!-- ─────────── EXPORT PANEL ─────────── -->
 <div class="expp" id="expp">
   <button class="expclose" onclick="toggleExport()">×</button>
@@ -1160,6 +1311,9 @@ body.dark-mode .snap-item:hover{background:var(--ac-p)}
   </button>
   <button class="mob-tab-btn" id="mob-tab-yearly" onclick="mobSwitchTab('yearly',this)">
     <span class="mti">📊</span><span class="mtl">每年</span>
+  </button>
+  <button class="mob-tab-btn" id="mob-tab-journal" onclick="mobSwitchTab('journal',this)">
+    <span class="mti">📝</span><span class="mtl">总结</span>
   </button>
   <button class="mob-tab-tl" id="mob-tl-toggle" onclick="mobToggleTimeline(this)" style="margin:8px 10px 8px 0;align-self:center;flex-shrink:0">时间轴</button>
 </div>
@@ -1488,6 +1642,7 @@ function switchView(v,btn){
   if(v==='daily')renderDaily();
   else if(v==='weekly'){weekOffset=0;renderWeekly();}
   else if(v==='monthly'){currentMonth=currentDate.getMonth();currentYear=currentDate.getFullYear();renderMonthly()}
+  else if(v==='journal'){renderJournal();}
   else renderYearly();
 }
 
@@ -2971,7 +3126,7 @@ function renderMonthly(){
   // ── 收集全月数据用于摘要 ──
   const allDayData=[];
   let bestRate=0,bestDay=null,streakMax=0,streakCur=0,streakEnd=null,streakEndTmp=null;
-  const taskFreq={};const taskActMin={};
+  const taskFreq={};
   let totalPlanMin=0,totalActMin=0,planDays=0;
 
   for(let d=1;d<=dim;d++){
@@ -2994,18 +3149,8 @@ function renderMonthly(){
     // 最长连续完成天（全部完成）
     if(todos.length&&dn===todos.length){streakCur++;if(streakCur>streakMax){streakMax=streakCur;streakEndTmp=d;}}
     else streakCur=0;
-    // 任务频率 + 实际时长
-    todos.forEach(t=>{
-      if(t.text){
-        const k=t.text.trim();
-        taskFreq[k]=(taskFreq[k]||0)+1;
-        // 累计每个任务的实际完成时长
-        if(!taskActMin[k])taskActMin[k]={plan:0,actual:0,done:0};
-        if(t.done)taskActMin[k].done++;
-        if(t.planStart&&t.planEnd){const pm=timeToMin(t.planEnd)-timeToMin(t.planStart);if(pm>0)taskActMin[k].plan+=pm;}
-        (t.actualSegs||[]).forEach(s=>{if(s.start&&s.end){const am=timeToMin(s.end)-timeToMin(s.start);if(am>0)taskActMin[k].actual+=am;}});
-      }
-    });
+    // 任务频率
+    todos.forEach(t=>{if(t.text){const k=t.text.trim();taskFreq[k]=(taskFreq[k]||0)+1;}});
     // 计划 vs 实际时间
     todos.forEach(t=>{
       if(t.planStart&&t.planEnd){const pm=timeToMin(t.planEnd)-timeToMin(t.planStart);if(pm>0)totalPlanMin+=pm;planDays++;}
@@ -3014,8 +3159,8 @@ function renderMonthly(){
   }
   if(streakEndTmp)streakEnd=streakEndTmp;
 
-  // 高频固定安排（全部，按出现天数降序）
-  const topTasks=Object.entries(taskFreq).sort((a,b)=>b[1]-a[1]);
+  // 高频任务 top10
+  const topTasks=Object.entries(taskFreq).sort((a,b)=>b[1]-a[1]).slice(0,10);
 
   // ── 月度摘要面板 ──
   const sumEl=document.getElementById('m-summary');
@@ -3075,27 +3220,21 @@ function renderMonthly(){
             ${streakMax>1?`<div style="flex:1;padding:5px 8px;background:var(--paper-w);border-radius:3px"><div style="color:var(--ink-m);margin-bottom:2px">最长全勤</div><div style="font-family:var(--mo);font-weight:600;color:var(--am)">${streakMax}天 🔥</div></div>`:''}
           </div>
         </div>
-        <div style="padding:12px 16px;overflow:hidden;display:flex;flex-direction:column">
-          <div style="font-size:10px;color:var(--ink-m);letter-spacing:.8px;margin-bottom:8px;font-weight:500;flex-shrink:0">🔁 每日固定安排汇总</div>
-          ${topTasks.length?`
-          <div style="display:grid;grid-template-columns:1fr auto auto auto;gap:0;border:1px solid var(--bdr);border-radius:3px;overflow:hidden;font-size:9px;flex:1;overflow-y:auto;max-height:260px">
-            <div style="padding:4px 7px;background:var(--paper-l);font-size:8.5px;color:var(--ink-m);letter-spacing:.5px;font-weight:600;border-bottom:1px solid var(--bdr)">安排名称</div>
-            <div style="padding:4px 6px;background:var(--paper-l);font-size:8.5px;color:var(--ink-m);letter-spacing:.5px;font-weight:600;border-bottom:1px solid var(--bdr);text-align:center;white-space:nowrap">出现</div>
-            <div style="padding:4px 6px;background:var(--paper-l);font-size:8.5px;color:var(--ink-m);letter-spacing:.5px;font-weight:600;border-bottom:1px solid var(--bdr);text-align:center;white-space:nowrap">完成</div>
-            <div style="padding:4px 6px;background:var(--paper-l);font-size:8.5px;color:var(--ink-m);letter-spacing:.5px;font-weight:600;border-bottom:1px solid var(--bdr);text-align:center;white-space:nowrap">实际时长</div>
-            ${topTasks.map(([name,cnt],i)=>{
-              const stat=taskActMin[name]||{plan:0,actual:0,done:0};
-              const am=stat.actual;
-              const actStr=am>=60?Math.floor(am/60)+'h'+(am%60?Math.floor(am%60)+'m':''):(am>0?Math.floor(am)+'m':'—');
-              const doneRate=cnt?Math.round(stat.done/cnt*100):0;
-              const rateColor=doneRate>=80?'var(--gr)':doneRate>=50?'var(--bl)':'var(--ink-m)';
-              const rowBg=i%2===0?'transparent':'rgba(0,0,0,.02)';
-              return `<div style="padding:5px 7px;font-size:10px;color:var(--ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;border-bottom:1px solid var(--paper-l);background:${rowBg}" title="${name}">${name}</div>
-              <div style="padding:5px 6px;font-family:var(--mo);font-size:9.5px;color:var(--ac);text-align:center;border-bottom:1px solid var(--paper-l);background:${rowBg};white-space:nowrap">${cnt}天</div>
-              <div style="padding:5px 6px;font-family:var(--mo);font-size:9.5px;color:${rateColor};text-align:center;border-bottom:1px solid var(--paper-l);background:${rowBg};white-space:nowrap">${stat.done}<span style="font-size:8px;opacity:.6">/${cnt}</span></div>
-              <div style="padding:5px 6px;font-family:var(--mo);font-size:9.5px;color:${am>0?'var(--gr)':'var(--ink-m)'};text-align:center;border-bottom:1px solid var(--paper-l);background:${rowBg};white-space:nowrap">${actStr}</div>`;
-            }).join('')}
-          </div>`:`<div style="font-size:11px;color:var(--ink-m);opacity:.5;margin-top:16px;text-align:center">暂无数据</div>`}
+        <div style="padding:12px 16px">
+          <div style="font-size:10px;color:var(--ink-m);letter-spacing:.8px;margin-bottom:8px;font-weight:500">🔁 高频固定安排 Top10</div>
+          ${topTasks.length?topTasks.map(([name,cnt],i)=>{
+            const pct=Math.round(cnt/dim*100);
+            const colors=['var(--ac)','var(--bl)','var(--gr)','var(--am)','var(--ink-m)','var(--ac)','var(--bl)','var(--gr)','var(--am)','var(--ink-m)'];
+            return `<div style="margin-bottom:6px">
+              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:2px">
+                <span style="font-size:10px;color:var(--ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1;min-width:0">${name}</span>
+                <span style="font-family:var(--mo);font-size:9px;color:${colors[i]};flex-shrink:0;margin-left:6px">${cnt}天</span>
+              </div>
+              <div style="height:3px;background:var(--paper-l);border-radius:2px;overflow:hidden">
+                <div style="height:100%;width:${pct}%;background:${colors[i]};border-radius:2px"></div>
+              </div>
+            </div>`;
+          }).join(''):`<div style="font-size:11px;color:var(--ink-m);opacity:.5;margin-top:16px;text-align:center">暂无数据</div>`}
         </div>
       </div>`;
   } else {
@@ -3214,8 +3353,8 @@ function renderYearly(){
   // ── 1. 收集全年每日数据 ──
   const dayMap={};// key=fmt, value={rate,total,done,hasData}
   const jan1=new Date(currentYear,0,1);
-  const dec31=new Date(currentYear,11,31);
-  for(let dt=new Date(jan1);dt<=dec31;dt.setDate(dt.getDate()+1)){
+  const dec31Time=new Date(currentYear,11,31).getTime();
+  for(let dt=new Date(jan1);dt.getTime()<=dec31Time;dt.setDate(dt.getDate()+1)){
     const key=fmt(dt);
     const data=load(dt);
     if(!data){dayMap[key]={rate:0,total:0,done:0,hasData:false};continue;}
@@ -3284,7 +3423,7 @@ function renderYearly(){
     weekCol.appendChild(empty);
   }
 
-  for(let dt2=new Date(jan1);dt2<=dec31;dt2.setDate(dt2.getDate()+1)){
+  for(let dt2=new Date(jan1);dt2.getTime()<=dec31Time;dt2.setDate(dt2.getDate()+1)){
     const key=fmt(dt2);
     const info=dayMap[key]||{};
     const dow=dt2.getDay();
@@ -4734,6 +4873,251 @@ function openFullBackupModal() {
 
 function closeFullBackupModal() {
   document.getElementById('full-backup-modal').style.display = 'none';
+}
+
+// ══════════════════════════════════════════════════
+// ── JOURNAL (总结日志) ──
+// ══════════════════════════════════════════════════
+const JNL_KEY = 'journals_v1';
+let jnlEditingId = null;
+let jnlCalYear = new Date().getFullYear();
+let jnlCalMonth = new Date().getMonth();
+
+function jnlLoadAll() {
+  try { return JSON.parse(localStorage.getItem(JNL_KEY) || '[]'); } catch { return []; }
+}
+function jnlSaveAll(arr) {
+  localStorage.setItem(JNL_KEY, JSON.stringify(arr));
+}
+function jnlGenId() { return 'j_' + Date.now() + '_' + Math.random().toString(36).slice(2,6); }
+
+const JNL_TYPE_LABEL = {daily:'每日总结', weekly:'周总结', monthly:'月总结', yearly:'年度总结', free:'随笔'};
+const JNL_TYPE_COLOR = {daily:'var(--ac)', weekly:'var(--bl)', monthly:'var(--gr)', yearly:'var(--am)', free:'var(--ink-m)'};
+const JNL_TYPE_BG = {daily:'var(--ac-p)', weekly:'var(--bl-l)', monthly:'var(--gr-l)', yearly:'var(--am-l)', free:'var(--paper-w)'};
+const JNL_MOOD_LABEL = {'🌟':'很好','😊':'不错','😐':'一般','😔':'低落','🔥':'充满斗志'};
+
+function renderJournal() {
+  const all = jnlLoadAll();
+  const q = (document.getElementById('jnl-search')?.value || '').toLowerCase();
+  const typeFilter = document.getElementById('jnl-filter')?.value || 'all';
+
+  let filtered = all.filter(j => {
+    if (typeFilter !== 'all' && j.type !== typeFilter) return false;
+    if (q) {
+      const text = [j.title, j.body, j.done_txt, j.insight, j.next_txt, (j.tags||[]).join(' ')].join(' ').toLowerCase();
+      return text.includes(q);
+    }
+    return true;
+  });
+  filtered.sort((a,b) => b.date.localeCompare(a.date));
+
+  // Stats
+  const typeCounts = {daily:0, weekly:0, monthly:0, yearly:0, free:0};
+  all.forEach(j => { if(typeCounts[j.type]!==undefined) typeCounts[j.type]++; });
+  document.getElementById('jnl-s-total').textContent = all.length;
+  document.getElementById('jnl-s-daily').textContent = typeCounts.daily;
+  document.getElementById('jnl-s-weekly').textContent = typeCounts.weekly;
+  document.getElementById('jnl-s-monthly').textContent = typeCounts.monthly;
+  // Streak: count consecutive days with at least one journal
+  const dateSet = new Set(all.filter(j=>j.type==='daily').map(j=>j.date));
+  let streak=0, d=new Date(); d.setHours(0,0,0,0);
+  while(dateSet.has(fmt(d))){ streak++; d.setDate(d.getDate()-1); }
+  document.getElementById('jnl-s-streak').textContent = streak + '🔥';
+
+  // Render list
+  const list = document.getElementById('jnl-list');
+  const empty = document.getElementById('jnl-empty');
+  list.innerHTML = '';
+  if (!filtered.length) { empty.style.display='block'; return; }
+  empty.style.display='none';
+
+  filtered.forEach(j => {
+    const card = document.createElement('div');
+    card.style.cssText = 'background:var(--card-bg);border:1px solid var(--bdr);border-radius:6px;overflow:hidden;transition:border-color .15s,box-shadow .15s;cursor:pointer';
+    card.onmouseenter = () => { card.style.borderColor='var(--ac-l)'; card.style.boxShadow='0 2px 12px var(--shd)'; };
+    card.onmouseleave = () => { card.style.borderColor='var(--bdr)'; card.style.boxShadow=''; };
+
+    const typeColor = JNL_TYPE_COLOR[j.type]||'var(--ink-m)';
+    const typeBg = JNL_TYPE_BG[j.type]||'var(--paper-w)';
+    const moodHtml = j.mood ? `<span style="font-size:14px" title="${JNL_MOOD_LABEL[j.mood]||''}">${j.mood}</span>` : '';
+    const tagsHtml = (j.tags||[]).filter(Boolean).map(t=>`<span style="font-size:9px;padding:1px 7px;background:var(--ac-p);color:var(--ac);border-radius:10px">${t}</span>`).join('');
+    const previewParts = [j.done_txt, j.insight, j.next_txt, j.body].filter(Boolean);
+    const preview = previewParts.map(p=>p.trim()).join(' · ').slice(0, 120);
+
+    card.innerHTML = `
+      <div style="padding:11px 14px;background:${typeBg};border-bottom:1px solid var(--bdr);display:flex;align-items:center;gap:8px">
+        <span style="font-size:9px;padding:2px 8px;background:${typeColor};color:white;border-radius:10px;white-space:nowrap;font-weight:600">${JNL_TYPE_LABEL[j.type]||j.type}</span>
+        <span style="font-family:var(--mo);font-size:11px;color:var(--ink-m)">${j.date}</span>
+        ${moodHtml}
+        <span style="font-size:12px;font-weight:600;color:var(--ink);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${j.title||''}</span>
+        <div style="display:flex;gap:4px">${tagsHtml}</div>
+      </div>
+      ${preview ? `<div style="padding:9px 14px;font-size:11px;color:var(--ink-m);line-height:1.65;white-space:pre-wrap;max-height:60px;overflow:hidden">${preview}${preview.length>=120?'…':''}</div>` : ''}`;
+    card.onclick = () => openJournalEditor(j);
+    list.appendChild(card);
+  });
+
+  // Mini calendar
+  renderJnlMiniCal();
+}
+
+function renderJnlMiniCal() {
+  const all = jnlLoadAll();
+  // Build date → count map
+  const dateCount = {};
+  all.forEach(j => { dateCount[j.date] = (dateCount[j.date]||0) + 1; });
+
+  const cal = document.getElementById('jnl-mini-cal');
+  if (!cal) return;
+  cal.innerHTML = '';
+  const label = document.getElementById('jnl-cal-label');
+  const MCN2 = ['1月','2月','3月','4月','5月','6月','7月','8月','9月','10月','11月','12月'];
+  if (label) label.textContent = `${jnlCalYear} 年 ${MCN2[jnlCalMonth]}`;
+
+  // Day-of-week headers
+  ['日','一','二','三','四','五','六'].forEach(w=>{
+    const h=document.createElement('div');
+    h.style.cssText='font-size:8px;color:var(--ink-m);text-align:center;padding:2px 0';
+    h.textContent=w; cal.appendChild(h);
+  });
+  const first = new Date(jnlCalYear, jnlCalMonth, 1);
+  const dim = new Date(jnlCalYear, jnlCalMonth+1, 0).getDate();
+  const startDow = first.getDay();
+  const todayStr = fmt(new Date());
+
+  for (let i=0; i<startDow; i++) {
+    const e=document.createElement('div'); cal.appendChild(e);
+  }
+  for (let d=1; d<=dim; d++) {
+    const ds = fmt(new Date(jnlCalYear, jnlCalMonth, d));
+    const cnt = dateCount[ds]||0;
+    const isToday = ds===todayStr;
+    const cell = document.createElement('div');
+    let bg='var(--paper-l)', border='1px solid transparent';
+    if(cnt===1) bg='rgba(92,110,248,.35)';
+    else if(cnt>1) bg='var(--ac)';
+    if(isToday) border='1.5px solid var(--ac)';
+    cell.style.cssText=`width:22px;height:22px;border-radius:3px;background:${bg};border:${border};font-size:8.5px;display:flex;align-items:center;justify-content:center;cursor:pointer;color:${cnt>1?'white':isToday?'var(--ac)':'var(--ink-m)'};font-family:var(--mo);transition:transform .1s;position:relative`;
+    cell.title = ds+(cnt?` (${cnt}条总结)`:'');
+    if(cnt>1) { const badge=document.createElement('div'); badge.style.cssText='position:absolute;top:-3px;right:-3px;width:10px;height:10px;background:var(--gr);border-radius:50%;font-size:6px;color:white;display:flex;align-items:center;justify-content:center;font-weight:700'; badge.textContent=cnt; cell.appendChild(badge); }
+    cell.textContent=d;
+    cell.onmouseenter=()=>cell.style.transform='scale(1.15)';
+    cell.onmouseleave=()=>cell.style.transform='';
+    cell.onclick=()=>{
+      // filter to this date
+      const srch = document.getElementById('jnl-search');
+      if(srch){ srch.value=''; }
+      // show entries for this date
+      if(cnt>0){
+        // highlight by filtering to that date temporarily
+        const list=document.getElementById('jnl-list');
+        list.querySelectorAll('[data-date]').forEach(c=>c.style.outline=c.dataset.date===ds?'2px solid var(--ac)':'');
+      }
+    };
+    cell.dataset.date=ds;
+    cal.appendChild(cell);
+  }
+}
+
+function jnlCalPrevMonth(){
+  jnlCalMonth--;
+  if(jnlCalMonth<0){jnlCalMonth=11;jnlCalYear--;}
+  renderJnlMiniCal();
+}
+function jnlCalNextMonth(){
+  jnlCalMonth++;
+  if(jnlCalMonth>11){jnlCalMonth=0;jnlCalYear++;}
+  renderJnlMiniCal();
+}
+
+function openJournalEditor(j, preType) {
+  jnlEditingId = j ? j.id : null;
+  document.getElementById('jnl-modal-title').textContent = j ? '编辑总结' : '新建总结';
+  document.getElementById('jnl-del-btn').style.display = j ? 'block' : 'none';
+
+  const type = j?.type || preType || 'daily';
+  document.getElementById('jnl-type-sel').value = type;
+  jnlTypeChanged();
+
+  // Set date
+  const today = fmt(new Date());
+  document.getElementById('jnl-date-inp').value = j?.date || today;
+  document.getElementById('jnl-title-inp').value = j?.title || '';
+  document.getElementById('jnl-done').value = j?.done_txt || '';
+  document.getElementById('jnl-insight').value = j?.insight || '';
+  document.getElementById('jnl-next').value = j?.next_txt || '';
+  document.getElementById('jnl-body').value = j?.body || '';
+  document.getElementById('jnl-tags-inp').value = (j?.tags||[]).join(' ');
+
+  // Mood
+  document.querySelectorAll('.jnl-mood').forEach(el=>{
+    el.style.opacity = el.dataset.v === j?.mood ? '1' : '.4';
+    el.style.background = el.dataset.v === j?.mood ? 'var(--ac-p)' : 'transparent';
+  });
+
+  document.getElementById('jnl-modal').style.display='flex';
+}
+
+function closeJournalEditor() {
+  document.getElementById('jnl-modal').style.display='none';
+  jnlEditingId=null;
+}
+
+function jnlTypeChanged() {
+  const t = document.getElementById('jnl-type-sel').value;
+  const structured = document.getElementById('jnl-structured');
+  // Show structured fields only for daily/weekly, hide for free/yearly
+  structured.style.display = (t==='free') ? 'none' : 'flex';
+}
+
+function selectMood(el) {
+  document.querySelectorAll('.jnl-mood').forEach(m=>{
+    m.style.opacity = m===el ? '1' : '.4';
+    m.style.background = m===el ? 'var(--ac-p)' : 'transparent';
+  });
+}
+
+function saveJournal() {
+  const date = document.getElementById('jnl-date-inp').value;
+  if (!date) { cdlgAlert('请选择日期'); return; }
+  const selectedMood = document.querySelector('.jnl-mood[style*="opacity: 1"]');
+  const mood = selectedMood ? selectedMood.dataset.v : (document.querySelector('.jnl-mood[style*="opacity:1"]')?.dataset.v || '');
+  const tags = document.getElementById('jnl-tags-inp').value.trim().split(/\s+/).filter(Boolean);
+
+  const entry = {
+    id: jnlEditingId || jnlGenId(),
+    type: document.getElementById('jnl-type-sel').value,
+    date,
+    title: document.getElementById('jnl-title-inp').value.trim(),
+    mood,
+    done_txt: document.getElementById('jnl-done').value.trim(),
+    insight: document.getElementById('jnl-insight').value.trim(),
+    next_txt: document.getElementById('jnl-next').value.trim(),
+    body: document.getElementById('jnl-body').value.trim(),
+    tags,
+    updatedAt: new Date().toISOString(),
+  };
+
+  const all = jnlLoadAll();
+  if (jnlEditingId) {
+    const idx = all.findIndex(j=>j.id===jnlEditingId);
+    if(idx>=0) all[idx]=entry; else all.push(entry);
+  } else {
+    all.push(entry);
+  }
+  jnlSaveAll(all);
+  closeJournalEditor();
+  renderJournal();
+  showSaved();
+}
+
+async function deleteJournal() {
+  const ok = await cdlgConfirm('确认删除这条总结？此操作不可撤销。', '删除总结', true);
+  if (!ok) return;
+  const all = jnlLoadAll().filter(j=>j.id!==jnlEditingId);
+  jnlSaveAll(all);
+  closeJournalEditor();
+  renderJournal();
 }
 
 document.addEventListener('DOMContentLoaded', function() {
