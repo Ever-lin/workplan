@@ -2244,7 +2244,7 @@ function buildCard(pre){
   const labelDotStyle=pre?.labelColor?`background:${pre.labelColor};border-color:${pre.labelColor}`:'';
   c.innerHTML=`
 <div class="ttop">
-  <span class="drag-handle" style="display:none">⠿</span>
+  <span class="drag-handle">⠿</span>
   <div style="position:relative;flex-shrink:0">
     <div class="todo-label-dot${pre?.labelColor?'':' no-label'}" style="${labelDotStyle}" title="${pre?.label||'点击设置分类标签'}" onclick="openLabelPicker(this)"></div>
     <div class="label-picker" id="lp_${id}">
@@ -2314,7 +2314,16 @@ function buildCard(pre){
   // ── 联动高亮：任务卡片 ↔ 时间轴行 ──
   c.addEventListener('mouseenter',()=>{const txt=c.querySelector('.ttxt')?.value||'';if(txt)_syncHoverByTxt(txt,true);});
   c.addEventListener('mouseleave',()=>{const txt=c.querySelector('.ttxt')?.value||'';if(txt)_syncHoverByTxt(txt,false);});
-  // 拖动排序已禁用，使用上下箭头按钮排序
+  // Bind drag events — block when dragstart originates from textarea/input
+  c.setAttribute('draggable','true');
+  c.ondragstart=ev=>{
+    const tag=(ev.target?.tagName||'').toLowerCase();
+    if(tag==='textarea'||tag==='input'){ev.preventDefault();return;}
+    todoDragStart(ev,c);
+  };
+  c.ondragover=ev=>todoDragOver(ev,c);
+  c.ondrop=ev=>todoDrop(ev,c);
+  c.ondragend=()=>todoDragEnd(c);
   // Restore saved checklist items
   const clContainer=c.querySelector('.todo-checklist');
   (pre?.noteChecklist||[]).forEach(item=>addNoteClRowEl(clContainer,'todo',c,item.text,item.done,item.clLabel||'',item.clLabelColor||''));
@@ -2627,7 +2636,7 @@ function updateStats(){
     if(cs.length>0){summaryEl.textContent=dn.length+'/'+cs.length+' 完成';summaryEl.style.color=dn.length===cs.length?'var(--gr)':'var(--ink-m)';}
     else summaryEl.textContent='';
   }
-  // 计划总时长：固定安排 + 临时事项 的计划时间合计（含今日未做，保留数据）
+  // 计划总时长：固定安排 + 临时事项 的计划时间合计（含今日未做，数据保留）
   let planMins=0;
   // 按标签分组统计
   const labelPlanMap={};   // labelColor -> {name,planMins,actualMins}
@@ -2657,7 +2666,7 @@ function updateStats(){
   }
   const planHint=document.getElementById('s-plantime-tag-hint');
   if(planHint)planHint.style.display=Object.keys(labelPlanMap).length>0?'':'none';
-  // 实际总时长：固定安排 + 临时事项 所有实际时间段合计（含今日未做，保留数据）
+  // 实际总时长：固定安排 + 临时事项 所有实际时间段合计（含今日未做，数据保留）
   let actualMins=0;
   cs.forEach(c=>{
     const lc=c.dataset.labelColor||'';const ln=c.dataset.label||'';
@@ -2688,7 +2697,7 @@ function updateStats(){
   // 保存 labelPlanMap 给 toggle 用
   window._lastLabelPlanMap=labelPlanMap;
   window._lastFmtM=fmtM;
-  // 同时收集按事项的时长数据
+  // 同时收集按事项的时长数据（含今日未做，数据保留）
   const itemTimeMap={}; // txt -> {txt, labelColor, labelName, planMins, actualMins, isTodo}
   function ensureItem(txt,lc,ln,isTodo){if(!itemTimeMap[txt])itemTimeMap[txt]={txt,labelColor:lc,labelName:ln,planMins:0,actualMins:0,isTodo:!!isTodo};return itemTimeMap[txt];}
   cs.forEach(c=>{
@@ -3155,8 +3164,8 @@ function renderWeekly(){
     const hasAny=todos.length||otasks.length||memos.length;
     if(hasAny)wdy++;
     wt+=todos.length;wd+=done;wot+=otasks.length;wod+=otDone;wmd+=memoDone;
-    // 累计计划和实际时间
-    todos.filter(t=>!t.isSkipped).forEach(t=>{
+    // 累计计划和实际时间（含未做任务，保留数据）
+    todos.forEach(t=>{
       const lc=t.labelColor||'';const ln=t.label||'';
       if(t.planStart&&t.planEnd){const d=timeToMin(t.planEnd)-timeToMin(t.planStart);if(d>0){wPlanMin+=d;wEnsureLabel(lc,ln).planMins+=d;if(t.text){const it=wEnsureItem(t.text,lc,ln,true);it.planMins+=d;}}}
       (t.actualSegs||[]).forEach(s=>{if(s.start&&s.end){const d=timeToMin(s.end)-timeToMin(s.start);if(d>0){wActMin+=d;wEnsureLabel(lc,ln).actualMins+=d;if(t.text)wEnsureItem(t.text,lc,ln,true).actualMins+=d;}}});
@@ -3291,6 +3300,43 @@ function renderWeekly(){
       c3.style.borderRight='none';
       body.appendChild(c1);body.appendChild(c2);body.appendChild(c3);
       card.appendChild(body);
+
+      // ── 🔁 固定安排完成情况（含未做任务，标记保留）──
+      const allTodosForFixed=(data.todos||[]).filter(t=>!t.movedToNext);
+      if(allTodosForFixed.length){
+        const fixedDiv=document.createElement('div');
+        fixedDiv.style.cssText='padding:8px 14px;border-top:1px dashed var(--paper-l)';
+        const fixedTitle=document.createElement('div');
+        fixedTitle.style.cssText='font-size:9px;color:var(--ink-m);letter-spacing:.5px;margin-bottom:5px;font-weight:600';
+        fixedTitle.textContent='🔁 固定安排完成情况';
+        fixedDiv.appendChild(fixedTitle);
+        const fixedList=document.createElement('div');
+        fixedList.style.cssText='display:flex;flex-direction:column;gap:2px';
+        allTodosForFixed.forEach(t=>{
+          const isSkipped=t.isSkipped;
+          const isIncomplete=t.isIncomplete&&!t.done;
+          const isDone=t.done;
+          const validSegs=(t.actualSegs||[]).filter(s=>s.start);
+          const actMin=validSegs.reduce((acc,s)=>{if(s.start&&s.end){const d=timeToMin(s.end)-timeToMin(s.start);return acc+(d>0?d:0);}return acc;},0);
+          const planMin=(t.planStart&&t.planEnd)?Math.max(0,timeToMin(t.planEnd)-timeToMin(t.planStart)):0;
+          const fmtMw=m=>{if(!m)return'-';const h=Math.floor(m/60),mn=m%60;return(h?h+'h':'')+(mn?mn+'m':'');};
+          const row=document.createElement('div');
+          row.style.cssText=`display:flex;align-items:flex-start;gap:5px;padding:3px 0;border-bottom:1px dashed var(--paper-l);${isSkipped?'background:rgba(239,68,68,.04);':isIncomplete?'background:rgba(245,158,11,.04);':''}`;
+          const iconColor=isSkipped?'#ef4444':isIncomplete?'#f59e0b':isDone?'var(--gr)':'var(--bdr)';
+          const iconText=isSkipped?'×':isIncomplete?'⏳':isDone?'✓':'○';
+          const lc=t.labelColor||'';const ln=t.label||'';
+          const labelTag=lc?`<span style="display:inline-flex;align-items:center;gap:2px;font-size:7px;padding:1px 4px;border-radius:8px;background:${lc}22;color:${lc};border:1px solid ${lc}44;white-space:nowrap;flex-shrink:0"><span style="width:4px;height:4px;border-radius:50%;background:${lc};display:inline-block"></span>${ln}</span>`:'';
+          const statusTag=isSkipped?`<span style="font-size:7px;padding:1px 3px;background:#fee2e2;color:#b91c1c;border-radius:2px;white-space:nowrap;flex-shrink:0">× 未做</span>`:isIncomplete?`<span style="font-size:7px;padding:1px 3px;background:#fef3c7;color:#92400e;border-radius:2px;white-space:nowrap;flex-shrink:0">⏳</span>`:'';
+          row.innerHTML=`<span style="color:${iconColor};flex-shrink:0;margin-top:2px;font-size:9px">${iconText}</span>
+            <div style="flex:1;min-width:0">
+              <div style="font-size:10px;color:${isSkipped?'#b91c1c':isIncomplete?'#92400e':isDone?'var(--ink-m)':'var(--ink)'};${isDone||isSkipped?'text-decoration:line-through;':''}line-height:1.3;word-break:break-all">${t.text||''}</div>
+              <div style="display:flex;flex-wrap:wrap;gap:3px;margin-top:2px">${labelTag}${statusTag}${planMin>0?`<span style="font-family:var(--mo);font-size:8px;color:var(--am)">计划:${fmtMw(planMin)}</span>`:''}${actMin>0?`<span style="font-family:var(--mo);font-size:8px;color:var(--gr)">实际:${fmtMw(actMin)}</span>`:isSkipped?`<span style="font-family:var(--mo);font-size:8px;color:var(--ink-m)">实际:-</span>`:''}</div>
+            </div>`;
+          fixedList.appendChild(row);
+        });
+        fixedDiv.appendChild(fixedList);
+        card.appendChild(fixedDiv);
+      }
     }
 
     grid.appendChild(card);
@@ -3373,14 +3419,15 @@ function renderMonthly(){
     // 最长连续完成天（全部完成）
     if(todos.length&&dn===todos.length){streakCur++;if(streakCur>streakMax){streakMax=streakCur;streakEndTmp=d;}}
     else streakCur=0;
-    // 任务频率 + 标签
+    // 任务频率 + 标签 + 未做天数追踪
     todos.forEach(t=>{if(t.text){const k=t.text.trim();taskFreq[k]=(taskFreq[k]||0)+1;if(t.labelColor&&!taskLabelMap[k])taskLabelMap[k]={color:t.labelColor,label:t.label||''};
-      if(!taskDayMap[k])taskDayMap[k]={planned:0,done:0};
+      if(!taskDayMap[k])taskDayMap[k]={planned:0,done:0,skipped:0};
       taskDayMap[k].planned++;
       if(t.done&&!t.isSkipped)taskDayMap[k].done++;
+      if(t.isSkipped)taskDayMap[k].skipped++;
     }});
-    // 计划 vs 实际时间 (todos + otasks)
-    todos.filter(t=>!t.isSkipped).forEach(t=>{
+    // 计划 vs 实际时间 (todos + otasks)，含未做任务数据
+    todos.forEach(t=>{
       const lc=t.labelColor||'';const ln=t.label||'';
       const ml=mEnsureLabel(lc,ln);
       ml.todoTotal++;if(t.done)ml.todoDone++;
@@ -3480,19 +3527,19 @@ function renderMonthly(){
       </div>`:''}`;
 
     // 全部固定安排
-    const colors=['var(--ac)','var(--bl)','var(--gr)','var(--am)','var(--ink-m)','var(--ac)','var(--bl)','var(--gr)','var(--am)','var(--ink-m)'];
     const topTaskHtml=topTasks.length?topTasks.map(([name,cnt],i)=>{
-      const dayInfo=taskDayMap[name]||{planned:cnt,done:0};
+      const dayInfo=taskDayMap[name]||{planned:cnt,done:0,skipped:0};
       const doneDays=dayInfo.done;
+      const skippedDays=dayInfo.skipped||0;
       const plannedDays=dayInfo.planned;
-      const pct=Math.round(doneDays/dim*100); // 完成天占当月比例
+      const pct=Math.round(doneDays/dim*100);
       const pctBar=Math.round(plannedDays/dim*100);
       const lbl=taskLabelMap[name];
       const labelHtml=lbl?`<span style="display:inline-flex;align-items:center;gap:2px;font-size:8px;padding:1px 5px;border-radius:8px;background:${lbl.color}22;color:${lbl.color};border:1px solid ${lbl.color}44;white-space:nowrap;flex-shrink:0"><span style="width:5px;height:5px;border-radius:50%;background:${lbl.color};display:inline-block"></span>${lbl.label}</span>`:'';
       const actMin=taskActualMap[name]||0;
       const actDurStr=actMin>0?fmtMm(actMin):'';
-      const colorIdx=i%colors.length;
       const doneColor=doneDays>=plannedDays?'var(--gr)':doneDays>=plannedDays*0.8?'var(--bl)':'var(--ac)';
+      const skippedHtml=skippedDays>0?`<span style="font-size:8px;padding:0 4px;background:#fee2e2;color:#b91c1c;border-radius:3px;white-space:nowrap;display:inline-block;margin-top:2px">× 未做 ${skippedDays} 天</span>`:'';
       return `<div style="margin-bottom:8px;padding-bottom:7px;border-bottom:1px dashed var(--paper-l)">
         <div style="display:flex;justify-content:space-between;align-items:center;gap:5px;margin-bottom:3px">
           <span style="font-size:10px;color:var(--ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1;min-width:0">${name}</span>
@@ -3505,7 +3552,8 @@ function renderMonthly(){
           </div>
           <span style="font-family:var(--mo);font-size:9px;color:${doneColor};flex-shrink:0;white-space:nowrap;font-weight:600">${doneDays}/${plannedDays}/${dim}</span>
         </div>
-        ${actDurStr?`<div style="font-size:9px;color:var(--ink-m);font-family:var(--mo)">实际累计：${actDurStr}</div>`:''}
+        ${skippedHtml}
+        ${actDurStr?`<div style="font-size:9px;color:var(--ink-m);font-family:var(--mo);margin-top:2px">实际累计：${actDurStr}</div>`:''}
       </div>`;
     }).join(''):`<div style="font-size:11px;color:var(--ink-m);opacity:.5;margin-top:16px;text-align:center">暂无数据</div>`;
 
@@ -3543,6 +3591,11 @@ function renderMonthly(){
       const deferredTodos=(data.todos||[]).filter(t=>t.movedToNext);
       const dn=todos.filter(t=>t.done).length;
       const r=todos.length?Math.round(dn/todos.length*100):0;
+      // 未完成日期高亮（非今天，且有待办任务，且完成率 < 100%）
+      if(todos.length>0 && r<100 && ds!==ts){
+        c.style.background='rgba(239,68,68,.06)';
+        c.style.borderColor='rgba(239,68,68,.28)';
+      }
       const pbHtml=todos.length?`<div style="height:2px;background:var(--paper-l);border-radius:1px;overflow:hidden;margin:3px 0"><div style="height:100%;width:${r}%;background:${r>=100?'var(--gr)':r>=60?'var(--bl)':'var(--ac)'};border-radius:1px"></div></div>`:'';
 
       function buildMcItem(it, accentColor, doneColor, iconDone, iconPend){
@@ -3669,13 +3722,13 @@ function renderYearly(){
     dayMap[key]={rate,total,done,hasData,otasks:otasks.length,memos:memos.length};
     if(hasData){ydy++;}
     yt+=total;yd+=done;yot+=otasks.length;yod+=otasks.filter(o=>o.done).length;ymd+=memos.filter(m=>m.done).length;
-    // label + task stats
-    todos.filter(t=>!t.isSkipped).forEach(t=>{
+    // label + task stats（含未做任务，保留数据；追踪未做天数）
+    todos.forEach(t=>{
       const lc=t.labelColor||'';const ln=t.label||'';
       const yl=yEnsureLabel(lc,ln);yl.todoTotal++;if(t.done)yl.todoDone++;
       if(t.planStart&&t.planEnd){const pm=timeToMin(t.planEnd)-timeToMin(t.planStart);if(pm>0){yPlanMin+=pm;yl.planMins+=pm;}}
       (t.actualSegs||[]).forEach(s=>{if(s.start&&s.end){const am=timeToMin(s.end)-timeToMin(s.start);if(am>0){yActMin+=am;yl.actualMins+=am;if(t.text){const tk=t.text.trim();yTaskActualMap[tk]=(yTaskActualMap[tk]||0)+am;}}}});
-      if(t.text){const k=t.text.trim();yTaskFreq[k]=(yTaskFreq[k]||0)+1;if(t.labelColor&&!yTaskLabelMap[k])yTaskLabelMap[k]={color:t.labelColor,label:t.label||''};if(!yTaskDayMap[k])yTaskDayMap[k]={planned:0,done:0};yTaskDayMap[k].planned++;if(t.done&&!t.isSkipped)yTaskDayMap[k].done++;}
+      if(t.text){const k=t.text.trim();yTaskFreq[k]=(yTaskFreq[k]||0)+1;if(t.labelColor&&!yTaskLabelMap[k])yTaskLabelMap[k]={color:t.labelColor,label:t.label||''};if(!yTaskDayMap[k])yTaskDayMap[k]={planned:0,done:0,skipped:0};yTaskDayMap[k].planned++;if(t.done&&!t.isSkipped)yTaskDayMap[k].done++;if(t.isSkipped)yTaskDayMap[k].skipped++;}
     });
     otasks.forEach(o=>{
       const lc=o.labelColor||'';const ln=o.label||'';
@@ -3754,20 +3807,19 @@ function renderYearly(){
   // 列3：固定安排完成情况（全部，按计划次数排序）
   const yTopTasks=Object.entries(yTaskFreq).sort((a,b)=>b[1]-a[1]);
   const yTopHtml=yTopTasks.length?yTopTasks.map(([name,cnt])=>{
-    const di=yTaskDayMap[name]||{planned:cnt,done:0};
-    const doneDays=di.done,plannedDays=di.planned;
+    const di=yTaskDayMap[name]||{planned:cnt,done:0,skipped:0};
+    const doneDays=di.done,plannedDays=di.planned,skippedDays=di.skipped||0;
     const isLeap=(new Date(currentYear,1,29).getDate()===29);
     const totalYearDays=isLeap?366:365;
-    // 与月视图一致：完成天数÷当年总天数（进度条=完成占全年比例）
     const pct=Math.round(doneDays/totalYearDays*100);
     const pctBar=Math.round(plannedDays/totalYearDays*100);
-    // 有完成记录时至少显示3%宽度，避免进度条完全不可见
     const pctDisplay=doneDays>0?Math.max(3,pct):0;
     const doneColor=doneDays>=plannedDays?'var(--gr)':doneDays>=plannedDays*0.8?'var(--bl)':'var(--ac)';
     const lbl=yTaskLabelMap[name];
     const labelHtml=lbl?`<span style="display:inline-flex;align-items:center;gap:2px;font-size:8px;padding:1px 4px;border-radius:8px;background:${lbl.color}22;color:${lbl.color};border:1px solid ${lbl.color}44;white-space:nowrap;flex-shrink:0"><span style="width:4px;height:4px;border-radius:50%;background:${lbl.color};display:inline-block"></span>${lbl.label}</span>`:'';
     const actMin=yTaskActualMap[name]||0;
     const actStr=actMin>0?fmtMy(actMin):'';
+    const skippedHtml=skippedDays>0?`<span style="font-size:8px;padding:0 4px;background:#fee2e2;color:#b91c1c;border-radius:3px;white-space:nowrap;display:inline-block;margin-top:2px">× 未做 ${skippedDays} 天</span>`:'';
     return`<div style="margin-bottom:7px;padding-bottom:6px;border-bottom:1px dashed var(--paper-l)">
       <div style="display:flex;justify-content:space-between;align-items:center;gap:4px;margin-bottom:3px">
         <span style="font-size:10px;color:var(--ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1;min-width:0">${name}</span>
@@ -3780,7 +3832,8 @@ function renderYearly(){
         </div>
         <span style="font-family:var(--mo);font-size:9px;color:${doneColor};flex-shrink:0;white-space:nowrap;font-weight:600">${doneDays}/${plannedDays}/${totalYearDays}</span>
       </div>
-      ${actStr?`<div style="font-size:9px;color:var(--ink-m);font-family:var(--mo)">实际累计：${actStr}</div>`:''}
+      ${skippedHtml}
+      ${actStr?`<div style="font-size:9px;color:var(--ink-m);font-family:var(--mo);margin-top:2px">实际累计：${actStr}</div>`:''}
     </div>`;
   }).join(''):`<div style="font-size:11px;color:var(--ink-m);opacity:.5;text-align:center;padding:16px 0">暂无数据</div>`;
 
@@ -3826,7 +3879,7 @@ function renderYearly(){
       const r=todos.length?Math.round(dn/todos.length*100):0;
       dayRates.push(todos.length?r:null);
       if(r>bestDayRate){bestDayRate=r;bestDayNum=d;}
-      todos.filter(t=>!t.isSkipped).forEach(t=>{
+      todos.forEach(t=>{
         const lc=t.labelColor||'';const ln=t.label||'';
         if(t.planStart&&t.planEnd){const pm=Math.max(0,timeToMin(t.planEnd)-timeToMin(t.planStart));totalPlanMin+=pm;if(pm>0)mEnsureL(lc,ln).planMins+=pm;}
         (t.actualSegs||[]).forEach(s=>{if(s.start&&s.end){const am=Math.max(0,timeToMin(s.end)-timeToMin(s.start));totalActMin+=am;if(am>0)mEnsureL(lc,ln).actualMins+=am;}});
@@ -5602,6 +5655,10 @@ function handleFullRestore(e) {
       closeFullBackupModal();
       // ── 3. 刷新界面 ──
       initTitle(); initDarkMode(); renderDaily(); checkStorageUsage();
+      // 如果当前在其他视图也刷新
+      if(document.getElementById('view-weekly')?.classList.contains('active')) renderWeekly();
+      if(document.getElementById('view-monthly')?.classList.contains('active')) renderMonthly();
+      if(document.getElementById('view-yearly')?.classList.contains('active')) renderYearly();
       if(document.getElementById('view-journal')?.classList.contains('active')) renderJournal();
       const restoredKeys = Object.keys(bundle._keys).length;
       const actualKeys = localStorage.length;
