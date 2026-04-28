@@ -882,7 +882,7 @@ body.dark-mode .snap-item:hover{background:var(--ac-p)}
     <div class="sc"><div class="sv" id="s-tot">0</div><div class="sl">固定安排数</div></div>
     <div class="sc g"><div class="sv" id="s-done">0</div><div class="sl">已完成</div></div>
     <div class="sc b"><div class="sv" id="s-rate">0%</div><div class="sl">完成率</div></div>
-    <div class="sc a"><div class="sv" id="s-other">0</div><div class="sl">临时事项</div></div>
+    <div class="sc a"><div class="sv" id="s-other">0</div><div class="sl">临时事项（小任务）</div></div>
     <div class="sc" style="cursor:pointer" title="点击查看标签分类详情" onclick="toggleLabelTimeBreakdown()"><div class="sv" id="s-plantime" style="font-size:13px">—</div><div class="sl">计划总时长 <span id="s-plantime-tag-hint" style="font-size:9px;color:var(--ac);display:none">▾详情</span></div></div>
     <div class="sc b" style="cursor:pointer" title="点击查看标签分类详情" onclick="toggleLabelTimeBreakdown()"><div class="sv" id="s-actualtime" style="font-size:13px">—</div><div class="sl">实际总时长 <span style="font-size:9px;color:var(--bl);display:none" id="s-actualtime-tag-hint">▾详情</span></div></div>
     <div class="sc g"><div class="sv" id="s-streak" style="color:var(--am)">0🔥</div><div class="sl">连续完成天</div></div>
@@ -894,6 +894,11 @@ body.dark-mode .snap-item:hover{background:var(--ac-p)}
       <button onclick="toggleLabelTimeBreakdown()" style="background:none;border:none;cursor:pointer;color:var(--ink-m);font-size:14px;line-height:1;padding:0 4px">×</button>
     </div>
     <div id="label-time-rows" style="display:flex;flex-direction:column;gap:5px"></div>
+    <!-- 按事项分类时长 -->
+    <div style="margin-top:10px;padding-top:8px;border-top:1px solid var(--paper-l)">
+      <div style="font-size:11px;font-weight:600;color:var(--ink-m);letter-spacing:.8px;margin-bottom:6px">⏱ 按事项分类时长</div>
+      <div id="item-time-rows" style="display:flex;flex-direction:column;gap:5px"></div>
+    </div>
   </div>
 
   <div class="pgrid">
@@ -1177,7 +1182,7 @@ body.dark-mode .snap-item:hover{background:var(--ac-p)}
       <!-- 自由正文 -->
       <div>
         <div style="font-size:10px;color:var(--ink-m);letter-spacing:.6px;margin-bottom:4px">📄 正文 / 详细内容</div>
-        <textarea id="jnl-body" rows="8" placeholder="在这里写下更多内容..." style="width:100%;border:1px solid var(--bdr);background:var(--paper-w);color:var(--ink);font-family:var(--ss);font-size:12px;padding:7px 10px;border-radius:3px;outline:none;resize:none;line-height:1.7;min-height:140px;overflow:hidden" onfocus="this.style.borderColor='var(--ac)'" onblur="this.style.borderColor='var(--bdr)'" oninput="this.style.height='auto';this.style.height=this.scrollHeight+'px'"></textarea>
+        <textarea id="jnl-body" rows="8" placeholder="在这里写下更多内容..." style="width:100%;border:1px solid var(--bdr);background:var(--paper-w);color:var(--ink);font-family:var(--ss);font-size:12px;padding:7px 10px;border-radius:3px;outline:none;resize:vertical;line-height:1.7;min-height:140px;overflow:hidden" onfocus="this.style.borderColor='var(--ac)'" onblur="this.style.borderColor='var(--bdr)'" oninput="this.style.height='auto';this.style.height=this.scrollHeight+'px'"></textarea>
       </div>
       <!-- 标签 -->
       <div>
@@ -1840,7 +1845,7 @@ function renderUnifiedTimeline(){
       if(a.sm<b.em&&b.sm<a.em){
         conflictIdxSet.add(a.idx);conflictIdxSet.add(b.idx);
         // 只记录一次pair（按idx唯一）
-        if(!conflictPairs.some(([x,y])=>x.idx===a.idx&&y.idx===b.idx))
+        if(!conflictPairs.some(([x,y])=>(x.idx===a.idx&&y.idx===b.idx)||(x.idx===b.idx&&y.idx===a.idx)))
           conflictPairs.push([a,b]);
       }
     }
@@ -2096,11 +2101,13 @@ function renderUnifiedTimeline(){
     const isIncomplete=c.dataset.isIncomplete==='1'&&!done;
     const isMakeup=c.dataset.isMakeup==='1';
     const completedDate=c.dataset.completedDate||'';
+    const labelColor=c.dataset.labelColor||'';
+    const labelName=c.dataset.label||'';
     if(!txt)return;
     if(!segs.length&&!ps){
-      if(done&&isMakeup) miniDone.push({type:'makeup',txt,note,completedDate});
-      else if(done) miniDone.push({type:'todo',txt,note});
-      else if(isIncomplete) miniIncomplete.push({type:'todo',txt,note});
+      if(done&&isMakeup) miniDone.push({type:'makeup',txt,note,completedDate,labelColor,labelName});
+      else if(done) miniDone.push({type:'todo',txt,note,labelColor,labelName});
+      else if(isIncomplete) miniIncomplete.push({type:'todo',txt,note,labelColor,labelName});
     }
   });
 
@@ -2109,15 +2116,17 @@ function renderUnifiedTimeline(){
     const done=el.classList.contains('ck');
     const txt=el.querySelector('.otask-txt')?.value||'';
     const note=el.querySelector('.otnote')?.value||'';
+    const labelColor=el.dataset.labelColor||'';
+    const labelName=el.dataset.label||'';
     if(!txt)return;
-    if(!segs.length&&done) miniDone.push({type:'otask',txt,note});
+    if(!segs.length&&done) miniDone.push({type:'otask',txt,note,labelColor,labelName});
   });
 
   document.querySelectorAll('.memo-item').forEach(el=>{
     const done=el.classList.contains('ck');
     const txt=el.querySelector('.memo-ta')?.value||'';
     if(!txt||!done)return;
-    miniDone.push({type:'memo',txt,note:''});
+    miniDone.push({type:'memo',txt,note:'',labelColor:'',labelName:''});
   });
 
   // Render incomplete mini-section (above done section)
@@ -2158,6 +2167,15 @@ function renderUnifiedTimeline(){
       const inner=document.createElement('div');inner.style.cssText='flex:1;display:flex;flex-direction:column;gap:2px;min-width:0';
       const txtEl=document.createElement('span');txtEl.className='utl-mini-txt';txtEl.textContent=item.txt;
       inner.appendChild(txtEl);
+      // Label tag
+      if(item.labelColor&&item.labelName){
+        const metaRow=document.createElement('div');metaRow.style.cssText='display:flex;flex-wrap:wrap;gap:3px;margin-top:1px';
+        const ltag=document.createElement('span');
+        ltag.style.cssText=`display:inline-flex;align-items:center;gap:2px;font-size:8px;padding:1px 5px;border-radius:8px;background:${item.labelColor}22;color:${item.labelColor};border:1px solid ${item.labelColor}44;white-space:nowrap`;
+        ltag.innerHTML=`<span style="width:5px;height:5px;border-radius:50%;background:${item.labelColor};display:inline-block"></span>${item.labelName}`;
+        metaRow.appendChild(ltag);
+        inner.appendChild(metaRow);
+      }
       if(item.note){const noteEl=document.createElement('span');noteEl.className='utl-mini-note';noteEl.textContent='↳ '+item.note;inner.appendChild(noteEl);}
       row.appendChild(chk);row.appendChild(tag);row.appendChild(inner);
       miniSec.appendChild(row);
@@ -2667,6 +2685,33 @@ function updateStats(){
   // 保存 labelPlanMap 给 toggle 用
   window._lastLabelPlanMap=labelPlanMap;
   window._lastFmtM=fmtM;
+  // 同时收集按事项的时长数据
+  const itemTimeMap={}; // txt -> {txt, labelColor, labelName, planMins, actualMins}
+  function ensureItem(txt,lc,ln){if(!itemTimeMap[txt])itemTimeMap[txt]={txt,labelColor:lc,labelName:ln,planMins:0,actualMins:0};return itemTimeMap[txt];}
+  cs.filter(c=>c.dataset.isSkipped!=='1').forEach(c=>{
+    const ps=c.querySelector('.eps')?.value||'';const pe=c.querySelector('.epe')?.value||'';
+    const txt=c.querySelector('.ttxt')?.value||'';
+    const lc=c.dataset.labelColor||'';const ln=c.dataset.label||'';
+    if(!txt)return;
+    if(ps&&pe){const d=timeToMin(pe)-timeToMin(ps);if(d>0)ensureItem(txt,lc,ln).planMins+=d;}
+    [...c.querySelectorAll('.todo-segs .time-seg')].forEach(s=>{
+      const as=s.querySelector('.seg-s')?.value||'';const ae=s.querySelector('.seg-e')?.value||'';
+      if(as&&ae){const d=timeToMin(ae)-timeToMin(as);if(d>0)ensureItem(txt,lc,ln).actualMins+=d;}
+    });
+  });
+  document.querySelectorAll('.otask').forEach(el=>{
+    const ps=el.querySelector('.ops')?.value||'';const pe=el.querySelector('.ope')?.value||'';
+    const txt=el.querySelector('.otask-txt')?.value||'';
+    const lc=el.dataset.labelColor||'';const ln=el.dataset.label||'';
+    if(!txt)return;
+    if(ps&&pe){const d=timeToMin(pe)-timeToMin(ps);if(d>0)ensureItem(txt,lc,ln).planMins+=d;}
+    [...el.querySelectorAll('.otask-segs-wrap .time-seg')].forEach(s=>{
+      const as=s.querySelector('.seg-s')?.value||'';const ae=s.querySelector('.seg-e')?.value||'';
+      if(as&&ae){const d=timeToMin(ae)-timeToMin(as);if(d>0)ensureItem(txt,lc,ln).actualMins+=d;}
+    });
+  });
+  window._lastItemTimeMap=itemTimeMap;
+  if(breakdown&&breakdown.style.display!=='none')renderItemTimeBreakdown(itemTimeMap,fmtM);
   // 连续完成天数 streak — 只计实际完成的任务（排除已移走和今日未做）
   const streakEl=document.getElementById('s-streak');
   if(streakEl){
@@ -2695,6 +2740,29 @@ function toggleLabelTimeBreakdown(){
   const isOpen=bd.style.display!=='none';
   bd.style.display=isOpen?'none':'block';
   if(!isOpen&&window._lastLabelPlanMap)renderLabelTimeBreakdown(window._lastLabelPlanMap,window._lastFmtM||((m)=>m+'m'));
+  if(!isOpen&&window._lastItemTimeMap)renderItemTimeBreakdown(window._lastItemTimeMap,window._lastFmtM||((m)=>m+'m'));
+}
+function renderItemTimeBreakdown(itemTimeMap,fmtM){
+  const rows=document.getElementById('item-time-rows');
+  if(!rows)return;
+  rows.innerHTML='';
+  const hdr=document.createElement('div');
+  hdr.style.cssText='display:grid;grid-template-columns:1fr 80px 80px 80px;gap:8px;padding-bottom:5px;border-bottom:1px solid var(--paper-l);font-size:9px;color:var(--ink-m);letter-spacing:.6px';
+  hdr.innerHTML='<span>事项</span><span style="text-align:right">计划时长</span><span style="text-align:right">实际时长</span><span style="text-align:right">效率</span>';
+  rows.appendChild(hdr);
+  const entries=Object.values(itemTimeMap).filter(e=>e.planMins||e.actualMins);
+  if(!entries.length){rows.innerHTML='<div style="font-size:11px;color:var(--ink-m);text-align:center;padding:8px 0">暂无事项时长数据</div>';return;}
+  entries.sort((a,b)=>b.planMins-a.planMins);
+  entries.forEach(g=>{
+    const eff=g.planMins>0?Math.round(g.actualMins/g.planMins*100):0;
+    const row=document.createElement('div');
+    row.style.cssText='display:grid;grid-template-columns:1fr 80px 80px 80px;gap:8px;align-items:center;padding:5px 0;border-bottom:1px dashed var(--paper-l)';
+    const effColor=eff>=100?'var(--gr)':eff>=80?'var(--bl)':eff>0?'var(--am)':'var(--ink-m)';
+    const dotColor=g.labelColor&&g.labelColor!=='var(--ink-m)'?g.labelColor:'#9ca3af';
+    const labelBadge=g.labelColor&&g.labelName?`<span style="display:inline-flex;align-items:center;gap:2px;font-size:8px;padding:1px 5px;border-radius:8px;background:${g.labelColor}22;color:${g.labelColor};border:1px solid ${g.labelColor}44;white-space:nowrap;margin-left:4px"><span style="width:5px;height:5px;border-radius:50%;background:${g.labelColor};display:inline-block"></span>${g.labelName}</span>`:'';
+    row.innerHTML=`<span style="display:flex;align-items:center;gap:5px;font-size:11px;color:var(--ink);flex-wrap:wrap">${g.txt}${labelBadge}</span><span style="text-align:right;font-family:var(--mo);font-size:11px;color:var(--ink-m)">${fmtM(g.planMins)}</span><span style="text-align:right;font-family:var(--mo);font-size:11px;color:var(--gr)">${fmtM(g.actualMins)}</span><span style="text-align:right;font-family:var(--mo);font-size:11px;font-weight:600;color:${effColor}">${g.planMins>0?eff+'%':'—'}</span>`;
+    rows.appendChild(row);
+  });
 }
 function renderLabelTimeBreakdown(labelPlanMap,fmtM){
   const rows=document.getElementById('label-time-rows');
@@ -3055,6 +3123,8 @@ function renderWeekly(){
   let wPlanMin=0,wActMin=0;
   const wLabelMap={}; // labelColor -> {name, planMins, actualMins}
   function wEnsureLabel(lc,ln){const k=lc||'__none__';if(!wLabelMap[k])wLabelMap[k]={name:ln||'无标签',color:lc||'var(--ink-m)',planMins:0,actualMins:0};return wLabelMap[k];}
+  const wItemMap={}; // txt -> {txt, labelColor, labelName, planMins, actualMins, days}
+  function wEnsureItem(txt,lc,ln){const k=txt+'|'+(lc||'');if(!wItemMap[k])wItemMap[k]={txt,labelColor:lc,labelName:ln,planMins:0,actualMins:0,days:0};return wItemMap[k];}
   const fmtMw=m=>{if(!m)return'—';const h=Math.floor(m/60),mn=m%60;return(h?h+'h':'')+(mn?mn+'m':'');};
 
   // ── 新布局：垂直堆叠，每天一行大卡片 ──
@@ -3076,13 +3146,13 @@ function renderWeekly(){
     // 累计计划和实际时间
     todos.filter(t=>!t.isSkipped).forEach(t=>{
       const lc=t.labelColor||'';const ln=t.label||'';
-      if(t.planStart&&t.planEnd){const d=timeToMin(t.planEnd)-timeToMin(t.planStart);if(d>0){wPlanMin+=d;wEnsureLabel(lc,ln).planMins+=d;}}
-      (t.actualSegs||[]).forEach(s=>{if(s.start&&s.end){const d=timeToMin(s.end)-timeToMin(s.start);if(d>0){wActMin+=d;wEnsureLabel(lc,ln).actualMins+=d;}}});
+      if(t.planStart&&t.planEnd){const d=timeToMin(t.planEnd)-timeToMin(t.planStart);if(d>0){wPlanMin+=d;wEnsureLabel(lc,ln).planMins+=d;if(t.text){const it=wEnsureItem(t.text,lc,ln);it.planMins+=d;}}}
+      (t.actualSegs||[]).forEach(s=>{if(s.start&&s.end){const d=timeToMin(s.end)-timeToMin(s.start);if(d>0){wActMin+=d;wEnsureLabel(lc,ln).actualMins+=d;if(t.text)wEnsureItem(t.text,lc,ln).actualMins+=d;}}});
     });
     otasks.forEach(o=>{
       const lc=o.labelColor||'';const ln=o.label||'';
-      if(o.planStart&&o.planEnd){const d=timeToMin(o.planEnd)-timeToMin(o.planStart);if(d>0){wPlanMin+=d;wEnsureLabel(lc,ln).planMins+=d;}}
-      (o.actualSegs||[]).forEach(s=>{if(s.start&&s.end){const d=timeToMin(s.end)-timeToMin(s.start);if(d>0){wActMin+=d;wEnsureLabel(lc,ln).actualMins+=d;}}});
+      if(o.planStart&&o.planEnd){const d=timeToMin(o.planEnd)-timeToMin(o.planStart);if(d>0){wPlanMin+=d;wEnsureLabel(lc,ln).planMins+=d;if(o.text){const it=wEnsureItem(o.text,lc,ln);it.planMins+=d;}}}
+      (o.actualSegs||[]).forEach(s=>{if(s.start&&s.end){const d=timeToMin(s.end)-timeToMin(s.start);if(d>0){wActMin+=d;wEnsureLabel(lc,ln).actualMins+=d;if(o.text)wEnsureItem(o.text,lc,ln).actualMins+=d;}}});
     });
     const isToday=ds===today;
     const WDN=['周日','周一','周二','周三','周四','周五','周六'];
@@ -3226,8 +3296,11 @@ function renderWeekly(){
   if(wTimeEl){
     if(wPlanMin||wActMin){
       const labelKeys=Object.keys(wLabelMap);
-      const labelHtml=labelKeys.length?`<div style="margin-top:8px;display:flex;flex-direction:column;gap:3px">${labelKeys.map(k=>{const g=wLabelMap[k];const dot=g.color&&g.color!=='var(--ink-m)'?`<span style="width:7px;height:7px;border-radius:50%;background:${g.color};display:inline-block;flex-shrink:0"></span>`:'';;return`<div style="display:flex;align-items:center;gap:6px;font-size:10px"><span style="display:flex;align-items:center;gap:3px;flex:1;color:var(--ink-m)">${dot}${g.name}</span><span style="font-family:var(--mo);color:var(--am)">${fmtMw(g.planMins)}</span><span style="color:var(--ink-m);font-size:9px">/</span><span style="font-family:var(--mo);color:var(--gr)">${fmtMw(g.actualMins)}</span></div>`}).join('')}</div>`:'';
-      wTimeEl.innerHTML=`<div style="display:flex;gap:12px;flex-wrap:wrap"><div style="display:flex;align-items:center;gap:5px;font-size:11px"><span style="color:var(--ink-m)">计划总时长</span><span style="font-family:var(--mo);font-weight:600;color:var(--am)">${fmtMw(wPlanMin)}</span></div><div style="display:flex;align-items:center;gap:5px;font-size:11px"><span style="color:var(--ink-m)">实际总时长</span><span style="font-family:var(--mo);font-weight:600;color:var(--gr)">${fmtMw(wActMin)}</span></div></div>${labelHtml}`;
+      const labelHtml=labelKeys.length?`<div style="margin-top:8px;border-top:1px solid var(--paper-l);padding-top:6px"><div style="font-size:10px;font-weight:600;color:var(--ink-m);letter-spacing:.6px;margin-bottom:5px">⏱ 按标签分类时长</div><div style="display:flex;flex-direction:column;gap:3px">${labelKeys.map(k=>{const g=wLabelMap[k];const dot=g.color&&g.color!=='var(--ink-m)'?`<span style="width:7px;height:7px;border-radius:50%;background:${g.color};display:inline-block;flex-shrink:0"></span>`:'';const eff=g.planMins>0?Math.round(g.actualMins/g.planMins*100):0;const effColor=eff>=100?'var(--gr)':eff>=80?'var(--bl)':eff>0?'var(--am)':'var(--ink-m)';return`<div style="display:grid;grid-template-columns:1fr 70px 70px 60px;gap:6px;align-items:center;font-size:10px"><span style="display:flex;align-items:center;gap:3px;color:var(--ink-m)">${dot}${g.name}</span><span style="font-family:var(--mo);color:var(--am);text-align:right">${fmtMw(g.planMins)}</span><span style="font-family:var(--mo);color:var(--gr);text-align:right">${fmtMw(g.actualMins)}</span><span style="font-family:var(--mo);font-weight:600;color:${effColor};text-align:right">${g.planMins>0?eff+'%':'—'}</span></div>`}).join('')}</div></div>`:'';
+      // 按事项分类
+      const itemEntries=Object.values(wItemMap).filter(e=>e.planMins||e.actualMins).sort((a,b)=>b.planMins-a.planMins);
+      const itemHtml=itemEntries.length?`<div style="margin-top:8px;border-top:1px solid var(--paper-l);padding-top:6px"><div style="font-size:10px;font-weight:600;color:var(--ink-m);letter-spacing:.6px;margin-bottom:5px">⏱ 按事项分类时长</div><div style="display:grid;grid-template-columns:1fr 70px 70px 60px;gap:4px;padding-bottom:4px;border-bottom:1px solid var(--paper-l);font-size:9px;color:var(--ink-m);letter-spacing:.4px"><span>事项</span><span style="text-align:right">计划</span><span style="text-align:right">实际</span><span style="text-align:right">效率</span></div><div style="display:flex;flex-direction:column;gap:2px;margin-top:3px">${itemEntries.map(g=>{const eff=g.planMins>0?Math.round(g.actualMins/g.planMins*100):0;const effColor=eff>=100?'var(--gr)':eff>=80?'var(--bl)':eff>0?'var(--am)':'var(--ink-m)';const labelBadge=g.labelColor&&g.labelName?`<span style="display:inline-flex;align-items:center;gap:2px;font-size:8px;padding:0 4px;border-radius:8px;background:${g.labelColor}22;color:${g.labelColor};border:1px solid ${g.labelColor}44;margin-left:3px;white-space:nowrap"><span style="width:4px;height:4px;border-radius:50%;background:${g.labelColor};display:inline-block"></span>${g.labelName}</span>`:'';return`<div style="display:grid;grid-template-columns:1fr 70px 70px 60px;gap:6px;align-items:center;padding:3px 0;border-bottom:1px dashed var(--paper-l);font-size:10px"><span style="color:var(--ink);display:flex;align-items:center;flex-wrap:wrap;gap:2px;min-width:0"><span style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%">${g.txt}</span>${labelBadge}</span><span style="font-family:var(--mo);color:var(--am);text-align:right">${fmtMw(g.planMins)}</span><span style="font-family:var(--mo);color:var(--gr);text-align:right">${fmtMw(g.actualMins)}</span><span style="font-family:var(--mo);font-weight:600;color:${effColor};text-align:right">${g.planMins>0?eff+'%':'—'}</span></div>`}).join('')}</div></div>`:'';
+      wTimeEl.innerHTML=`<div style="display:flex;gap:12px;flex-wrap:wrap"><div style="display:flex;align-items:center;gap:5px;font-size:11px"><span style="color:var(--ink-m)">计划总时长</span><span style="font-family:var(--mo);font-weight:600;color:var(--am)">${fmtMw(wPlanMin)}</span></div><div style="display:flex;align-items:center;gap:5px;font-size:11px"><span style="color:var(--ink-m)">实际总时长</span><span style="font-family:var(--mo);font-weight:600;color:var(--gr)">${fmtMw(wActMin)}</span></div></div>${labelHtml}${itemHtml}`;
       wTimeEl.style.display='block';
     } else {
       wTimeEl.style.display='none';
@@ -3256,6 +3329,7 @@ function renderMonthly(){
   const allDayData=[];
   let bestRate=0,bestDay=null,streakMax=0,streakCur=0,streakEnd=null,streakEndTmp=null;
   const taskFreq={};const taskLabelMap={}; // name→{color,label}
+  const taskDayMap={}; // name→{planned,done}
   // taskActualMap: name→totalActMin
   const taskActualMap={};
   let totalPlanMin=0,totalActMin=0,planDays=0;
@@ -3285,7 +3359,11 @@ function renderMonthly(){
     if(todos.length&&dn===todos.length){streakCur++;if(streakCur>streakMax){streakMax=streakCur;streakEndTmp=d;}}
     else streakCur=0;
     // 任务频率 + 标签
-    todos.forEach(t=>{if(t.text){const k=t.text.trim();taskFreq[k]=(taskFreq[k]||0)+1;if(t.labelColor&&!taskLabelMap[k])taskLabelMap[k]={color:t.labelColor,label:t.label||''};}});
+    todos.forEach(t=>{if(t.text){const k=t.text.trim();taskFreq[k]=(taskFreq[k]||0)+1;if(t.labelColor&&!taskLabelMap[k])taskLabelMap[k]={color:t.labelColor,label:t.label||''};
+      if(!taskDayMap[k])taskDayMap[k]={planned:0,done:0};
+      taskDayMap[k].planned++;
+      if(t.done&&!t.isSkipped)taskDayMap[k].done++;
+    }});
     // 计划 vs 实际时间 (todos + otasks)
     todos.filter(t=>!t.isSkipped).forEach(t=>{
       const lc=t.labelColor||'';const ln=t.label||'';
@@ -3304,8 +3382,8 @@ function renderMonthly(){
   }
   if(streakEndTmp)streakEnd=streakEndTmp;
 
-  // 高频任务 top10
-  const topTasks=Object.entries(taskFreq).sort((a,b)=>b[1]-a[1]).slice(0,10);
+  // 全部固定安排（按计划天数排序）
+  const topTasks=Object.entries(taskFreq).sort((a,b)=>b[1]-a[1]);
 
   // ── 月度摘要面板 ──
   const sumEl=document.getElementById('m-summary');
@@ -3386,23 +3464,33 @@ function renderMonthly(){
           </div>`;}).join('')}
       </div>`:''}`;
 
-    // 高频Top10
+    // 全部固定安排
     const colors=['var(--ac)','var(--bl)','var(--gr)','var(--am)','var(--ink-m)','var(--ac)','var(--bl)','var(--gr)','var(--am)','var(--ink-m)'];
     const topTaskHtml=topTasks.length?topTasks.map(([name,cnt],i)=>{
-      const pct=Math.round(cnt/dim*100);
+      const dayInfo=taskDayMap[name]||{planned:cnt,done:0};
+      const doneDays=dayInfo.done;
+      const plannedDays=dayInfo.planned;
+      const pct=Math.round(doneDays/dim*100); // 完成天占当月比例
+      const pctBar=Math.round(plannedDays/dim*100);
       const lbl=taskLabelMap[name];
       const labelHtml=lbl?`<span style="display:inline-flex;align-items:center;gap:2px;font-size:8px;padding:1px 5px;border-radius:8px;background:${lbl.color}22;color:${lbl.color};border:1px solid ${lbl.color}44;white-space:nowrap;flex-shrink:0"><span style="width:5px;height:5px;border-radius:50%;background:${lbl.color};display:inline-block"></span>${lbl.label}</span>`:'';
       const actMin=taskActualMap[name]||0;
       const actDurStr=actMin>0?fmtMm(actMin):'';
-      return `<div style="margin-bottom:6px">
-        <div style="display:flex;justify-content:space-between;align-items:center;gap:5px;margin-bottom:2px">
+      const colorIdx=i%colors.length;
+      const doneColor=doneDays>=plannedDays?'var(--gr)':doneDays>=plannedDays*0.8?'var(--bl)':'var(--ac)';
+      return `<div style="margin-bottom:8px;padding-bottom:7px;border-bottom:1px dashed var(--paper-l)">
+        <div style="display:flex;justify-content:space-between;align-items:center;gap:5px;margin-bottom:3px">
           <span style="font-size:10px;color:var(--ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1;min-width:0">${name}</span>
           ${labelHtml}
-          <span style="font-family:var(--mo);font-size:9px;color:${colors[i]};flex-shrink:0;white-space:nowrap">${cnt}/${dim}天${actDurStr?' ('+actDurStr+')':''}</span>
         </div>
-        <div style="height:3px;background:var(--paper-l);border-radius:2px;overflow:hidden">
-          <div style="height:100%;width:${pct}%;background:${colors[i]};border-radius:2px"></div>
+        <div style="display:flex;align-items:center;gap:5px;margin-bottom:3px">
+          <div style="flex:1;height:3px;background:var(--paper-l);border-radius:2px;overflow:hidden;position:relative">
+            <div style="height:100%;width:${pctBar}%;background:var(--paper-l);border-radius:2px;position:absolute;top:0;left:0"></div>
+            <div style="height:100%;width:${pct}%;background:${doneColor};border-radius:2px;position:absolute;top:0;left:0;transition:width .3s"></div>
+          </div>
+          <span style="font-family:var(--mo);font-size:9px;color:${doneColor};flex-shrink:0;white-space:nowrap;font-weight:600">${doneDays}/${plannedDays}/${dim}</span>
         </div>
+        ${actDurStr?`<div style="font-size:9px;color:var(--ink-m);font-family:var(--mo)">实际累计：${actDurStr}</div>`:''}
       </div>`;
     }).join(''):`<div style="font-size:11px;color:var(--ink-m);opacity:.5;margin-top:16px;text-align:center">暂无数据</div>`;
 
@@ -3417,8 +3505,9 @@ function renderMonthly(){
           ${timeHtml}
         </div>
         <div style="padding:12px 16px">
-          <div style="font-size:10px;color:var(--ink-m);letter-spacing:.8px;margin-bottom:8px;font-weight:500">🔁 高频固定安排 Top10</div>
-          ${topTaskHtml}
+          <div style="font-size:10px;color:var(--ink-m);letter-spacing:.8px;margin-bottom:4px;font-weight:500">🔁 固定安排完成情况</div>
+          <div style="font-size:9px;color:var(--ink-m);opacity:.7;margin-bottom:8px;line-height:1.5">数字含义：<span style="font-family:var(--mo);color:var(--gr);font-weight:600">完成天数</span> / <span style="font-family:var(--mo);color:var(--ac);font-weight:600">计划天数</span> / <span style="font-family:var(--mo);color:var(--ink-m);font-weight:600">当月总天数</span>（进度条=完成占当月比例）</div>
+          <div style="max-height:340px;overflow-y:auto;padding-right:2px">${topTaskHtml}</div>
         </div>
       </div>`;
   } else {
@@ -5419,19 +5508,31 @@ function handleFullRestore(e) {
       cdlgAlert('❌ 格式不符：请选择由本工具「一键备份」导出的 JSON 文件');
       e.target.value=''; return;
     }
-    cdlgConfirm(`即将用备份文件恢复全部数据，当前数据将被覆盖。\n备份时间：${bundle._exportedAt||'未知'}\n\n确认继续？`, '恢复完整备份', true).then(ok => {
+    cdlgConfirm(`即将用备份文件恢复全部数据，当前数据将被覆盖。\n备份时间：${bundle._exportedAt||'未知'}\n包含：${Object.keys(bundle._keys).length} 个数据条目\n\n确认继续？`, '恢复完整备份', true).then(ok => {
       if (!ok) { e.target.value=''; return; }
+      // Clear existing then restore
+      localStorage.clear();
       Object.entries(bundle._keys).forEach(([k, v]) => {
         try { localStorage.setItem(k, typeof v === 'string' ? v : JSON.stringify(v)); }
-        catch {}
+        catch(err) { console.warn('restore key failed:', k, err); }
       });
       e.target.value='';
       closeFullBackupModal();
+      // Refresh active view
       renderDaily();
       checkStorageUsage();
       initTitle();
       initDarkMode();
-      cdlgAlert('✅ 恢复成功！所有数据已还原。');
+      // Also refresh journal if it was rendered
+      if(document.getElementById('view-journal')?.classList.contains('active')) renderJournal();
+      // Verify
+      const restoredKeys = Object.keys(bundle._keys).length;
+      const actualKeys = localStorage.length;
+      if(Math.abs(restoredKeys - actualKeys) <= 2) {
+        cdlgAlert(`✅ 恢复成功！共还原 ${actualKeys} 个数据条目（计划记录、模板、总结日志等全部恢复）。`);
+      } else {
+        cdlgAlert(`⚠️ 恢复完成，但数据条目数量可能有差异（预期 ${restoredKeys}，实际 ${actualKeys}）。建议检查数据是否完整。`);
+      }
     });
   };
   r.readAsText(file);
@@ -5439,7 +5540,7 @@ function handleFullRestore(e) {
 
 function openFullBackupModal() {
   // Count data
-  let planDays = 0, snapDays = 0, templates = 0, totalSkipped = 0;
+  let planDays = 0, snapDays = 0, templates = 0, totalSkipped = 0, journals = 0;
   for (let i = 0; i < localStorage.length; i++) {
     const k = localStorage.key(i);
     if (k && k.startsWith('plan_')) {
@@ -5452,6 +5553,7 @@ function openFullBackupModal() {
     if (k && k.startsWith('snap_')) snapDays++;
   }
   try { templates = (JSON.parse(localStorage.getItem('todo_templates') || '[]')).length; } catch {}
+  try { journals = (JSON.parse(localStorage.getItem('journals_v1') || '[]')).length; } catch {}
   const siteName = localStorage.getItem('site_name') || '工作计划';
 
   const pct = getStorageUsagePercent();
@@ -5461,6 +5563,8 @@ function openFullBackupModal() {
   document.getElementById('fbk-skipped').textContent = totalSkipped;
   document.getElementById('fbk-name').textContent = siteName;
   document.getElementById('fbk-storage').textContent = pct + '%';
+  const fbkJnlEl = document.getElementById('fbk-journals');
+  if (fbkJnlEl) fbkJnlEl.textContent = journals;
 
   const ts = localStorage.getItem(FULL_BACKUP_TS_KEY);
   const lastEl = document.getElementById('fbk-lastbackup');
@@ -5764,6 +5868,10 @@ document.addEventListener('DOMContentLoaded', function() {
         <div style="background:var(--paper-w);border:1px solid var(--bdr);border-radius:6px;padding:10px 12px">
           <div style="font-family:var(--mo);font-size:20px;font-weight:500;color:#6b7280" id="fbk-skipped">0</div>
           <div style="font-size:11px;color:var(--ink-m);margin-top:2px">次今日未做记录</div>
+        </div>
+        <div style="background:var(--paper-w);border:1px solid var(--bdr);border-radius:6px;padding:10px 12px">
+          <div style="font-family:var(--mo);font-size:20px;font-weight:500;color:var(--am)" id="fbk-journals">0</div>
+          <div style="font-size:11px;color:var(--ink-m);margin-top:2px">条总结日志</div>
         </div>
         <div style="background:var(--paper-w);border:1px solid var(--bdr);border-radius:6px;padding:10px 12px">
           <div style="font-family:var(--mo);font-size:13px;font-weight:500;color:var(--ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap" id="fbk-name">—</div>
