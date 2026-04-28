@@ -1472,7 +1472,7 @@ function showSaved(){
   checkStorageUsage();
 }
 function getStorageUsagePercent(){
-  try{let t=0;for(let k in localStorage)if(Object.prototype.hasOwnProperty.call(localStorage,k))t+=(localStorage[k].length+k.length)*2;return Math.round(t/(5*1024*1024)*100);}catch{return 0;}
+  try{let t=0;for(let k in localStorage)if(Object.prototype.hasOwnProperty.call(localStorage,k))t+=(localStorage[k].length+k.length)*2;return Math.round(t/(10*1024*1024)*100);}catch{return 0;}
 }
 function checkStorageUsage(){
   const pct=getStorageUsagePercent();
