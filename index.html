@@ -2243,7 +2243,7 @@ function buildCard(pre){
   const labelDotStyle=pre?.labelColor?`background:${pre.labelColor};border-color:${pre.labelColor}`:'';
   c.innerHTML=`
 <div class="ttop">
-  <span class="drag-handle" title="拖动排序" onmousedown="initTodoDrag(event,this)">⠿</span>
+  <span class="drag-handle" title="按住拖动排序" onmousedown="initTodoDrag(event,this)">⠿</span>
   <div style="position:relative;flex-shrink:0">
     <div class="todo-label-dot${pre?.labelColor?'':' no-label'}" style="${labelDotStyle}" title="${pre?.label||'点击设置分类标签'}" onclick="openLabelPicker(this)"></div>
     <div class="label-picker" id="lp_${id}">
@@ -2313,12 +2313,12 @@ function buildCard(pre){
   // ── 联动高亮：任务卡片 ↔ 时间轴行 ──
   c.addEventListener('mouseenter',()=>{const txt=c.querySelector('.ttxt')?.value||'';if(txt)_syncHoverByTxt(txt,true);});
   c.addEventListener('mouseleave',()=>{const txt=c.querySelector('.ttxt')?.value||'';if(txt)_syncHoverByTxt(txt,false);});
-  // Bind drag events directly
-  c.setAttribute('draggable','true');
-  c.ondragstart=ev=>todoDragStart(ev,c);
+  // Drag: only activated via handle to avoid textarea interference
+  c.setAttribute('draggable','false');
+  c.ondragstart=ev=>{if(c.getAttribute('draggable')==='true')todoDragStart(ev,c);else ev.preventDefault();};
   c.ondragover=ev=>todoDragOver(ev,c);
   c.ondrop=ev=>todoDrop(ev,c);
-  c.ondragend=()=>todoDragEnd(c);
+  c.ondragend=()=>{c.setAttribute('draggable','false');todoDragEnd(c);};
   // Restore saved checklist items
   const clContainer=c.querySelector('.todo-checklist');
   (pre?.noteChecklist||[]).forEach(item=>addNoteClRowEl(clContainer,'todo',c,item.text,item.done,item.clLabel||'',item.clLabelColor||''));
@@ -2759,7 +2759,6 @@ function renderItemTimeBreakdown(itemTimeMap,fmtM){
   rows.appendChild(hdr);
   const entries=Object.values(itemTimeMap).filter(e=>e.planMins||e.actualMins);
   if(!entries.length){rows.innerHTML='<div style="font-size:11px;color:var(--ink-m);text-align:center;padding:8px 0">暂无事项时长数据</div>';return;}
-  // Sort: fixed (isTodo) first, then temp; within each group sort by planMins desc
   const todoEntries=entries.filter(e=>e.isTodo).sort((a,b)=>b.planMins-a.planMins);
   const otaskEntries=entries.filter(e=>!e.isTodo).sort((a,b)=>b.planMins-a.planMins);
   function renderSection(arr,label,color){
@@ -3675,13 +3674,11 @@ function renderYearly(){
     if(hasData){ydy++;}
     yt+=total;yd+=done;yot+=otasks.length;yod+=otasks.filter(o=>o.done).length;ymd+=memos.filter(m=>m.done).length;
     // label + task stats
-    todos.forEach(t=>{
+    todos.filter(t=>!t.isSkipped).forEach(t=>{
       const lc=t.labelColor||'';const ln=t.label||'';
-      if(!t.isSkipped){
-        const yl=yEnsureLabel(lc,ln);yl.todoTotal++;if(t.done)yl.todoDone++;
-        if(t.planStart&&t.planEnd){const pm=timeToMin(t.planEnd)-timeToMin(t.planStart);if(pm>0){yPlanMin+=pm;yl.planMins+=pm;}}
-        (t.actualSegs||[]).forEach(s=>{if(s.start&&s.end){const am=timeToMin(s.end)-timeToMin(s.start);if(am>0){yActMin+=am;yl.actualMins+=am;if(t.text){const tk=t.text.trim();yTaskActualMap[tk]=(yTaskActualMap[tk]||0)+am;}}}});
-      }
+      const yl=yEnsureLabel(lc,ln);yl.todoTotal++;if(t.done)yl.todoDone++;
+      if(t.planStart&&t.planEnd){const pm=timeToMin(t.planEnd)-timeToMin(t.planStart);if(pm>0){yPlanMin+=pm;yl.planMins+=pm;}}
+      (t.actualSegs||[]).forEach(s=>{if(s.start&&s.end){const am=timeToMin(s.end)-timeToMin(s.start);if(am>0){yActMin+=am;yl.actualMins+=am;if(t.text){const tk=t.text.trim();yTaskActualMap[tk]=(yTaskActualMap[tk]||0)+am;}}}});
       if(t.text){const k=t.text.trim();yTaskFreq[k]=(yTaskFreq[k]||0)+1;if(t.labelColor&&!yTaskLabelMap[k])yTaskLabelMap[k]={color:t.labelColor,label:t.label||''};if(!yTaskDayMap[k])yTaskDayMap[k]={planned:0,done:0};yTaskDayMap[k].planned++;if(t.done&&!t.isSkipped)yTaskDayMap[k].done++;}
     });
     otasks.forEach(o=>{
@@ -3766,7 +3763,8 @@ function renderYearly(){
     const yearDays=new Date(currentYear,11,31).getDate()+(new Date(currentYear,1,29).getDate()===29?366:365)-new Date(currentYear,0,0).getDate();
     const isLeap=(new Date(currentYear,1,29).getDate()===29);
     const totalYearDays=isLeap?366:365;
-    const pct=Math.round(doneDays/totalYearDays*100);
+    const pct=plannedDays>0?Math.round(doneDays/plannedDays*100):0; // 完成率=完成天/计划天
+    const pctBar=Math.round(plannedDays/totalYearDays*100); // 计划覆盖率
     const doneColor=doneDays>=plannedDays?'var(--gr)':doneDays>=plannedDays*0.8?'var(--bl)':'var(--ac)';
     const lbl=yTaskLabelMap[name];
     const labelHtml=lbl?`<span style="display:inline-flex;align-items:center;gap:2px;font-size:8px;padding:1px 4px;border-radius:8px;background:${lbl.color}22;color:${lbl.color};border:1px solid ${lbl.color}44;white-space:nowrap;flex-shrink:0"><span style="width:4px;height:4px;border-radius:50%;background:${lbl.color};display:inline-block"></span>${lbl.label}</span>`:'';
@@ -3779,8 +3777,8 @@ function renderYearly(){
       </div>
       <div style="display:flex;align-items:center;gap:5px;margin-bottom:2px">
         <div style="flex:1;height:3px;background:var(--paper-l);border-radius:2px;overflow:hidden;position:relative">
-          <div style="position:absolute;top:0;left:0;height:100%;width:${Math.min(100,Math.round(plannedDays/totalYearDays*100))}%;background:rgba(92,110,248,.2);border-radius:2px"></div>
-          <div style="position:absolute;top:0;left:0;height:100%;width:${Math.min(100,pct)}%;background:${doneColor};border-radius:2px"></div>
+          <div style="position:absolute;top:0;left:0;height:100%;width:${Math.min(100,pctBar)}%;background:rgba(92,110,248,.2);border-radius:2px"></div>
+          <div style="position:absolute;top:0;left:0;height:100%;width:${Math.min(100,pct)}%;background:${doneColor};border-radius:2px;transition:width .3s"></div>
         </div>
         <span style="font-family:var(--mo);font-size:9px;color:${doneColor};flex-shrink:0;white-space:nowrap;font-weight:600">${doneDays}/${plannedDays}/${totalYearDays}</span>
       </div>
@@ -3799,7 +3797,7 @@ function renderYearly(){
     </div>
     <div style="padding:12px 16px">
       <div style="font-size:10px;color:var(--ink-m);letter-spacing:.8px;margin-bottom:4px;font-weight:500">🔁 固定安排完成情况</div>
-      <div style="font-size:9px;color:var(--ink-m);opacity:.7;margin-bottom:8px;line-height:1.5">数字含义：<span style="font-family:var(--mo);color:var(--gr);font-weight:600">完成天数</span> / <span style="font-family:var(--mo);color:var(--ac);font-weight:600">计划天数</span> / <span style="font-family:var(--mo);color:var(--ink-m);font-weight:600">当年总天数</span>（进度条=完成占当年比例）</div>
+      <div style="font-size:9px;color:var(--ink-m);opacity:.7;margin-bottom:8px;line-height:1.5">数字含义：<span style="font-family:var(--mo);color:var(--gr);font-weight:600">完成天数</span> / <span style="font-family:var(--mo);color:var(--ac);font-weight:600">计划天数</span> / <span style="font-family:var(--mo);color:var(--ink-m);font-weight:600">当年总天数</span>（进度条=完成÷计划天的完成率）</div>
       <div style="max-height:320px;overflow-y:auto;padding-right:2px">${yTopHtml}</div>
     </div>
   </div>`;
@@ -3807,8 +3805,7 @@ function renderYearly(){
   if(sumWrapEl){sumWrapEl.innerHTML='';sumWrapEl.appendChild(ySumWrap);sumWrapEl.style.display='block';}
   else heatWrap.appendChild(ySumWrap);
 
-  // ── 3. 热力图（已隐藏，跳过渲染）──
-  // heatmap removed per user request
+  // ── 3. 热力图（已移除）──
 
   // ── 4. 月卡片（按标签显示时长）──
   for(let m=0;m<12;m++){
@@ -4091,7 +4088,8 @@ function handleImport(e){
       const bBlob=new Blob([JSON.stringify(backup,null,2)],{type:'application/json'});
       const bUrl=URL.createObjectURL(bBlob);
       const bA=document.createElement('a');bA.href=bUrl;bA.download='backup_before_import_'+new Date().toISOString().slice(0,10)+'.json';
-      bA.click();URL.revokeObjectURL(bUrl);
+      document.body.appendChild(bA);bA.click();document.body.removeChild(bA);
+      setTimeout(()=>URL.revokeObjectURL(bUrl),2000);
     }
     // 4. 写入数据
     items.forEach(d=>{ if(d.date) localStorage.setItem('plan_'+d.date,JSON.stringify(d)); });
@@ -4369,10 +4367,12 @@ let dragSrcTodo=null;
 function initTodoDrag(e,handle){
   const card=handle.closest('.tcard');
   card.setAttribute('draggable','true');
-  card.ondragstart=ev=>todoDragStart(ev,card);
-  card.ondragover=ev=>todoDragOver(ev,card);
-  card.ondrop=ev=>todoDrop(ev,card);
-  card.ondragend=()=>todoDragEnd(card);
+  // Reset draggable after mouse up in case dragstart didn't fire
+  const resetDraggable=()=>{
+    card.setAttribute('draggable','false');
+    document.removeEventListener('mouseup',resetDraggable);
+  };
+  document.addEventListener('mouseup',resetDraggable);
 }
 function todoDragStart(e,card){dragSrcTodo=card;card.classList.add('dragging');e.dataTransfer.effectAllowed='move'}
 function todoDragOver(e,card){e.preventDefault();document.querySelectorAll('.tcard').forEach(c=>c.classList.remove('drag-over'));if(card!==dragSrcTodo)card.classList.add('drag-over')}
@@ -5535,11 +5535,14 @@ function doFullBackup() {
   const dateStr = new Date().toISOString().slice(0,10);
   const timeStr = new Date().toTimeString().slice(0,5).replace(':','-');
   const json = JSON.stringify(bundle, null, 2);
+  const url = URL.createObjectURL(new Blob([json], {type:'application/json'}));
   const a = document.createElement('a');
-  a.href = URL.createObjectURL(new Blob([json], {type:'application/json'}));
+  a.href = url;
   a.download = `工作计划完整备份_${dateStr}_${timeStr}.json`;
+  document.body.appendChild(a);
   a.click();
-  URL.revokeObjectURL(a.href);
+  document.body.removeChild(a);
+  setTimeout(() => URL.revokeObjectURL(url), 2000);
   localStorage.setItem(FULL_BACKUP_TS_KEY, Date.now().toString());
   updateFullBackupBtn();
 }
@@ -5579,25 +5582,40 @@ function handleFullRestore(e) {
     }
     cdlgConfirm(`即将用备份文件恢复全部数据，当前数据将被覆盖。\n备份时间：${bundle._exportedAt||'未知'}\n包含：${Object.keys(bundle._keys).length} 个数据条目\n\n确认继续？`, '恢复完整备份', true).then(ok => {
       if (!ok) { e.target.value=''; return; }
-      // Clear existing then restore
+      // ── 1. 先将当前数据自动下载备份，防止意外覆盖 ──
+      try {
+        const curBundle = _buildFullBackupBundle();
+        if (Object.keys(curBundle._keys).length > 1) { // 有实际数据才备份
+          const curJson = JSON.stringify(curBundle, null, 2);
+          const curUrl = URL.createObjectURL(new Blob([curJson], {type:'application/json'}));
+          const curA = document.createElement('a');
+          const curDate = new Date().toISOString().slice(0,10);
+          curA.href = curUrl; curA.download = `恢复前自动备份_${curDate}.json`;
+          document.body.appendChild(curA); curA.click(); document.body.removeChild(curA);
+          setTimeout(() => URL.revokeObjectURL(curUrl), 2000);
+        }
+      } catch(backupErr) { console.warn('auto-backup before restore failed:', backupErr); }
+      // ── 2. 清空并恢复 ──
       localStorage.clear();
+      let successCount = 0, failCount = 0;
       Object.entries(bundle._keys).forEach(([k, v]) => {
-        try { localStorage.setItem(k, typeof v === 'string' ? v : JSON.stringify(v)); }
-        catch(err) { console.warn('restore key failed:', k, err); }
+        try { localStorage.setItem(k, typeof v === 'string' ? v : JSON.stringify(v)); successCount++; }
+        catch(err) { console.warn('restore key failed:', k, err); failCount++; }
       });
       e.target.value='';
       closeFullBackupModal();
-      // Refresh active view
-      renderDaily();
-      checkStorageUsage();
+      // ── 3. 刷新所有视图 ──
       initTitle();
       initDarkMode();
-      // Also refresh journal if it was rendered
+      renderDaily();
+      checkStorageUsage();
       if(document.getElementById('view-journal')?.classList.contains('active')) renderJournal();
       // Verify
       const restoredKeys = Object.keys(bundle._keys).length;
       const actualKeys = localStorage.length;
-      if(Math.abs(restoredKeys - actualKeys) <= 2) {
+      if (failCount > 0) {
+        cdlgAlert(`⚠️ 恢复完成，但有 ${failCount} 个条目写入失败（可能存储空间不足）。成功恢复 ${successCount} 个条目，请检查数据完整性。`);
+      } else if(Math.abs(restoredKeys - actualKeys) <= 2) {
         cdlgAlert(`✅ 恢复成功！共还原 ${actualKeys} 个数据条目（计划记录、模板、总结日志等全部恢复）。`);
       } else {
         cdlgAlert(`⚠️ 恢复完成，但数据条目数量可能有差异（预期 ${restoredKeys}，实际 ${actualKeys}）。建议检查数据是否完整。`);
