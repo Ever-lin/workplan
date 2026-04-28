@@ -30,6 +30,7 @@ body.dark-mode .esec,body.dark-mode .memo-exec{background:rgba(255,255,255,.04)}
 body.dark-mode .otask-exec{background:rgba(14,165,233,.06)}
 body.dark-mode .sc{background:var(--card-bg)}
 body.dark-mode .dnav,body.dark-mode .pgrid{background:var(--paper-w)}
+body.dark-mode #label-time-breakdown{background:var(--card-bg);border-color:var(--bdr)}
 body.dark-mode #wgrid>div{background:var(--card-bg)!important;border-color:var(--bdr)!important}
 body.dark-mode .pl{background:var(--paper-w)}
 body.dark-mode .refbox{background:rgba(14,165,233,.08);border-color:#1e3a4a}
@@ -414,7 +415,7 @@ body.dark-mode .utl-row.card-hover{background:rgba(92,110,248,.16) !important}
 .todo-label-dot:hover{transform:scale(1.3)}
 .todo-label-dot.no-label{background:var(--paper-l);border:1.5px dashed var(--bdr)}
 .todo-label-dot.no-label:hover{border-color:var(--ac)}
-.label-picker{display:none;position:absolute;top:calc(100% + 6px);left:0;z-index:600;background:var(--card-bg);border:1px solid var(--bdr);border-radius:8px;box-shadow:0 8px 24px var(--shd);padding:10px 12px;width:240px}
+.label-picker{display:none;position:fixed;z-index:1500;background:var(--card-bg);border:1px solid var(--bdr);border-radius:8px;box-shadow:0 8px 24px var(--shd);padding:10px 12px;width:240px}
 .label-picker.open{display:block}
 .label-picker-title{font-size:10px;color:var(--ink-m);letter-spacing:.8px;margin-bottom:8px;font-weight:500;display:flex;align-items:center;justify-content:space-between}
 .label-preset-list{display:flex;flex-direction:column;gap:3px;margin-bottom:8px;max-height:220px;overflow-y:auto}
@@ -882,9 +883,17 @@ body.dark-mode .snap-item:hover{background:var(--ac-p)}
     <div class="sc g"><div class="sv" id="s-done">0</div><div class="sl">已完成</div></div>
     <div class="sc b"><div class="sv" id="s-rate">0%</div><div class="sl">完成率</div></div>
     <div class="sc a"><div class="sv" id="s-other">0</div><div class="sl">临时事项</div></div>
-    <div class="sc"><div class="sv" id="s-plantime" style="font-size:13px">—</div><div class="sl">计划总时长</div></div>
-    <div class="sc b"><div class="sv" id="s-actualtime" style="font-size:13px">—</div><div class="sl">实际总时长</div></div>
+    <div class="sc" style="cursor:pointer" title="点击查看标签分类详情" onclick="toggleLabelTimeBreakdown()"><div class="sv" id="s-plantime" style="font-size:13px">—</div><div class="sl">计划总时长 <span id="s-plantime-tag-hint" style="font-size:9px;color:var(--ac);display:none">▾详情</span></div></div>
+    <div class="sc b" style="cursor:pointer" title="点击查看标签分类详情" onclick="toggleLabelTimeBreakdown()"><div class="sv" id="s-actualtime" style="font-size:13px">—</div><div class="sl">实际总时长 <span style="font-size:9px;color:var(--bl);display:none" id="s-actualtime-tag-hint">▾详情</span></div></div>
     <div class="sc g"><div class="sv" id="s-streak" style="color:var(--am)">0🔥</div><div class="sl">连续完成天</div></div>
+  </div>
+  <!-- 标签时长分类展开区 -->
+  <div id="label-time-breakdown" style="display:none;margin-bottom:10px;padding:10px 14px;background:white;border:1px solid var(--bdr);border-radius:2px">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+      <span style="font-size:11px;font-weight:600;color:var(--ink-m);letter-spacing:.8px">⏱ 按标签分类时长</span>
+      <button onclick="toggleLabelTimeBreakdown()" style="background:none;border:none;cursor:pointer;color:var(--ink-m);font-size:14px;line-height:1;padding:0 4px">×</button>
+    </div>
+    <div id="label-time-rows" style="display:flex;flex-direction:column;gap:5px"></div>
   </div>
 
   <div class="pgrid">
@@ -1553,49 +1562,76 @@ function saveDayData(){
   saveSortOrder(); // 若已锁定则更新排序记忆
 }
 function checkTimeConflicts(){
-  // 收集所有有计划时间的固定安排和临时事项
+  // 收集所有有时间的固定安排和临时事项
+  // 规则：如果有实际时间则以实际时间为准，否则用计划时间
   const segs=[];
   document.querySelectorAll('.tcard').forEach(c=>{
     if(c.dataset.isSkipped==='1')return;
     const ps=c.querySelector('.eps')?.value||'';
     const pe=c.querySelector('.epe')?.value||'';
     const txt=c.querySelector('.ttxt')?.value||'';
-    if(!ps||!pe||!txt)return;
-    segs.push({el:c,s:timeToMin(ps),e:timeToMin(pe),txt,type:'todo'});
+    if(!txt)return;
+    // 收集实际时间段
+    const actualSegs=[...c.querySelectorAll('.todo-segs .time-seg')].map(s=>({as:s.querySelector('.seg-s')?.value||'',ae:s.querySelector('.seg-e')?.value||''})).filter(s=>s.as);
+    if(actualSegs.length>0){
+      // 有实际时间，以实际时间检测（每段都参与检测）
+      actualSegs.forEach(seg=>{
+        const s=timeToMin(seg.as),e=seg.ae?timeToMin(seg.ae):s+1;
+        segs.push({el:c,s,e,txt,type:'todo',hasActual:true});
+      });
+    } else if(ps&&pe){
+      // 没有实际时间，用计划时间
+      segs.push({el:c,s:timeToMin(ps),e:timeToMin(pe),txt,type:'todo',hasActual:false});
+    }
   });
   document.querySelectorAll('.otask').forEach(el=>{
     const ps=el.querySelector('.ops')?.value||'';
     const pe=el.querySelector('.ope')?.value||'';
     const txt=el.querySelector('.otask-txt')?.value||'';
-    if(!ps||!pe||!txt)return;
-    segs.push({el,s:timeToMin(ps),e:timeToMin(pe),txt,type:'otask'});
+    if(!txt)return;
+    const actualSegs=[...el.querySelectorAll('.otask-segs-wrap .time-seg')].map(s=>({as:s.querySelector('.seg-s')?.value||'',ae:s.querySelector('.seg-e')?.value||''})).filter(s=>s.as);
+    if(actualSegs.length>0){
+      actualSegs.forEach(seg=>{
+        const s=timeToMin(seg.as),e=seg.ae?timeToMin(seg.ae):s+1;
+        segs.push({el,s,e,txt,type:'otask',hasActual:true});
+      });
+    } else if(ps&&pe){
+      segs.push({el,s:timeToMin(ps),e:timeToMin(pe),txt,type:'otask',hasActual:false});
+    }
   });
   // 清除旧冲突标记
   document.querySelectorAll('.tcard').forEach(c=>c.classList.remove('time-conflict'));
   document.querySelectorAll('.otask').forEach(el=>el.classList.remove('time-conflict'));
   document.querySelectorAll('.conflict-tag').forEach(t=>t.remove());
-  // 检测两两重叠
+  // 检测两两重叠（跨类型也检测，但同元素的多段不互相检测）
   for(let i=0;i<segs.length;i++){
     for(let j=i+1;j<segs.length;j++){
       const a=segs[i],b=segs[j];
+      if(a.el===b.el)continue; // 同一个事项的多段不互相冲突
       if(a.s<b.e&&b.s<a.e){
-        // 有重叠
-        [a,b].forEach(item=>{
-          if(!item.el.classList.contains('time-conflict')){
-            item.el.classList.add('time-conflict');
-            if(item.type==='todo'){
-              const meta=item.el.querySelector('.tmeta');
-              if(meta&&!meta.querySelector('.conflict-tag')){
-                const tag=document.createElement('span');tag.className='conflict-tag';tag.textContent='⚠ 时间冲突';meta.appendChild(tag);
-              }
-            } else {
-              const top=item.el.querySelector('.otask-top');
-              if(top&&!top.querySelector('.conflict-tag')){
-                const tag=document.createElement('span');tag.className='conflict-tag';tag.textContent='⚠ 时间冲突';top.appendChild(tag);
+        // 有重叠：只在双方都没有实际时间（纯计划冲突），或者有实际时间时才报警
+        // 规则：计划和计划重叠报警，实际和实际重叠报警，实际和计划不报（实际时间已代替计划）
+        const bothPlan=!a.hasActual&&!b.hasActual;
+        const bothActual=a.hasActual&&b.hasActual;
+        const planVsActual=(a.hasActual&&!b.hasActual)||(b.hasActual&&!a.hasActual);
+        if(!planVsActual){
+          [a,b].forEach(item=>{
+            if(!item.el.classList.contains('time-conflict')){
+              item.el.classList.add('time-conflict');
+              if(item.type==='todo'){
+                const meta=item.el.querySelector('.tmeta');
+                if(meta&&!meta.querySelector('.conflict-tag')){
+                  const tag=document.createElement('span');tag.className='conflict-tag';tag.textContent='⚠ 时间冲突';meta.appendChild(tag);
+                }
+              } else {
+                const top=item.el.querySelector('.otask-top');
+                if(top&&!top.querySelector('.conflict-tag')){
+                  const tag=document.createElement('span');tag.className='conflict-tag';tag.textContent='⚠ 时间冲突';top.appendChild(tag);
+                }
               }
             }
-          }
-        });
+          });
+        }
       }
     }
   }
@@ -1849,24 +1885,35 @@ function renderUnifiedTimeline(){
     return;
   }
 
-  // ── 1.5. 检测计划时间重叠（todo + otask 的 planStart/planEnd） ──
+  // ── 1.5. 检测时间重叠（优先实际时间，无实际时间才用计划时间） ──
   const planSegs=[];
   events.forEach((ev,idx)=>{
     const t=ev.data;
-    const ps=t.ps,pe=t.pe;
-    if(!ps)return;
-    const sm=timeToMin(ps),em=pe?timeToMin(pe):sm+1;
-    planSegs.push({idx,sm,em,txt:t.txt,type:ev.type});
+    // 如果有实际时间段，用实际时间；否则用计划时间
+    if(t.isActual&&t.allSegs&&t.allSegs.length>0){
+      t.allSegs.forEach(seg=>{
+        const sm=timeToMin(seg.as),em=seg.ae?timeToMin(seg.ae):sm+1;
+        planSegs.push({idx,sm,em,txt:t.txt,type:ev.type,hasActual:true,el:null});
+      });
+    } else if(t.ps){
+      const sm=timeToMin(t.ps),em=t.pe?timeToMin(t.pe):sm+1;
+      planSegs.push({idx,sm,em,txt:t.txt,type:ev.type,hasActual:false,el:null});
+    }
   });
-  // 两两检测
+  // 两两检测（同一事项的多段不互相冲突，实际vs计划不冲突）
   const conflictIdxSet=new Set();
   const conflictPairs=[];
   for(let i=0;i<planSegs.length;i++){
     for(let j=i+1;j<planSegs.length;j++){
       const a=planSegs[i],b=planSegs[j];
+      if(a.idx===b.idx)continue; // 同一事项的多段不互相冲突
+      const planVsActual=(a.hasActual&&!b.hasActual)||(b.hasActual&&!a.hasActual);
+      if(planVsActual)continue; // 实际时间 vs 计划时间 不冲突（实际已代替计划）
       if(a.sm<b.em&&b.sm<a.em){
         conflictIdxSet.add(a.idx);conflictIdxSet.add(b.idx);
-        conflictPairs.push([a,b]);
+        // 只记录一次pair（按idx唯一）
+        if(!conflictPairs.some(([x,y])=>x.idx===a.idx&&y.idx===b.idx))
+          conflictPairs.push([a,b]);
       }
     }
   }
@@ -2622,42 +2669,65 @@ function updateStats(){
   }
   // 计划总时长：固定安排 + 临时事项 的计划时间合计（不含今日未做）
   let planMins=0;
+  // 按标签分组统计
+  const labelPlanMap={};   // labelColor -> {name,planMins,actualMins}
+  const fmtM=m=>{if(!m)return'—';const h=Math.floor(m/60),mn=m%60;return(h?h+'h':'')+(mn?mn+'m':'');};
+  function getLabelKey(lc,ln){return lc||'__none__';}
+  function ensureLabel(lc,ln){
+    const k=getLabelKey(lc,ln);
+    if(!labelPlanMap[k])labelPlanMap[k]={name:ln||'无标签',color:lc||'var(--ink-m)',planMins:0,actualMins:0};
+    return labelPlanMap[k];
+  }
   cs.filter(c=>c.dataset.isSkipped!=='1').forEach(c=>{
     const ps=c.querySelector('.eps')?.value||'';
     const pe=c.querySelector('.epe')?.value||'';
-    if(ps&&pe){const d=timeToMin(pe)-timeToMin(ps);if(d>0)planMins+=d;}
+    const lc=c.dataset.labelColor||'';const ln=c.dataset.label||'';
+    if(ps&&pe){const d=timeToMin(pe)-timeToMin(ps);if(d>0){planMins+=d;ensureLabel(lc,ln).planMins+=d;}}
   });
   document.querySelectorAll('.otask').forEach(el=>{
     const ps=el.querySelector('.ops')?.value||'';
     const pe=el.querySelector('.ope')?.value||'';
-    if(ps&&pe){const d=timeToMin(pe)-timeToMin(ps);if(d>0)planMins+=d;}
+    const lc=el.dataset.labelColor||'';const ln=el.dataset.label||'';
+    if(ps&&pe){const d=timeToMin(pe)-timeToMin(ps);if(d>0){planMins+=d;ensureLabel(lc,ln).planMins+=d;}}
   });
   const planEl=document.getElementById('s-plantime');
   if(planEl){
-    if(planMins>0){const h=Math.floor(planMins/60),m=planMins%60;planEl.textContent=(h?h+'h':'')+( m?m+'m':'');}
+    if(planMins>0){const h=Math.floor(planMins/60),m=planMins%60;planEl.textContent=(h?h+'h':'')+(m?m+'m':'');}
     else planEl.textContent='—';
   }
+  const planHint=document.getElementById('s-plantime-tag-hint');
+  if(planHint)planHint.style.display=Object.keys(labelPlanMap).length>0?'':'none';
   // 实际总时长：固定安排 + 临时事项 所有实际时间段合计（不含今日未做）
   let actualMins=0;
   cs.filter(c=>c.dataset.isSkipped!=='1').forEach(c=>{
+    const lc=c.dataset.labelColor||'';const ln=c.dataset.label||'';
     [...c.querySelectorAll('.todo-segs .time-seg')].forEach(s=>{
       const as=s.querySelector('.seg-s')?.value||'';
       const ae=s.querySelector('.seg-e')?.value||'';
-      if(as&&ae){const d=timeToMin(ae)-timeToMin(as);if(d>0)actualMins+=d;}
+      if(as&&ae){const d=timeToMin(ae)-timeToMin(as);if(d>0){actualMins+=d;ensureLabel(lc,ln).actualMins+=d;}}
     });
   });
   document.querySelectorAll('.otask').forEach(el=>{
+    const lc=el.dataset.labelColor||'';const ln=el.dataset.label||'';
     [...el.querySelectorAll('.otask-segs-wrap .time-seg')].forEach(s=>{
       const as=s.querySelector('.seg-s')?.value||'';
       const ae=s.querySelector('.seg-e')?.value||'';
-      if(as&&ae){const d=timeToMin(ae)-timeToMin(as);if(d>0)actualMins+=d;}
+      if(as&&ae){const d=timeToMin(ae)-timeToMin(as);if(d>0){actualMins+=d;ensureLabel(lc,ln).actualMins+=d;}}
     });
   });
   const actualEl=document.getElementById('s-actualtime');
   if(actualEl){
-    if(actualMins>0){const h=Math.floor(actualMins/60),m=actualMins%60;actualEl.textContent=(h?h+'h':'')+( m?m+'m':'');}
+    if(actualMins>0){const h=Math.floor(actualMins/60),m=actualMins%60;actualEl.textContent=(h?h+'h':'')+(m?m+'m':'');}
     else actualEl.textContent='—';
   }
+  const actHint=document.getElementById('s-actualtime-tag-hint');
+  if(actHint)actHint.style.display=Object.keys(labelPlanMap).length>0?'':'none';
+  // 更新标签时长分类展开区（如果展开着则刷新）
+  const breakdown=document.getElementById('label-time-breakdown');
+  if(breakdown&&breakdown.style.display!=='none')renderLabelTimeBreakdown(labelPlanMap,fmtM);
+  // 保存 labelPlanMap 给 toggle 用
+  window._lastLabelPlanMap=labelPlanMap;
+  window._lastFmtM=fmtM;
   // 连续完成天数 streak — 只计实际完成的任务（排除已移走和今日未做）
   const streakEl=document.getElementById('s-streak');
   if(streakEl){
@@ -2679,6 +2749,36 @@ function updateStats(){
   }
 }
 function ar(el){el.style.height='auto';el.style.height=el.scrollHeight+'px'}
+
+function toggleLabelTimeBreakdown(){
+  const bd=document.getElementById('label-time-breakdown');
+  if(!bd)return;
+  const isOpen=bd.style.display!=='none';
+  bd.style.display=isOpen?'none':'block';
+  if(!isOpen&&window._lastLabelPlanMap)renderLabelTimeBreakdown(window._lastLabelPlanMap,window._lastFmtM||((m)=>m+'m'));
+}
+function renderLabelTimeBreakdown(labelPlanMap,fmtM){
+  const rows=document.getElementById('label-time-rows');
+  if(!rows)return;
+  rows.innerHTML='';
+  // 表头
+  const hdr=document.createElement('div');
+  hdr.style.cssText='display:grid;grid-template-columns:1fr 80px 80px 80px;gap:8px;padding-bottom:5px;border-bottom:1px solid var(--paper-l);font-size:9px;color:var(--ink-m);letter-spacing:.6px';
+  hdr.innerHTML='<span>标签</span><span style="text-align:right">计划时长</span><span style="text-align:right">实际时长</span><span style="text-align:right">效率</span>';
+  rows.appendChild(hdr);
+  const entries=Object.values(labelPlanMap);
+  if(!entries.length){rows.innerHTML='<div style="font-size:11px;color:var(--ink-m);text-align:center;padding:8px 0">暂无标签数据</div>';return;}
+  entries.sort((a,b)=>b.planMins-a.planMins);
+  entries.forEach(g=>{
+    const eff=g.planMins>0?Math.round(g.actualMins/g.planMins*100):0;
+    const row=document.createElement('div');
+    row.style.cssText='display:grid;grid-template-columns:1fr 80px 80px 80px;gap:8px;align-items:center;padding:5px 0;border-bottom:1px dashed var(--paper-l)';
+    const effColor=eff>=100?'var(--gr)':eff>=80?'var(--bl)':eff>0?'var(--am)':'var(--ink-m)';
+    const dotColor=g.color&&g.color!=='var(--ink-m)'?g.color:'#9ca3af';
+    row.innerHTML=`<span style="display:flex;align-items:center;gap:5px;font-size:11px;color:var(--ink)"><span style="width:8px;height:8px;border-radius:50%;background:${dotColor};flex-shrink:0;display:inline-block"></span>${g.name}</span><span style="text-align:right;font-family:var(--mo);font-size:11px;color:var(--ink-m)">${fmtM(g.planMins)}</span><span style="text-align:right;font-family:var(--mo);font-size:11px;color:var(--gr)">${fmtM(g.actualMins)}</span><span style="text-align:right;font-family:var(--mo);font-size:11px;font-weight:600;color:${effColor}">${g.planMins>0?eff+'%':'—'}</span>`;
+    rows.appendChild(row);
+  });
+}
 
 // ── NOTE CHECKLIST ──
 function addNoteClRow(container, type){
@@ -4802,6 +4902,16 @@ function applyLabel(card,id,color,name){
   renderUnifiedTimeline();
 }
 
+function _positionPicker(picker,dot){
+  const rect=dot.getBoundingClientRect();
+  const pw=242;
+  let top=rect.bottom+6;
+  let left=rect.left;
+  if(left+pw>window.innerWidth-8)left=window.innerWidth-pw-8;
+  if(left<4)left=4;
+  if(top+300>window.innerHeight)top=rect.top-306;
+  picker.style.top=top+'px';picker.style.left=left+'px';
+}
 function openLabelPicker(dot){
   const card=dot.closest('.tcard');
   const id=card?.dataset.id;
@@ -4817,6 +4927,7 @@ function openLabelPicker(dot){
       const cur=card.dataset.labelColor||'';
       const curN=card.dataset.label||'';
       initLabelPicker(card,id,cur,curN);
+      _positionPicker(picker,dot);
     }
   }
 }
@@ -4940,6 +5051,7 @@ function openOtaskLabelPicker(dot){
       const cur=div.dataset.labelColor||'';
       const curN=div.dataset.label||'';
       initOtaskLabelPicker(div,id,cur,curN);
+      _positionPicker(picker,dot);
     }
   }
 }
@@ -5015,7 +5127,7 @@ function openMemoLabelPicker(dot){
   if(picker){
     const wasOpen=picker.classList.contains('open');
     picker.classList.toggle('open');
-    if(!wasOpen){initMemoLabelPicker(div,id,div.dataset.labelColor||'',div.dataset.label||'');}
+    if(!wasOpen){initMemoLabelPicker(div,id,div.dataset.labelColor||'',div.dataset.label||'');_positionPicker(picker,dot);}
   }
 }
 function initMemoLabelPicker(div,id,currentColor,currentName){
