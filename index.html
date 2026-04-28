@@ -990,6 +990,7 @@ body.dark-mode .snap-item:hover{background:var(--ac-p)}
     <div class="sc b"><div class="sv" id="w-memos">0</div><div class="sl">小任务完成</div></div>
   </div>
   <div id="wgrid" style="display:grid;grid-template-columns:repeat(7,1fr);gap:8px;margin-top:12px"></div>
+  <div id="w-time-summary" style="display:none;margin-top:10px;padding:10px 14px;background:var(--card-bg);border:1px solid var(--bdr);border-radius:4px"></div>
 </div>
 </div>
 
@@ -1280,7 +1281,7 @@ body.dark-mode .snap-item:hover{background:var(--ac-p)}
               <div class="tpl-section-hdr">
                 <span class="tpl-section-dot" style="background:var(--ac)"></span>
                 <span class="tpl-section-title">每日固定安排</span>
-                <span class="tpl-section-hint">可设置计划时间和默认备注</span>
+                <span class="tpl-section-hint">可设置计划时间和默认要点</span>
               </div>
               <div class="tpl-col-heads">
                 <div class="tpl-col-head" style="padding-left:22px">标题</div>
@@ -1558,83 +1559,7 @@ function load(d){try{const r=localStorage.getItem(gkey(d));return r?JSON.parse(r
 function saveDayData(){
   const data=gather();
   localStorage.setItem(gkey(currentDate),JSON.stringify(data));showSaved();
-  checkTimeConflicts();
   saveSortOrder(); // 若已锁定则更新排序记忆
-}
-function checkTimeConflicts(){
-  // 收集所有有时间的固定安排和临时事项
-  // 规则：如果有实际时间则以实际时间为准，否则用计划时间
-  const segs=[];
-  document.querySelectorAll('.tcard').forEach(c=>{
-    if(c.dataset.isSkipped==='1')return;
-    const ps=c.querySelector('.eps')?.value||'';
-    const pe=c.querySelector('.epe')?.value||'';
-    const txt=c.querySelector('.ttxt')?.value||'';
-    if(!txt)return;
-    // 收集实际时间段
-    const actualSegs=[...c.querySelectorAll('.todo-segs .time-seg')].map(s=>({as:s.querySelector('.seg-s')?.value||'',ae:s.querySelector('.seg-e')?.value||''})).filter(s=>s.as);
-    if(actualSegs.length>0){
-      // 有实际时间，以实际时间检测（每段都参与检测）
-      actualSegs.forEach(seg=>{
-        const s=timeToMin(seg.as),e=seg.ae?timeToMin(seg.ae):s+1;
-        segs.push({el:c,s,e,txt,type:'todo',hasActual:true});
-      });
-    } else if(ps&&pe){
-      // 没有实际时间，用计划时间
-      segs.push({el:c,s:timeToMin(ps),e:timeToMin(pe),txt,type:'todo',hasActual:false});
-    }
-  });
-  document.querySelectorAll('.otask').forEach(el=>{
-    const ps=el.querySelector('.ops')?.value||'';
-    const pe=el.querySelector('.ope')?.value||'';
-    const txt=el.querySelector('.otask-txt')?.value||'';
-    if(!txt)return;
-    const actualSegs=[...el.querySelectorAll('.otask-segs-wrap .time-seg')].map(s=>({as:s.querySelector('.seg-s')?.value||'',ae:s.querySelector('.seg-e')?.value||''})).filter(s=>s.as);
-    if(actualSegs.length>0){
-      actualSegs.forEach(seg=>{
-        const s=timeToMin(seg.as),e=seg.ae?timeToMin(seg.ae):s+1;
-        segs.push({el,s,e,txt,type:'otask',hasActual:true});
-      });
-    } else if(ps&&pe){
-      segs.push({el,s:timeToMin(ps),e:timeToMin(pe),txt,type:'otask',hasActual:false});
-    }
-  });
-  // 清除旧冲突标记
-  document.querySelectorAll('.tcard').forEach(c=>c.classList.remove('time-conflict'));
-  document.querySelectorAll('.otask').forEach(el=>el.classList.remove('time-conflict'));
-  document.querySelectorAll('.conflict-tag').forEach(t=>t.remove());
-  // 检测两两重叠（跨类型也检测，但同元素的多段不互相检测）
-  for(let i=0;i<segs.length;i++){
-    for(let j=i+1;j<segs.length;j++){
-      const a=segs[i],b=segs[j];
-      if(a.el===b.el)continue; // 同一个事项的多段不互相冲突
-      if(a.s<b.e&&b.s<a.e){
-        // 有重叠：只在双方都没有实际时间（纯计划冲突），或者有实际时间时才报警
-        // 规则：计划和计划重叠报警，实际和实际重叠报警，实际和计划不报（实际时间已代替计划）
-        const bothPlan=!a.hasActual&&!b.hasActual;
-        const bothActual=a.hasActual&&b.hasActual;
-        const planVsActual=(a.hasActual&&!b.hasActual)||(b.hasActual&&!a.hasActual);
-        if(!planVsActual){
-          [a,b].forEach(item=>{
-            if(!item.el.classList.contains('time-conflict')){
-              item.el.classList.add('time-conflict');
-              if(item.type==='todo'){
-                const meta=item.el.querySelector('.tmeta');
-                if(meta&&!meta.querySelector('.conflict-tag')){
-                  const tag=document.createElement('span');tag.className='conflict-tag';tag.textContent='⚠ 时间冲突';meta.appendChild(tag);
-                }
-              } else {
-                const top=item.el.querySelector('.otask-top');
-                if(top&&!top.querySelector('.conflict-tag')){
-                  const tag=document.createElement('span');tag.className='conflict-tag';tag.textContent='⚠ 时间冲突';top.appendChild(tag);
-                }
-              }
-            }
-          });
-        }
-      }
-    }
-  }
 }
 function gather(){
   const todos=[];
@@ -1766,7 +1691,6 @@ function renderDaily(){
 
   updateStats();
   renderUnifiedTimeline();
-  checkTimeConflicts();
   renderWeather(d.weather||'');
   updateSnapBtn();
 }
@@ -1821,6 +1745,8 @@ function renderUnifiedTimeline(){
     const note=c.querySelector('.enote')?.value||'';
     const noteChecklist=[...c.querySelectorAll('.todo-checklist .note-cl-row')].map(r=>({text:r.querySelector('.note-cl-inp')?.value||'',done:r.querySelector('.note-cl-dot')?.classList.contains('ck')||false})).filter(r=>r.text);
     const cardTag=c.dataset.tag||'';
+    const labelColor=c.dataset.labelColor||'';
+    const labelName=c.dataset.label||'';
     if(!txt)return;
     // Collect all actual segments
     const segs=[...c.querySelectorAll('.todo-segs .time-seg')].map(s=>({as:s.querySelector('.seg-s')?.value||'',ae:s.querySelector('.seg-e')?.value||''})).filter(s=>s.as||s.ae);
@@ -1840,14 +1766,14 @@ function renderUnifiedTimeline(){
       }
       if(done&&atype==='same') atype='done';
       // 一个事项一行，allSegs 包含全部实际时间段
-      events.push({type:'todo',sortMin,endMin,data:{txt,ps,pe,as:validSegs[0].as,ae:validSegs[0].ae,allSegs:validSegs,done,noteChecklist,isPlan:!!ps,isActual:true,atype,segIndex:0,totalSegs:validSegs.length,isIncomplete:false,isMakeup,completedDate,tag:cardTag}});
+      events.push({type:'todo',sortMin,endMin,data:{txt,ps,pe,as:validSegs[0].as,ae:validSegs[0].ae,allSegs:validSegs,done,noteChecklist,isPlan:!!ps,isActual:true,atype,segIndex:0,totalSegs:validSegs.length,isIncomplete:false,isMakeup,completedDate,tag:cardTag,labelColor,labelName}});
     } else {
       // Plan-only (no actual)
       const sortMin=timeToMin(ps);
       // KEY FIX: if incomplete, the slot is FREE from plan-start (not occupied till plan-end)
       // We still render the row, but for gap-calculation the occupied interval is zero-width (point at ps)
       const endMin=isIncomplete?sortMin:( pe?timeToMin(pe):sortMin+1 );
-      events.push({type:'todo',sortMin,endMin,data:{txt,ps,pe,as:'',ae:'',done,noteChecklist,isPlan:true,isActual:false,atype:isIncomplete?'incomplete':'same',segIndex:0,totalSegs:0,isIncomplete,isMakeup,completedDate,tag:cardTag}});
+      events.push({type:'todo',sortMin,endMin,data:{txt,ps,pe,as:'',ae:'',done,noteChecklist,isPlan:true,isActual:false,atype:isIncomplete?'incomplete':'same',segIndex:0,totalSegs:0,isIncomplete,isMakeup,completedDate,tag:cardTag,labelColor,labelName}});
     }
   });
 
@@ -1858,17 +1784,19 @@ function renderUnifiedTimeline(){
     const done=el.classList.contains('ck');
     const ps=el.querySelector('.ops')?.value||'';
     const pe=el.querySelector('.ope')?.value||'';
+    const labelColor=el.dataset.labelColor||'';
+    const labelName=el.dataset.label||'';
     if(!txt)return;
     const segs=[...el.querySelectorAll('.otask-segs-wrap .time-seg')].map(s=>({as:s.querySelector('.seg-s')?.value||'',ae:s.querySelector('.seg-e')?.value||''})).filter(s=>s.as);
     if(segs.length){
       const sortMin=timeToMin(segs[0].as);
       const endMin=segs[segs.length-1].ae?timeToMin(segs[segs.length-1].ae):sortMin+1;
-      events.push({type:'otask',sortMin,endMin,data:{txt,ps,pe,as:segs[0].as,ae:segs[0].ae,allSegs:segs,noteChecklist,done,isPlan:!!ps,isActual:true}});
+      events.push({type:'otask',sortMin,endMin,data:{txt,ps,pe,as:segs[0].as,ae:segs[0].ae,allSegs:segs,noteChecklist,done,isPlan:!!ps,isActual:true,labelColor,labelName}});
     } else if(ps){
       // 只有计划时间，无实际 — 也显示在时间轴
       const sortMin=timeToMin(ps);
       const endMin=pe?timeToMin(pe):sortMin+1;
-      events.push({type:'otask',sortMin,endMin,data:{txt,ps,pe,as:'',ae:'',noteChecklist,done,isPlan:true,isActual:false}});
+      events.push({type:'otask',sortMin,endMin,data:{txt,ps,pe,as:'',ae:'',noteChecklist,done,isPlan:true,isActual:false,labelColor,labelName}});
     }
   });
 
@@ -2022,7 +1950,13 @@ function renderUnifiedTimeline(){
         const txt2=document.createElement('span');txt2.className='utl-plan-txt'+(t.done?' is-done':'');
         txt2.textContent=t.txt;
         nameEntry.appendChild(dot);nameEntry.appendChild(txt2);
-        if(isConflict){const ctag=document.createElement('span');ctag.className='utl-conflict-tag';ctag.textContent='⚠ 时间冲突';nameEntry.appendChild(ctag);}
+        // Label tag in timeline
+        if(t.labelColor&&t.labelName){
+          const ltag=document.createElement('span');
+          ltag.style.cssText=`display:inline-flex;align-items:center;gap:2px;font-size:8px;padding:1px 5px;border-radius:8px;background:${t.labelColor}22;color:${t.labelColor};border:1px solid ${t.labelColor}44;white-space:nowrap;flex-shrink:0`;
+          ltag.innerHTML=`<span style="width:5px;height:5px;border-radius:50%;background:${t.labelColor};flex-shrink:0;display:inline-block"></span>${t.labelName}`;
+          nameEntry.appendChild(ltag);
+        }
         colName.appendChild(nameEntry);
         if(t.noteChecklist&&t.noteChecklist.length){renderUtlChecklist(t.noteChecklist,colName);}
 
@@ -2081,8 +2015,13 @@ function renderUnifiedTimeline(){
         const txt3=document.createElement('span');txt3.className='utl-plan-txt'+(t.done?' is-done':'');
         txt3.textContent=t.txt;
         nameEntry.appendChild(dot);nameEntry.appendChild(tag);nameEntry.appendChild(txt3);
-        // 冲突标记
-        if(isConflict){const ctag=document.createElement('span');ctag.className='utl-conflict-tag';ctag.textContent='⚠ 时间冲突';nameEntry.appendChild(ctag);}
+        // Label tag in timeline
+        if(t.labelColor&&t.labelName){
+          const ltag=document.createElement('span');
+          ltag.style.cssText=`display:inline-flex;align-items:center;gap:2px;font-size:8px;padding:1px 5px;border-radius:8px;background:${t.labelColor}22;color:${t.labelColor};border:1px solid ${t.labelColor}44;white-space:nowrap;flex-shrink:0`;
+          ltag.innerHTML=`<span style="width:5px;height:5px;border-radius:50%;background:${t.labelColor};flex-shrink:0;display:inline-block"></span>${t.labelName}`;
+          nameEntry.appendChild(ltag);
+        }
         colName.appendChild(nameEntry);
         if(t.noteChecklist&&t.noteChecklist.length){renderUtlChecklist(t.noteChecklist,colName);}
 
@@ -2339,7 +2278,7 @@ function buildCard(pre){
   <button class="add-seg-btn" onclick="addTodoSeg(this)">＋ 添加实际时间段</button>
   <div class="note-cl-wrap" style="margin-top:6px">
     <div class="note-checklist todo-checklist"></div>
-    <button class="note-cl-add" onclick="addNoteClRow(this.closest('.tcard'),'todo')">＋ 添加备注要点</button>
+    <button class="note-cl-add" onclick="addNoteClRow(this.closest('.tcard'),'todo')">＋ 添加要点</button>
   </div>
 </div>`;
   list.appendChild(c);
@@ -2795,26 +2734,11 @@ function addNoteClRow(container, type){
 function addNoteClRowEl(listEl, type, card, text, done, clLabel, clLabelColor){
   const row = document.createElement('div');
   row.className = 'note-cl-row';
-  if(clLabelColor) row.dataset.clLabelColor = clLabelColor;
-  if(clLabel) row.dataset.clLabel = clLabel;
-  // Left border tint based on label
-  if(clLabelColor) row.style.borderLeft = `3px solid ${clLabelColor}40`;
 
   const dot = document.createElement('div');
   dot.className = 'note-cl-dot' + (done ? ' ck' : '');
   dot.textContent = done ? '✓' : '';
   dot.title = done ? '点击取消' : '点击完成';
-
-  // Label dot for this checklist item
-  const clLdWrap = document.createElement('div');
-  clLdWrap.style.cssText = 'position:relative;flex-shrink:0';
-  const clLd = document.createElement('div');
-  clLd.className = 'cl-label-dot' + (clLabelColor ? ' has-label' : '');
-  clLd.style.cssText = clLabelColor ? `background:${clLabelColor};border-color:${clLabelColor}` : '';
-  clLd.title = clLabel || '点击设置要点标签';
-  clLd.onclick = () => openClLabelPicker(clLd, row, listEl, card);
-  clLdWrap.appendChild(clLd);
-  clLdWrap.appendChild(buildClLabelPickerEl(clLd, row, listEl, card, clLabelColor, clLabel));
 
   const inp = document.createElement('input');
   inp.type = 'text';
@@ -2834,10 +2758,9 @@ function addNoteClRowEl(listEl, type, card, text, done, clLabel, clLabelColor){
     inp.classList.toggle('done-txt', isDone);
     saveDayData();
     renderUnifiedTimeline();
-    updateClCategorySummary(listEl, card);
   };
 
-  inp.addEventListener('input', () => { saveDayData(); updateClCategorySummary(listEl, card); });
+  inp.addEventListener('input', () => { saveDayData(); });
   inp.addEventListener('keydown', e => {
     if(e.key === 'Enter'){
       e.preventDefault();
@@ -2847,18 +2770,15 @@ function addNoteClRowEl(listEl, type, card, text, done, clLabel, clLabelColor){
       e.preventDefault();
       row.remove();
       saveDayData();
-      updateClCategorySummary(listEl, card);
     }
   });
 
-  del.onclick = () => { row.remove(); saveDayData(); updateClCategorySummary(listEl, card); };
+  del.onclick = () => { row.remove(); saveDayData(); };
 
   row.appendChild(dot);
-  row.appendChild(clLdWrap);
   row.appendChild(inp);
   row.appendChild(del);
   listEl.appendChild(row);
-  updateClCategorySummary(listEl, card);
 }
 
 // ── OTHER TASKS ──
@@ -2981,12 +2901,7 @@ function addOtask(pre){
 
   // Note checklist for otask
   const clWrap=document.createElement('div');clWrap.className='note-cl-wrap';clWrap.style.marginTop='6px';
-  // 备注文本框
-  const noteWrap=document.createElement('div');noteWrap.className='etf';noteWrap.style.marginBottom='4px';
-  noteWrap.innerHTML=`<div class="etl">备注</div><textarea class="otnote" placeholder="备注…" rows="2">${pre?.note||''}</textarea>`;
-  noteWrap.querySelector('.otnote').addEventListener('input',()=>saveDayData());
-  clWrap.appendChild(noteWrap);
-  const clInner=document.createElement('div');clInner.innerHTML=`<div class="note-checklist otask-checklist"></div><button class="note-cl-add">＋ 添加备注要点</button>`;
+  const clInner=document.createElement('div');clInner.innerHTML=`<div class="note-checklist otask-checklist"></div><button class="note-cl-add">＋ 添加要点</button>`;
   clInner.querySelector('.note-cl-add').onclick=()=>addNoteClRow(div,'otask');
   clWrap.appendChild(clInner.querySelector('.otask-checklist'));
   clWrap.appendChild(clInner.querySelector('.note-cl-add'));
@@ -3137,6 +3052,10 @@ function renderWeekly(){
   const grid=document.getElementById('wgrid');grid.innerHTML='';
   const today=fmt(new Date());
   let wt=0,wd=0,wdy=0,wot=0,wod=0,wmd=0;
+  let wPlanMin=0,wActMin=0;
+  const wLabelMap={}; // labelColor -> {name, planMins, actualMins}
+  function wEnsureLabel(lc,ln){const k=lc||'__none__';if(!wLabelMap[k])wLabelMap[k]={name:ln||'无标签',color:lc||'var(--ink-m)',planMins:0,actualMins:0};return wLabelMap[k];}
+  const fmtMw=m=>{if(!m)return'—';const h=Math.floor(m/60),mn=m%60;return(h?h+'h':'')+(mn?mn+'m':'');};
 
   // ── 新布局：垂直堆叠，每天一行大卡片 ──
   grid.style.cssText='display:flex;flex-direction:column;gap:10px';
@@ -3154,6 +3073,17 @@ function renderWeekly(){
     const hasAny=todos.length||otasks.length||memos.length;
     if(hasAny)wdy++;
     wt+=todos.length;wd+=done;wot+=otasks.length;wod+=otDone;wmd+=memoDone;
+    // 累计计划和实际时间
+    todos.filter(t=>!t.isSkipped).forEach(t=>{
+      const lc=t.labelColor||'';const ln=t.label||'';
+      if(t.planStart&&t.planEnd){const d=timeToMin(t.planEnd)-timeToMin(t.planStart);if(d>0){wPlanMin+=d;wEnsureLabel(lc,ln).planMins+=d;}}
+      (t.actualSegs||[]).forEach(s=>{if(s.start&&s.end){const d=timeToMin(s.end)-timeToMin(s.start);if(d>0){wActMin+=d;wEnsureLabel(lc,ln).actualMins+=d;}}});
+    });
+    otasks.forEach(o=>{
+      const lc=o.labelColor||'';const ln=o.label||'';
+      if(o.planStart&&o.planEnd){const d=timeToMin(o.planEnd)-timeToMin(o.planStart);if(d>0){wPlanMin+=d;wEnsureLabel(lc,ln).planMins+=d;}}
+      (o.actualSegs||[]).forEach(s=>{if(s.start&&s.end){const d=timeToMin(s.end)-timeToMin(s.start);if(d>0){wActMin+=d;wEnsureLabel(lc,ln).actualMins+=d;}}});
+    });
     const isToday=ds===today;
     const WDN=['周日','周一','周二','周三','周四','周五','周六'];
     const isWeekend=d.getDay()===0||d.getDay()===6;
@@ -3234,7 +3164,10 @@ function renderWeekly(){
           // 实际时间（全部段落）
           const segs=item.actualSegs||[];
           const validSegs=segs.filter(s=>s.start);
-          const actualTag=validSegs.length?validSegs.map((s,si)=>`<span style="font-family:var(--mo);font-size:8px;color:var(--gr);background:var(--gr-l);padding:0 3px;border-radius:2px;white-space:nowrap;flex-shrink:0;margin-top:1px">${validSegs.length>1?`✓${si+1} `:'✓'}${s.start}${s.end?'–'+s.end:''}</span>`).join(''):'';
+          // Compute actual duration
+          const actMinTotal=validSegs.reduce((acc,s)=>{if(s.start&&s.end){const d=timeToMin(s.end)-timeToMin(s.start);return acc+(d>0?d:0);}return acc;},0);
+          const actDurStr=actMinTotal>0?`(${actMinTotal>=60?Math.floor(actMinTotal/60)+'h':''}${actMinTotal%60?actMinTotal%60+'m':''})`:'';
+          const actualTag=validSegs.length?validSegs.map((s,si)=>`<span style="font-family:var(--mo);font-size:8px;color:var(--gr);background:var(--gr-l);padding:0 3px;border-radius:2px;white-space:nowrap;flex-shrink:0;margin-top:1px">${validSegs.length>1?`✓${si+1} `:'✓'}${s.start}${s.end?'–'+s.end:''}</span>`).join('')+(actDurStr?`<span style="font-family:var(--mo);font-size:8px;color:var(--gr);font-weight:600;flex-shrink:0;margin-top:1px">${actDurStr}</span>`:''):'';
           // 备注要点数
           const cl=item.noteChecklist||[];const clDone=cl.filter(c=>c.done).length;
           const clTag=cl.length?`<span style="font-size:8px;color:var(--ink-m);flex-shrink:0;margin-top:1px">${clDone}/${cl.length}项</span>`:'';
@@ -3258,7 +3191,6 @@ function renderWeekly(){
             <div style="flex:1;min-width:0">
               <div style="font-size:11px;color:${isSkipped?'#b91c1c':isIncomplete?'#92400e':isDone?'var(--ink-m)':'var(--ink)'};${isDone||isSkipped?'text-decoration:line-through;':''}line-height:1.35;word-break:break-all">${item.text}</div>
               ${(labelTag||skipTag||incTag||movedTag||timeTag||actualTag||clTag)?`<div style="display:flex;flex-wrap:wrap;gap:3px;margin-top:2px">${labelTag}${skipTag}${incTag}${movedTag}${timeTag}${actualTag}${clTag}</div>`:''}
-              ${item.note&&item.note.trim()?`<div style="font-size:9px;color:var(--ink-m);margin-top:2px;line-height:1.4;font-style:italic">${item.note.trim().slice(0,40)}${item.note.trim().length>40?'…':''}</div>`:''}
             </div>`;
           col.appendChild(row);
         });
@@ -3289,6 +3221,18 @@ function renderWeekly(){
   const wotEl=document.getElementById('w-otasks');if(wotEl)wotEl.textContent=wot;
   const wodEl=document.getElementById('w-otdone');if(wodEl)wodEl.textContent=wod+'/'+wot;
   const wmdEl=document.getElementById('w-memos');if(wmdEl)wmdEl.textContent=wmd;
+  // 显示周计划/实际总时长（按标签分类）
+  const wTimeEl=document.getElementById('w-time-summary');
+  if(wTimeEl){
+    if(wPlanMin||wActMin){
+      const labelKeys=Object.keys(wLabelMap);
+      const labelHtml=labelKeys.length?`<div style="margin-top:8px;display:flex;flex-direction:column;gap:3px">${labelKeys.map(k=>{const g=wLabelMap[k];const dot=g.color&&g.color!=='var(--ink-m)'?`<span style="width:7px;height:7px;border-radius:50%;background:${g.color};display:inline-block;flex-shrink:0"></span>`:'';;return`<div style="display:flex;align-items:center;gap:6px;font-size:10px"><span style="display:flex;align-items:center;gap:3px;flex:1;color:var(--ink-m)">${dot}${g.name}</span><span style="font-family:var(--mo);color:var(--am)">${fmtMw(g.planMins)}</span><span style="color:var(--ink-m);font-size:9px">/</span><span style="font-family:var(--mo);color:var(--gr)">${fmtMw(g.actualMins)}</span></div>`}).join('')}</div>`:'';
+      wTimeEl.innerHTML=`<div style="display:flex;gap:12px;flex-wrap:wrap"><div style="display:flex;align-items:center;gap:5px;font-size:11px"><span style="color:var(--ink-m)">计划总时长</span><span style="font-family:var(--mo);font-weight:600;color:var(--am)">${fmtMw(wPlanMin)}</span></div><div style="display:flex;align-items:center;gap:5px;font-size:11px"><span style="color:var(--ink-m)">实际总时长</span><span style="font-family:var(--mo);font-weight:600;color:var(--gr)">${fmtMw(wActMin)}</span></div></div>${labelHtml}`;
+      wTimeEl.style.display='block';
+    } else {
+      wTimeEl.style.display='none';
+    }
+  }
   // 加载本周目标
   const wGoalKey='goal_w_'+fmt(ws);
   const wGoalInp=document.getElementById('w-goal-inp');
@@ -3312,7 +3256,13 @@ function renderMonthly(){
   const allDayData=[];
   let bestRate=0,bestDay=null,streakMax=0,streakCur=0,streakEnd=null,streakEndTmp=null;
   const taskFreq={};const taskLabelMap={}; // name→{color,label}
+  // taskActualMap: name→totalActMin
+  const taskActualMap={};
   let totalPlanMin=0,totalActMin=0,planDays=0;
+  // Per-label stats: labelColor → {name, todoPlan, todoAct, todoTotal, todoDone, otaskPlan, otaskAct, otaskTotal, otaskDone}
+  const mLabelMap={}; // key=labelColor or '__none__'
+  function mEnsureLabel(lc,ln){const k=lc||'__none__';if(!mLabelMap[k])mLabelMap[k]={name:ln||'无标签',color:lc||'',todoPlan:0,todoAct:0,todoTotal:0,todoDone:0,otaskPlan:0,otaskAct:0,otaskTotal:0,otaskDone:0};return mLabelMap[k];}
+  const fmtMm=mn=>{if(!mn)return'—';const h=Math.floor(mn/60),mi=mn%60;return(h?h+'h':'')+(mi?mi+'m':'');};
 
   for(let d=1;d<=dim;d++){
     const date=new Date(y,m,d);
@@ -3336,10 +3286,20 @@ function renderMonthly(){
     else streakCur=0;
     // 任务频率 + 标签
     todos.forEach(t=>{if(t.text){const k=t.text.trim();taskFreq[k]=(taskFreq[k]||0)+1;if(t.labelColor&&!taskLabelMap[k])taskLabelMap[k]={color:t.labelColor,label:t.label||''};}});
-    // 计划 vs 实际时间
-    todos.forEach(t=>{
-      if(t.planStart&&t.planEnd){const pm=timeToMin(t.planEnd)-timeToMin(t.planStart);if(pm>0)totalPlanMin+=pm;planDays++;}
-      (t.actualSegs||[]).forEach(s=>{if(s.start&&s.end){const am=timeToMin(s.end)-timeToMin(s.start);if(am>0)totalActMin+=am;}});
+    // 计划 vs 实际时间 (todos + otasks)
+    todos.filter(t=>!t.isSkipped).forEach(t=>{
+      const lc=t.labelColor||'';const ln=t.label||'';
+      const ml=mEnsureLabel(lc,ln);
+      ml.todoTotal++;if(t.done)ml.todoDone++;
+      if(t.planStart&&t.planEnd){const pm=timeToMin(t.planEnd)-timeToMin(t.planStart);if(pm>0){totalPlanMin+=pm;planDays++;ml.todoPlan+=pm;}}
+      (t.actualSegs||[]).forEach(s=>{if(s.start&&s.end){const am=timeToMin(s.end)-timeToMin(s.start);if(am>0){totalActMin+=am;ml.todoAct+=am;if(t.text){const tk=t.text.trim();taskActualMap[tk]=(taskActualMap[tk]||0)+am;}}}});
+    });
+    otasks.forEach(o=>{
+      const lc=o.labelColor||'';const ln=o.label||'';
+      const ml=mEnsureLabel(lc,ln);
+      ml.otaskTotal++;if(o.done)ml.otaskDone++;
+      if(o.planStart&&o.planEnd){const pm=timeToMin(o.planEnd)-timeToMin(o.planStart);if(pm>0){totalPlanMin+=pm;ml.otaskPlan+=pm;}}
+      (o.actualSegs||[]).forEach(s=>{if(s.start&&s.end){const am=timeToMin(s.end)-timeToMin(s.start);if(am>0){totalActMin+=am;ml.otaskAct+=am;}}});
     });
   }
   if(streakEndTmp)streakEnd=streakEndTmp;
@@ -3351,78 +3311,114 @@ function renderMonthly(){
   const sumEl=document.getElementById('m-summary');
   if(rd>0){
     sumEl.style.display='block';
-    const planH=Math.floor(totalPlanMin/60),planM=totalPlanMin%60;
-    const actH=Math.floor(totalActMin/60),actM=totalActMin%60;
-    const planStr=totalPlanMin?`${planH}h${planM?planM+'m':''}`:'—';
-    const actStr=totalActMin?`${actH}h${actM?actM+'m':''}`:'—';
+    const planStr=fmtMm(totalPlanMin);
+    const actStr=fmtMm(totalActMin);
     const effStr=(totalPlanMin&&totalActMin)?Math.round(totalActMin/totalPlanMin*100)+'%':'—';
     const globalRate=tt?Math.round(td/tt*100):0;
+    const mLabelKeys=Object.keys(mLabelMap);
+
+    // 月度完成概览 - 总计 + 按标签
+    const overviewTotalHtml=`
+      <div style="display:flex;align-items:flex-end;gap:6px;margin-bottom:6px">
+        <span style="font-family:var(--mo);font-size:28px;font-weight:600;color:${globalRate>=80?'var(--gr)':globalRate>=60?'var(--bl)':'var(--ac)'};line-height:1">${globalRate}%</span>
+        <span style="font-size:11px;color:var(--ink-m);margin-bottom:4px">固定安排完成率</span>
+      </div>
+      <div style="height:5px;background:var(--paper-l);border-radius:3px;overflow:hidden;margin-bottom:8px">
+        <div style="height:100%;width:${globalRate}%;background:${globalRate>=80?'var(--gr)':globalRate>=60?'var(--bl)':'var(--ac)'};border-radius:3px;transition:width .4s"></div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px;font-size:10px;margin-bottom:8px">
+        <div style="display:flex;flex-direction:column;gap:1px;padding:5px 8px;background:var(--paper-w);border-radius:3px">
+          <span style="color:var(--ac);font-family:var(--mo);font-size:13px;font-weight:600">${td}/${tt}</span><span style="color:var(--ink-m)">固定安排</span>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:1px;padding:5px 8px;background:var(--paper-w);border-radius:3px">
+          <span style="color:var(--bl);font-family:var(--mo);font-size:13px;font-weight:600">${mod}/${mot}</span><span style="color:var(--ink-m)">临时事项</span>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:1px;padding:5px 8px;background:var(--paper-w);border-radius:3px">
+          <span style="color:var(--am);font-family:var(--mo);font-size:13px;font-weight:600">✓${mmd}</span><span style="color:var(--ink-m)">小任务</span>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:1px;padding:5px 8px;background:var(--paper-w);border-radius:3px">
+          <span style="color:var(--gr);font-family:var(--mo);font-size:13px;font-weight:600">${rd}</span><span style="color:var(--ink-m)">有记录天</span>
+        </div>
+      </div>`;
+    // 按标签分列
+    const overviewLabelHtml=mLabelKeys.length?`
+      <div style="font-size:9px;color:var(--ink-m);letter-spacing:.5px;margin-bottom:4px;font-weight:600">按标签</div>
+      <div style="display:flex;flex-direction:column;gap:3px">
+        ${mLabelKeys.map(k=>{const g=mLabelMap[k];const dot=g.color?`<span style="width:6px;height:6px;border-radius:50%;background:${g.color};display:inline-block;flex-shrink:0"></span>`:'';
+          const todoR=g.todoTotal?Math.round(g.todoDone/g.todoTotal*100):null;
+          return`<div style="display:flex;align-items:center;gap:5px;font-size:10px;padding:3px 5px;background:var(--paper-w);border-radius:3px">
+            <span style="display:flex;align-items:center;gap:3px;flex:1;color:var(--ink)">${dot}${g.name}</span>
+            ${g.todoTotal?`<span style="font-family:var(--mo);font-size:9px;color:var(--ac)">固${g.todoDone}/${g.todoTotal}</span>`:''}
+            ${g.otaskTotal?`<span style="font-family:var(--mo);font-size:9px;color:var(--bl)">临${g.otaskDone}/${g.otaskTotal}</span>`:''}
+          </div>`;}).join('')}
+      </div>`:'';
+
+    // 时间统计 - 总计 + 按标签
+    const timeHtml=`
+      <div style="display:flex;flex-direction:column;gap:6px;margin-bottom:10px">
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:5px 8px;background:rgba(245,158,11,.07);border-radius:3px;border-left:3px solid var(--am)">
+          <span style="font-size:10px;color:var(--ink-m)">计划总时长</span>
+          <span style="font-family:var(--mo);font-size:13px;font-weight:600;color:var(--am)">${planStr}</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:5px 8px;background:rgba(16,185,129,.07);border-radius:3px;border-left:3px solid var(--gr)">
+          <span style="font-size:10px;color:var(--ink-m)">实际总时长</span>
+          <span style="font-family:var(--mo);font-size:13px;font-weight:600;color:var(--gr)">${actStr}</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:5px 8px;background:rgba(92,110,248,.07);border-radius:3px;border-left:3px solid var(--ac)">
+          <span style="font-size:10px;color:var(--ink-m)">时间执行率</span>
+          <span style="font-family:var(--mo);font-size:13px;font-weight:600;color:var(--ac)">${effStr}</span>
+        </div>
+      </div>
+      <div style="display:flex;gap:10px;font-size:10px;margin-bottom:8px">
+        ${bestDay?`<div style="flex:1;padding:5px 8px;background:var(--paper-w);border-radius:3px"><div style="color:var(--ink-m);margin-bottom:2px">最佳完成日</div><div style="font-family:var(--mo);font-weight:600;color:var(--gr)">${m+1}/${bestDay} <span style="font-size:9px;opacity:.8">${bestRate}%</span></div></div>`:''}
+        ${streakMax>1?`<div style="flex:1;padding:5px 8px;background:var(--paper-w);border-radius:3px"><div style="color:var(--ink-m);margin-bottom:2px">最长全勤</div><div style="font-family:var(--mo);font-weight:600;color:var(--am)">${streakMax}天 🔥</div></div>`:''}
+      </div>
+      ${mLabelKeys.length?`
+      <div style="font-size:9px;color:var(--ink-m);letter-spacing:.5px;margin-bottom:4px;font-weight:600">按标签</div>
+      <div style="display:flex;flex-direction:column;gap:2px">
+        ${mLabelKeys.map(k=>{const g=mLabelMap[k];const dot=g.color?`<span style="width:6px;height:6px;border-radius:50%;background:${g.color};display:inline-block;flex-shrink:0"></span>`:'';
+          const totalPl=(g.todoPlan+g.otaskPlan),totalAc=(g.todoAct+g.otaskAct);
+          return`<div style="display:flex;align-items:center;gap:5px;font-size:10px;padding:3px 5px;background:var(--paper-w);border-radius:3px">
+            <span style="display:flex;align-items:center;gap:3px;flex:1;color:var(--ink)">${dot}${g.name}</span>
+            <span style="font-family:var(--mo);color:var(--am)">${fmtMm(totalPl)}</span>
+            <span style="color:var(--ink-m);font-size:9px">/</span>
+            <span style="font-family:var(--mo);color:var(--gr)">${fmtMm(totalAc)}</span>
+          </div>`;}).join('')}
+      </div>`:''}`;
+
+    // 高频Top10
+    const colors=['var(--ac)','var(--bl)','var(--gr)','var(--am)','var(--ink-m)','var(--ac)','var(--bl)','var(--gr)','var(--am)','var(--ink-m)'];
+    const topTaskHtml=topTasks.length?topTasks.map(([name,cnt],i)=>{
+      const pct=Math.round(cnt/dim*100);
+      const lbl=taskLabelMap[name];
+      const labelHtml=lbl?`<span style="display:inline-flex;align-items:center;gap:2px;font-size:8px;padding:1px 5px;border-radius:8px;background:${lbl.color}22;color:${lbl.color};border:1px solid ${lbl.color}44;white-space:nowrap;flex-shrink:0"><span style="width:5px;height:5px;border-radius:50%;background:${lbl.color};display:inline-block"></span>${lbl.label}</span>`:'';
+      const actMin=taskActualMap[name]||0;
+      const actDurStr=actMin>0?fmtMm(actMin):'';
+      return `<div style="margin-bottom:6px">
+        <div style="display:flex;justify-content:space-between;align-items:center;gap:5px;margin-bottom:2px">
+          <span style="font-size:10px;color:var(--ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1;min-width:0">${name}</span>
+          ${labelHtml}
+          <span style="font-family:var(--mo);font-size:9px;color:${colors[i]};flex-shrink:0;white-space:nowrap">${cnt}/${dim}天${actDurStr?' ('+actDurStr+')':''}</span>
+        </div>
+        <div style="height:3px;background:var(--paper-l);border-radius:2px;overflow:hidden">
+          <div style="height:100%;width:${pct}%;background:${colors[i]};border-radius:2px"></div>
+        </div>
+      </div>`;
+    }).join(''):`<div style="font-size:11px;color:var(--ink-m);opacity:.5;margin-top:16px;text-align:center">暂无数据</div>`;
 
     sumEl.innerHTML=`
       <div style="display:grid;grid-template-columns:1fr 1fr 1fr;border-bottom:1px solid var(--bdr)">
         <div style="padding:12px 16px;border-right:1px solid var(--bdr)">
           <div style="font-size:10px;color:var(--ink-m);letter-spacing:.8px;margin-bottom:8px;font-weight:500">📊 月度完成概览</div>
-          <div style="display:flex;align-items:flex-end;gap:6px;margin-bottom:6px">
-            <span style="font-family:var(--mo);font-size:28px;font-weight:600;color:${globalRate>=80?'var(--gr)':globalRate>=60?'var(--bl)':'var(--ac)'};line-height:1">${globalRate}%</span>
-            <span style="font-size:11px;color:var(--ink-m);margin-bottom:4px">固定安排完成率</span>
-          </div>
-          <div style="height:5px;background:var(--paper-l);border-radius:3px;overflow:hidden;margin-bottom:8px">
-            <div style="height:100%;width:${globalRate}%;background:${globalRate>=80?'var(--gr)':globalRate>=60?'var(--bl)':'var(--ac)'};border-radius:3px;transition:width .4s"></div>
-          </div>
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px;font-size:10px">
-            <div style="display:flex;flex-direction:column;gap:1px;padding:5px 8px;background:var(--paper-w);border-radius:3px">
-              <span style="color:var(--ac);font-family:var(--mo);font-size:13px;font-weight:600">${td}/${tt}</span><span style="color:var(--ink-m)">固定安排</span>
-            </div>
-            <div style="display:flex;flex-direction:column;gap:1px;padding:5px 8px;background:var(--paper-w);border-radius:3px">
-              <span style="color:var(--bl);font-family:var(--mo);font-size:13px;font-weight:600">${mod}/${mot}</span><span style="color:var(--ink-m)">临时事项</span>
-            </div>
-            <div style="display:flex;flex-direction:column;gap:1px;padding:5px 8px;background:var(--paper-w);border-radius:3px">
-              <span style="color:var(--am);font-family:var(--mo);font-size:13px;font-weight:600">✓${mmd}</span><span style="color:var(--ink-m)">小任务</span>
-            </div>
-            <div style="display:flex;flex-direction:column;gap:1px;padding:5px 8px;background:var(--paper-w);border-radius:3px">
-              <span style="color:var(--gr);font-family:var(--mo);font-size:13px;font-weight:600">${rd}</span><span style="color:var(--ink-m)">有记录天</span>
-            </div>
-          </div>
+          ${overviewTotalHtml}${overviewLabelHtml}
         </div>
         <div style="padding:12px 16px;border-right:1px solid var(--bdr)">
           <div style="font-size:10px;color:var(--ink-m);letter-spacing:.8px;margin-bottom:8px;font-weight:500">⏱ 时间统计</div>
-          <div style="display:flex;flex-direction:column;gap:6px;margin-bottom:10px">
-            <div style="display:flex;justify-content:space-between;align-items:center;padding:5px 8px;background:rgba(245,158,11,.07);border-radius:3px;border-left:3px solid var(--am)">
-              <span style="font-size:10px;color:var(--ink-m)">计划总时长</span>
-              <span style="font-family:var(--mo);font-size:13px;font-weight:600;color:var(--am)">${planStr}</span>
-            </div>
-            <div style="display:flex;justify-content:space-between;align-items:center;padding:5px 8px;background:rgba(16,185,129,.07);border-radius:3px;border-left:3px solid var(--gr)">
-              <span style="font-size:10px;color:var(--ink-m)">实际总时长</span>
-              <span style="font-family:var(--mo);font-size:13px;font-weight:600;color:var(--gr)">${actStr}</span>
-            </div>
-            <div style="display:flex;justify-content:space-between;align-items:center;padding:5px 8px;background:rgba(92,110,248,.07);border-radius:3px;border-left:3px solid var(--ac)">
-              <span style="font-size:10px;color:var(--ink-m)">时间执行率</span>
-              <span style="font-family:var(--mo);font-size:13px;font-weight:600;color:var(--ac)">${effStr}</span>
-            </div>
-          </div>
-          <div style="display:flex;gap:10px;font-size:10px">
-            ${bestDay?`<div style="flex:1;padding:5px 8px;background:var(--paper-w);border-radius:3px"><div style="color:var(--ink-m);margin-bottom:2px">最佳完成日</div><div style="font-family:var(--mo);font-weight:600;color:var(--gr)">${m+1}/${bestDay} <span style="font-size:9px;opacity:.8">${bestRate}%</span></div></div>`:''}
-            ${streakMax>1?`<div style="flex:1;padding:5px 8px;background:var(--paper-w);border-radius:3px"><div style="color:var(--ink-m);margin-bottom:2px">最长全勤</div><div style="font-family:var(--mo);font-weight:600;color:var(--am)">${streakMax}天 🔥</div></div>`:''}
-          </div>
+          ${timeHtml}
         </div>
         <div style="padding:12px 16px">
           <div style="font-size:10px;color:var(--ink-m);letter-spacing:.8px;margin-bottom:8px;font-weight:500">🔁 高频固定安排 Top10</div>
-          ${topTasks.length?topTasks.map(([name,cnt],i)=>{
-            const pct=Math.round(cnt/dim*100);
-            const colors=['var(--ac)','var(--bl)','var(--gr)','var(--am)','var(--ink-m)','var(--ac)','var(--bl)','var(--gr)','var(--am)','var(--ink-m)'];
-            const lbl=taskLabelMap[name];
-            const labelHtml=lbl?`<span style="display:inline-flex;align-items:center;gap:2px;font-size:8px;padding:1px 5px;border-radius:8px;background:${lbl.color}22;color:${lbl.color};border:1px solid ${lbl.color}44;white-space:nowrap;flex-shrink:0"><span style="width:5px;height:5px;border-radius:50%;background:${lbl.color};display:inline-block"></span>${lbl.label}</span>`:'';
-            return `<div style="margin-bottom:6px">
-              <div style="display:flex;justify-content:space-between;align-items:center;gap:5px;margin-bottom:2px">
-                <span style="font-size:10px;color:var(--ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1;min-width:0">${name}</span>
-                ${labelHtml}
-                <span style="font-family:var(--mo);font-size:9px;color:${colors[i]};flex-shrink:0">${cnt}天</span>
-              </div>
-              <div style="height:3px;background:var(--paper-l);border-radius:2px;overflow:hidden">
-                <div style="height:100%;width:${pct}%;background:${colors[i]};border-radius:2px"></div>
-              </div>
-            </div>`;
-          }).join(''):`<div style="font-size:11px;color:var(--ink-m);opacity:.5;margin-top:16px;text-align:center">暂无数据</div>`}
+          ${topTaskHtml}
         </div>
       </div>`;
   } else {
@@ -3454,7 +3450,9 @@ function renderMonthly(){
         const timeTag=ps?`<span style="font-family:var(--mo);font-size:7px;color:${accentColor};opacity:.8;flex-shrink:0">${ps}${pe?'–'+pe:''}</span>`:'';
         const segs=it.actualSegs||[];
         const validSegs=segs.filter(s=>s.start);
-        const segsStr=validSegs.length?validSegs.map((s,si)=>`<span style="font-family:var(--mo);font-size:7px;color:var(--gr);background:var(--gr-l);padding:0 3px;border-radius:2px;white-space:nowrap;flex-shrink:0">✓${s.start}${s.end?'–'+s.end:''}</span>`).join(''):'';
+        const actMinTotal=validSegs.reduce((acc,s)=>{if(s.start&&s.end){const d=timeToMin(s.end)-timeToMin(s.start);return acc+(d>0?d:0);}return acc;},0);
+        const actDurStr=actMinTotal>0?`(${fmtMm(actMinTotal)})`:'';
+        const segsStr=validSegs.length?validSegs.map((s,si)=>`<span style="font-family:var(--mo);font-size:7px;color:var(--gr);background:var(--gr-l);padding:0 3px;border-radius:2px;white-space:nowrap;flex-shrink:0">✓${s.start}${s.end?'–'+s.end:''}</span>`).join('')+(actDurStr?`<span style="font-family:var(--mo);font-size:7px;color:var(--gr);font-weight:600;flex-shrink:0">${actDurStr}</span>`:''):'';
         const cl=it.noteChecklist||[];const clDone=cl.filter(c=>c.done).length;
         const clTag=cl.length?`<span style="font-size:7px;color:var(--ink-m);flex-shrink:0">${clDone}/${cl.length}项</span>`:'';
         let statusTag='';
@@ -4423,7 +4421,7 @@ function tplAddRow(type, pre) {
     ${type !== 'memo' ? `
     <div class="tpl-note-row" style="${hasNote?'':'display:none'}">
       <div style="flex:1">
-        <div class="tpl-note-lbl">默认备注要点</div>
+        <div class="tpl-note-lbl">默认要点</div>
         <div class="tpl-cl-list">${(pre?.noteChecklist||[]).map(item=>`
           <div class="tpl-cl-row">
             <span class="tpl-cl-dot">○</span>
@@ -4434,7 +4432,7 @@ function tplAddRow(type, pre) {
       </div>
     </div>
     <div style="padding:0 8px 6px 30px">
-      <button class="tpl-note-toggle" onclick="tplToggleNote(this)">${hasNote?'▾ 收起备注要点':'＋ 添加默认备注要点'}</button>
+      <button class="tpl-note-toggle" onclick="tplToggleNote(this)">${hasNote?'▾ 收起要点':'＋ 添加默认要点'}</button>
     </div>` : ''}`;
   // drag-to-reorder within same list
   row.draggable = true;
@@ -4457,7 +4455,7 @@ function tplToggleNote(btn) {
   const noteRow = btn.closest('.tpl-todo-row').querySelector('.tpl-note-row');
   const shown = noteRow.style.display !== 'none';
   noteRow.style.display = shown ? 'none' : '';
-  btn.textContent = shown ? '＋ 添加默认备注要点' : '▾ 收起备注要点';
+  btn.textContent = shown ? '＋ 添加默认要点' : '▾ 收起要点';
   if (!shown) btn.closest('.tpl-todo-row').querySelector('.tpl-cl-inp')?.focus();
 }
 function tplAddClRow(btn) {
@@ -4540,7 +4538,7 @@ function tplOpenApplyPreview(mode) {
 
   const dateStr = `${targetDate.getMonth()+1}月${targetDate.getDate()}日`;
   document.getElementById('apv-title').textContent = tplFilterMode === 'otask' ? `套用临时事项到 ${dateStr}` : `套用到 ${dateStr}`;
-  document.getElementById('apv-subtitle').textContent = tplFilterMode === 'otask' ? `仅显示临时事项，勾选后确认套用` : `勾选要套用的项目，套用前可修改备注`;
+  document.getElementById('apv-subtitle').textContent = tplFilterMode === 'otask' ? `仅显示临时事项，勾选后确认套用` : `勾选要套用的项目，确认套用`;
 
   const body = document.getElementById('apv-body');
   body.innerHTML = '';
@@ -4569,9 +4567,8 @@ function tplOpenApplyPreview(mode) {
           ${timeLabel ? `<div class="apv-item-time">${timeLabel}</div>` : ''}
           ${isDup ? '<div class="apv-dup-tag">已存在</div>' : ''}
         </div>
-        ${hasNote ? `<div class="apv-note-wrap">
-          <div class="apv-note-lbl">备注 <span style="font-weight:400;font-size:9px">套用后仍可编辑</span></div>
-          <textarea class="apv-note-ta" placeholder="无备注，可在此输入…" rows="2">${t.note||''}</textarea>
+        ${!isDup ? `<div class="apv-note-wrap" style="display:none">
+          <textarea class="apv-note-ta" placeholder="" rows="2"></textarea>
         </div>` : ''}`;
       sec.appendChild(item);
     });
