@@ -692,6 +692,17 @@ body.dark-mode .apv-note-ta{background:var(--paper-l);color:var(--ink)}
 .note-cl-inp{flex:1;border:none;background:transparent;font-family:var(--ss);font-size:11px;color:var(--ink);outline:none;min-width:0}
 .note-cl-inp::placeholder{color:var(--ink-m)}
 .note-cl-inp.done-txt{text-decoration:line-through;color:var(--ink-m)}
+/* checklist item label dot */
+.cl-label-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;cursor:pointer;border:1.5px dashed var(--bdr);transition:all .12s;position:relative}
+.cl-label-dot.has-label{border-style:solid}
+.cl-label-dot:hover{transform:scale(1.2)}
+.cl-label-picker{display:none;position:absolute;top:calc(100% + 4px);left:0;z-index:700;background:var(--card-bg);border:1px solid var(--bdr);border-radius:6px;box-shadow:0 6px 20px var(--shd);width:160px;padding:6px 8px}
+.cl-label-picker.open{display:block}
+/* checklist category summary bar */
+.cl-category-summary{display:flex;flex-direction:column;gap:4px;padding:6px 8px;background:var(--paper-w);border-radius:4px;margin-top:6px;border:1px solid var(--paper-l)}
+.cl-cat-row{display:flex;align-items:center;gap:6px;font-size:10px}
+.cl-cat-bar{flex:1;height:5px;background:var(--paper-l);border-radius:3px;overflow:hidden}
+.cl-cat-fill{height:100%;border-radius:3px;transition:width .3s}
 .note-cl-del{background:none;border:none;color:var(--ink-m);font-size:12px;cursor:pointer;padding:0 2px;opacity:0;transition:opacity var(--t);line-height:1;flex-shrink:0}
 .note-cl-row:hover .note-cl-del{opacity:.6}
 .note-cl-del:hover{opacity:1!important;color:#ef4444}
@@ -886,7 +897,13 @@ body.dark-mode .snap-item:hover{background:var(--ac-p)}
             <span id="s-todo-summary" style="font-size:10px;color:var(--ink-m);font-family:var(--mo)"></span>
           </div>
           <button class="sort-lock-btn" id="sort-lock-btn" onclick="toggleSortLock()" title="锁定排序：记住当前顺序，套用模板时保持">⇅ 记住排序</button>
-          <button class="copy-all-btn" id="copy-todos-btn" onclick="copyAllTodos(this)" title="复制全部每日固定安排">⎘ 全部复制</button>
+          <div style="position:relative;flex-shrink:0">
+            <button class="copy-all-btn" id="copy-todos-btn" onclick="toggleCopyMenu('todos-copy-menu',this)" title="按标签筛选复制">⎘ 复制 ▾</button>
+            <div id="todos-copy-menu" style="display:none;position:absolute;top:calc(100% + 4px);right:0;z-index:600;background:var(--card-bg);border:1px solid var(--bdr);border-radius:6px;box-shadow:0 6px 20px var(--shd);min-width:140px;padding:4px 0;white-space:nowrap">
+              <div onclick="copyAllTodos(document.getElementById('copy-todos-btn'),'all')" style="padding:6px 14px;font-size:11px;color:var(--ink);cursor:pointer;display:flex;align-items:center;gap:6px" onmouseenter="this.style.background='var(--paper-w)'" onmouseleave="this.style.background=''">⎘ 全部复制</div>
+              <div id="todos-copy-label-items" style="border-top:1px solid var(--paper-l);margin-top:2px;padding-top:2px"></div>
+            </div>
+          </div>
           <button class="clear-day-btn" onclick="clearAllDay()" title="一键清除当天所有事项">🗑 清除全天</button>
         </div>
         <div class="tlist" id="tlist"></div>
@@ -898,7 +915,13 @@ body.dark-mode .snap-item:hover{background:var(--ac-p)}
           <div class="todo-toolbar-left">
             <div class="ptitle" style="margin-bottom:0;border:none;padding:0">临时事项</div>
           </div>
-          <button class="copy-all-btn" id="copy-otasks-btn" onclick="copyAllOtasks(this)" title="复制全部临时事项">⎘ 全部复制</button>
+          <div style="position:relative;flex-shrink:0">
+            <button class="copy-all-btn" id="copy-otasks-btn" onclick="toggleCopyMenu('otasks-copy-menu',this)" title="按标签筛选复制">⎘ 复制 ▾</button>
+            <div id="otasks-copy-menu" style="display:none;position:absolute;top:calc(100% + 4px);right:0;z-index:600;background:var(--card-bg);border:1px solid var(--bdr);border-radius:6px;box-shadow:0 6px 20px var(--shd);min-width:140px;padding:4px 0;white-space:nowrap">
+              <div onclick="copyAllOtasks(document.getElementById('copy-otasks-btn'),'all')" style="padding:6px 14px;font-size:11px;color:var(--ink);cursor:pointer;display:flex;align-items:center;gap:6px" onmouseenter="this.style.background='var(--paper-w)'" onmouseleave="this.style.background=''">⎘ 全部复制</div>
+              <div id="otasks-copy-label-items" style="border-top:1px solid var(--paper-l);margin-top:2px;padding-top:2px"></div>
+            </div>
+          </div>
         </div>
         <div class="otask-list" id="otask-list"></div>
         <div style="margin-top:5px">
@@ -1582,7 +1605,7 @@ function gather(){
   document.querySelectorAll('.tcard').forEach((c,i)=>{
     const esec=c.querySelector('.esec');
     const actualSegs=[...c.querySelectorAll('.todo-segs .time-seg')].map(s=>({start:s.querySelector('.seg-s')?.value||'',end:s.querySelector('.seg-e')?.value||''})).filter(s=>s.start||s.end);
-    const noteChecklist=[...c.querySelectorAll('.todo-checklist .note-cl-row')].map(r=>({text:r.querySelector('.note-cl-inp')?.value||'',done:r.querySelector('.note-cl-dot')?.classList.contains('ck')||false})).filter(r=>r.text);
+    const noteChecklist=[...c.querySelectorAll(".todo-checklist .note-cl-row")].map(r=>({text:r.querySelector(".note-cl-inp")?.value||"",done:r.querySelector(".note-cl-dot")?.classList.contains("ck")||false,clLabel:r.dataset.clLabel||"",clLabelColor:r.dataset.clLabelColor||""})).filter(r=>r.text);
     todos.push({
       id:c.dataset.id,text:c.querySelector('.ttxt')?.value||'',
       planStart:c.querySelector('.eps')?.value||'',planEnd:c.querySelector('.epe')?.value||'',
@@ -2287,7 +2310,7 @@ function buildCard(pre){
   c.ondragend=()=>todoDragEnd(c);
   // Restore saved checklist items
   const clContainer=c.querySelector('.todo-checklist');
-  (pre?.noteChecklist||[]).forEach(item=>addNoteClRowEl(clContainer,'todo',c,item.text,item.done));
+  (pre?.noteChecklist||[]).forEach(item=>addNoteClRowEl(clContainer,'todo',c,item.text,item.done,item.clLabel||'',item.clLabelColor||''));
   // Restore saved segments
   const segsContainer=c.querySelector('.todo-segs');
   const segs=pre?.actualSegs||(pre?.actualStart?[{start:pre.actualStart,end:pre.actualEnd||''}]:[]);
@@ -2669,14 +2692,29 @@ function addNoteClRow(container, type){
   saveDayData();
 }
 
-function addNoteClRowEl(listEl, type, card, text, done){
+function addNoteClRowEl(listEl, type, card, text, done, clLabel, clLabelColor){
   const row = document.createElement('div');
   row.className = 'note-cl-row';
+  if(clLabelColor) row.dataset.clLabelColor = clLabelColor;
+  if(clLabel) row.dataset.clLabel = clLabel;
+  // Left border tint based on label
+  if(clLabelColor) row.style.borderLeft = `3px solid ${clLabelColor}40`;
 
   const dot = document.createElement('div');
   dot.className = 'note-cl-dot' + (done ? ' ck' : '');
   dot.textContent = done ? '✓' : '';
   dot.title = done ? '点击取消' : '点击完成';
+
+  // Label dot for this checklist item
+  const clLdWrap = document.createElement('div');
+  clLdWrap.style.cssText = 'position:relative;flex-shrink:0';
+  const clLd = document.createElement('div');
+  clLd.className = 'cl-label-dot' + (clLabelColor ? ' has-label' : '');
+  clLd.style.cssText = clLabelColor ? `background:${clLabelColor};border-color:${clLabelColor}` : '';
+  clLd.title = clLabel || '点击设置要点标签';
+  clLd.onclick = () => openClLabelPicker(clLd, row, listEl, card);
+  clLdWrap.appendChild(clLd);
+  clLdWrap.appendChild(buildClLabelPickerEl(clLd, row, listEl, card, clLabelColor, clLabel));
 
   const inp = document.createElement('input');
   inp.type = 'text';
@@ -2696,9 +2734,10 @@ function addNoteClRowEl(listEl, type, card, text, done){
     inp.classList.toggle('done-txt', isDone);
     saveDayData();
     renderUnifiedTimeline();
+    updateClCategorySummary(listEl, card);
   };
 
-  inp.addEventListener('input', () => saveDayData());
+  inp.addEventListener('input', () => { saveDayData(); updateClCategorySummary(listEl, card); });
   inp.addEventListener('keydown', e => {
     if(e.key === 'Enter'){
       e.preventDefault();
@@ -2708,15 +2747,18 @@ function addNoteClRowEl(listEl, type, card, text, done){
       e.preventDefault();
       row.remove();
       saveDayData();
+      updateClCategorySummary(listEl, card);
     }
   });
 
-  del.onclick = () => { row.remove(); saveDayData(); };
+  del.onclick = () => { row.remove(); saveDayData(); updateClCategorySummary(listEl, card); };
 
   row.appendChild(dot);
+  row.appendChild(clLdWrap);
   row.appendChild(inp);
   row.appendChild(del);
   listEl.appendChild(row);
+  updateClCategorySummary(listEl, card);
 }
 
 // ── OTHER TASKS ──
@@ -3972,34 +4014,85 @@ function flashCopied(btn){
   btn.textContent='✓ 已复制';btn.classList.add('copied');
   setTimeout(()=>{btn.textContent=orig.includes('全部')?'⎘ 全部复制':'⎘ 复制';btn.classList.remove('copied');},1500);
 }
-function copyAllTodos(btn){
+function toggleCopyMenu(menuId, btn){
+  const menu = document.getElementById(menuId);
+  if(!menu) return;
+  const isOpen = menu.style.display !== 'none';
+  // Close all copy menus
+  document.querySelectorAll('#todos-copy-menu,#otasks-copy-menu').forEach(m=>m.style.display='none');
+  if(isOpen) return;
+  // Build label items dynamically
+  const isTodo = menuId === 'todos-copy-menu';
+  const itemsId = isTodo ? 'todos-copy-label-items' : 'otasks-copy-label-items';
+  const items = document.getElementById(itemsId);
+  if(items){
+    // collect labels present in current cards
+    const selector = isTodo ? '.tcard' : '.otask';
+    const labelSet = new Map(); // color→name
+    document.querySelectorAll(selector).forEach(el=>{
+      const c = el.dataset.labelColor; const n = el.dataset.label;
+      if(c && n) labelSet.set(c, n);
+    });
+    items.innerHTML = '';
+    if(labelSet.size === 0){
+      items.innerHTML = '<div style="padding:5px 14px;font-size:10px;color:var(--ink-m)">无标签分类</div>';
+    } else {
+      labelSet.forEach((name, color) => {
+        const row = document.createElement('div');
+        row.style.cssText = 'padding:6px 14px;font-size:11px;color:var(--ink);cursor:pointer;display:flex;align-items:center;gap:7px';
+        row.innerHTML = `<span style="width:8px;height:8px;border-radius:50%;background:${color};flex-shrink:0;display:inline-block"></span>${name} 类`;
+        row.onmouseenter = () => row.style.background = 'var(--paper-w)';
+        row.onmouseleave = () => row.style.background = '';
+        row.onclick = () => {
+          menu.style.display = 'none';
+          if(isTodo) copyAllTodos(btn, color);
+          else copyAllOtasks(btn, color);
+        };
+        items.appendChild(row);
+      });
+    }
+  }
+  menu.style.display = 'block';
+}
+document.addEventListener('click', e => {
+  if(!e.target.closest('#todos-copy-menu') && !e.target.closest('#otasks-copy-menu') &&
+     !e.target.closest('#copy-todos-btn') && !e.target.closest('#copy-otasks-btn')) {
+    document.querySelectorAll('#todos-copy-menu,#otasks-copy-menu').forEach(m=>m.style.display='none');
+  }
+});
+
+function copyAllTodos(btn, filterColor){
   const lines=[];let idx=0;
   document.querySelectorAll('.tcard').forEach(c=>{
+    if(filterColor && filterColor!=='all' && c.dataset.labelColor !== filterColor) return;
     const title=c.querySelector('.ttxt')?.value||'';
     const note=c.querySelector('.enote')?.value||'';
-    const checklist=[...c.querySelectorAll('.todo-checklist .note-cl-row')].map(r=>({text:r.querySelector('.note-cl-inp')?.value||'',done:r.querySelector('.note-cl-dot')?.classList.contains('ck')||false})).filter(r=>r.text);
+    const checklist=[...c.querySelectorAll('.todo-checklist .note-cl-row')].map(r=>({text:r.querySelector('.note-cl-inp')?.value||'',done:r.querySelector('.note-cl-dot')?.classList.contains('ck')||false,labelColor:r.dataset.clLabelColor||'',label:r.dataset.clLabel||''})).filter(r=>r.text);
     if(!title.trim())return;
     idx++;
-    lines.push(idx+'.'+title.trim());
-    if(checklist.length) checklist.forEach(item=>{if(item.text.trim())lines.push('  '+(item.done?'✓ ':'○ ')+item.text.trim());});
+    const labelName = c.dataset.label ? ` [${c.dataset.label}]` : '';
+    lines.push(idx+'.'+title.trim()+labelName);
+    if(checklist.length) checklist.forEach(item=>{if(item.text.trim())lines.push('  '+(item.done?'✓ ':'○ ')+item.text.trim()+(item.label?` [${item.label}]`:''));});
     if(note.trim()) note.trim().split('\n').filter(l=>l.trim()).forEach(l=>lines.push('· '+l.trim()));
   });
-  if(!lines.length){cdlgAlert('没有计划事项可复制');return;}
+  if(!lines.length){cdlgAlert(filterColor&&filterColor!=='all'?'该标签下没有计划事项':'没有计划事项可复制');return;}
   copyToClipboard(lines.join('\n'),()=>flashCopied(btn),()=>cdlgAlert('复制失败，请手动选中文本复制'));
 }
-function copyAllOtasks(btn){
+function copyAllOtasks(btn, filterColor){
   const lines=[];let idx=0;
   document.querySelectorAll('.otask').forEach(el=>{
+    if(filterColor && filterColor!=='all' && el.dataset.labelColor !== filterColor) return;
     const title=el.querySelector('.otask-txt')?.value||'';
     const note=el.querySelector('.otnote')?.value||'';
     const checklist=[...el.querySelectorAll('.otask-checklist .note-cl-row')].map(r=>({text:r.querySelector('.note-cl-inp')?.value||'',done:r.querySelector('.note-cl-dot')?.classList.contains('ck')||false})).filter(r=>r.text);
     if(!title.trim())return;
     idx++;
-    lines.push(idx+'.'+title.trim());
+    const labelName = el.dataset.label ? ` [${el.dataset.label}]` : '';
+    lines.push(idx+'.'+title.trim()+labelName);
     if(checklist.length) checklist.forEach(item=>{if(item.text.trim())lines.push('  '+(item.done?'✓ ':'○ ')+item.text.trim());});
     if(note.trim()) note.trim().split('\n').filter(l=>l.trim()).forEach(l=>lines.push('· '+l.trim()));
   });
-  if(!lines.length){cdlgAlert('没有临时事项可复制');return;}
+  if(!lines.length){cdlgAlert(filterColor&&filterColor!=='all'?'该标签下没有临时事项':'没有临时事项可复制');return;}
   copyToClipboard(lines.join('\n'),()=>flashCopied(btn),()=>cdlgAlert('复制失败，请手动选中文本复制'));
 }
 function copyTodo(btn){
@@ -4730,6 +4823,90 @@ function openLabelPicker(dot){
 function closeLabelPicker(id){
   const p=document.getElementById('lp_'+id);if(p)p.classList.remove('open');
 }
+// ── CHECKLIST ITEM LABEL PICKER ──
+function buildClLabelPickerEl(dot, row, listEl, card, currentColor, currentName){
+  const picker = document.createElement('div');
+  picker.className = 'cl-label-picker';
+  function render(){
+    picker.innerHTML = '';
+    const title = document.createElement('div');
+    title.style.cssText = 'font-size:9px;color:var(--ink-m);letter-spacing:.6px;font-weight:500;margin-bottom:6px';
+    title.textContent = '要点标签';
+    picker.appendChild(title);
+    // Clear
+    const clearBtn = document.createElement('div');
+    clearBtn.style.cssText = 'padding:3px 6px;font-size:10px;color:var(--ink-m);cursor:pointer;border-radius:3px;margin-bottom:3px;border:1px dashed var(--bdr)';
+    clearBtn.textContent = '× 清除';
+    clearBtn.onmouseenter = () => clearBtn.style.borderColor = '#ef4444';
+    clearBtn.onmouseleave = () => clearBtn.style.borderColor = 'var(--bdr)';
+    clearBtn.onclick = () => { applyClLabel(dot, row, listEl, card, '', ''); picker.classList.remove('open'); render(); };
+    picker.appendChild(clearBtn);
+    getLabels().forEach(lbl => {
+      const item = document.createElement('div');
+      item.style.cssText = 'display:flex;align-items:center;gap:6px;padding:4px 6px;border-radius:3px;cursor:pointer;font-size:10px;color:var(--ink)';
+      item.innerHTML = `<span style="width:8px;height:8px;border-radius:50%;background:${lbl.color};flex-shrink:0;display:inline-block"></span>${lbl.name}`;
+      if(lbl.color === currentColor) item.style.fontWeight = '600';
+      item.onmouseenter = () => item.style.background = 'var(--paper-w)';
+      item.onmouseleave = () => item.style.background = '';
+      item.onclick = () => { currentColor = lbl.color; currentName = lbl.name; applyClLabel(dot, row, listEl, card, lbl.color, lbl.name); picker.classList.remove('open'); render(); };
+      picker.appendChild(item);
+    });
+  }
+  render();
+  return picker;
+}
+function openClLabelPicker(dot, row, listEl, card){
+  // Close all other cl pickers
+  document.querySelectorAll('.cl-label-picker.open').forEach(p => p.classList.remove('open'));
+  const picker = dot.parentElement.querySelector('.cl-label-picker');
+  if(picker) picker.classList.toggle('open');
+}
+function applyClLabel(dot, row, listEl, card, color, name){
+  row.dataset.clLabelColor = color;
+  row.dataset.clLabel = name;
+  row.style.borderLeft = color ? `3px solid ${color}40` : '';
+  dot.className = 'cl-label-dot' + (color ? ' has-label' : '');
+  dot.style.cssText = color ? `background:${color};border-color:${color}` : '';
+  dot.title = name || '点击设置要点标签';
+  saveDayData();
+  updateClCategorySummary(listEl, card);
+}
+document.addEventListener('click', e => {
+  if(!e.target.closest('.cl-label-dot') && !e.target.closest('.cl-label-picker'))
+    document.querySelectorAll('.cl-label-picker.open').forEach(p => p.classList.remove('open'));
+});
+
+function updateClCategorySummary(listEl, card){
+  // Find or create summary bar right after the checklist
+  let summary = card.querySelector('.cl-category-summary');
+  // Collect all rows
+  const rows = [...(listEl?.querySelectorAll('.note-cl-row')||[])];
+  const labeled = rows.filter(r => r.dataset.clLabelColor);
+  if(!labeled.length){ if(summary) summary.remove(); return; }
+  // Group by label
+  const groups = {};
+  labeled.forEach(r => {
+    const c = r.dataset.clLabelColor, n = r.dataset.clLabel||'';
+    if(!groups[c]) groups[c] = {name:n, color:c, total:0, done:0};
+    groups[c].total++;
+    if(r.querySelector('.note-cl-dot')?.classList.contains('ck')) groups[c].done++;
+  });
+  if(!summary){
+    summary = document.createElement('div');
+    summary.className = 'cl-category-summary';
+    // Insert after note-checklist within esec
+    listEl.after(summary);
+  }
+  summary.innerHTML = '<div style="font-size:9px;color:var(--ink-m);letter-spacing:.5px;font-weight:500;margin-bottom:4px">📊 要点分类进度</div>';
+  Object.values(groups).forEach(g => {
+    const pct = g.total ? Math.round(g.done/g.total*100) : 0;
+    const row = document.createElement('div');
+    row.className = 'cl-cat-row';
+    row.innerHTML = `<span style="display:inline-flex;align-items:center;gap:3px;min-width:54px;flex-shrink:0"><span style="width:7px;height:7px;border-radius:50%;background:${g.color};display:inline-block;flex-shrink:0"></span><span style="color:${g.color};font-weight:500">${g.name}</span></span><div class="cl-cat-bar"><div class="cl-cat-fill" style="width:${pct}%;background:${g.color}"></div></div><span style="font-family:var(--mo);font-size:9px;color:${g.color};min-width:32px;text-align:right;flex-shrink:0">${g.done}/${g.total}</span>`;
+    summary.appendChild(row);
+  });
+}
+
 // ── TEMPLATE LABEL PICKER ──
 function openTplLabelPicker(dot){
   const picker=dot.nextElementSibling;if(!picker)return;
