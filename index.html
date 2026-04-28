@@ -2971,7 +2971,7 @@ function renderMonthly(){
   // ── 收集全月数据用于摘要 ──
   const allDayData=[];
   let bestRate=0,bestDay=null,streakMax=0,streakCur=0,streakEnd=null,streakEndTmp=null;
-  const taskFreq={};
+  const taskFreq={};const taskActMin={};
   let totalPlanMin=0,totalActMin=0,planDays=0;
 
   for(let d=1;d<=dim;d++){
@@ -2994,8 +2994,18 @@ function renderMonthly(){
     // 最长连续完成天（全部完成）
     if(todos.length&&dn===todos.length){streakCur++;if(streakCur>streakMax){streakMax=streakCur;streakEndTmp=d;}}
     else streakCur=0;
-    // 任务频率
-    todos.forEach(t=>{if(t.text){const k=t.text.trim();taskFreq[k]=(taskFreq[k]||0)+1;}});
+    // 任务频率 + 实际时长
+    todos.forEach(t=>{
+      if(t.text){
+        const k=t.text.trim();
+        taskFreq[k]=(taskFreq[k]||0)+1;
+        // 累计每个任务的实际完成时长
+        if(!taskActMin[k])taskActMin[k]={plan:0,actual:0,done:0};
+        if(t.done)taskActMin[k].done++;
+        if(t.planStart&&t.planEnd){const pm=timeToMin(t.planEnd)-timeToMin(t.planStart);if(pm>0)taskActMin[k].plan+=pm;}
+        (t.actualSegs||[]).forEach(s=>{if(s.start&&s.end){const am=timeToMin(s.end)-timeToMin(s.start);if(am>0)taskActMin[k].actual+=am;}});
+      }
+    });
     // 计划 vs 实际时间
     todos.forEach(t=>{
       if(t.planStart&&t.planEnd){const pm=timeToMin(t.planEnd)-timeToMin(t.planStart);if(pm>0)totalPlanMin+=pm;planDays++;}
@@ -3004,8 +3014,8 @@ function renderMonthly(){
   }
   if(streakEndTmp)streakEnd=streakEndTmp;
 
-  // 高频任务 top10
-  const topTasks=Object.entries(taskFreq).sort((a,b)=>b[1]-a[1]).slice(0,10);
+  // 高频固定安排（全部，按出现天数降序）
+  const topTasks=Object.entries(taskFreq).sort((a,b)=>b[1]-a[1]);
 
   // ── 月度摘要面板 ──
   const sumEl=document.getElementById('m-summary');
@@ -3065,21 +3075,27 @@ function renderMonthly(){
             ${streakMax>1?`<div style="flex:1;padding:5px 8px;background:var(--paper-w);border-radius:3px"><div style="color:var(--ink-m);margin-bottom:2px">最长全勤</div><div style="font-family:var(--mo);font-weight:600;color:var(--am)">${streakMax}天 🔥</div></div>`:''}
           </div>
         </div>
-        <div style="padding:12px 16px">
-          <div style="font-size:10px;color:var(--ink-m);letter-spacing:.8px;margin-bottom:8px;font-weight:500">🔁 高频固定安排 Top10</div>
-          ${topTasks.length?topTasks.map(([name,cnt],i)=>{
-            const pct=Math.round(cnt/dim*100);
-            const colors=['var(--ac)','var(--bl)','var(--gr)','var(--am)','var(--ink-m)','var(--ac)','var(--bl)','var(--gr)','var(--am)','var(--ink-m)'];
-            return `<div style="margin-bottom:6px">
-              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:2px">
-                <span style="font-size:10px;color:var(--ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1;min-width:0">${name}</span>
-                <span style="font-family:var(--mo);font-size:9px;color:${colors[i]};flex-shrink:0;margin-left:6px">${cnt}天</span>
-              </div>
-              <div style="height:3px;background:var(--paper-l);border-radius:2px;overflow:hidden">
-                <div style="height:100%;width:${pct}%;background:${colors[i]};border-radius:2px"></div>
-              </div>
-            </div>`;
-          }).join(''):`<div style="font-size:11px;color:var(--ink-m);opacity:.5;margin-top:16px;text-align:center">暂无数据</div>`}
+        <div style="padding:12px 16px;overflow:hidden;display:flex;flex-direction:column">
+          <div style="font-size:10px;color:var(--ink-m);letter-spacing:.8px;margin-bottom:8px;font-weight:500;flex-shrink:0">🔁 每日固定安排汇总</div>
+          ${topTasks.length?`
+          <div style="display:grid;grid-template-columns:1fr auto auto auto;gap:0;border:1px solid var(--bdr);border-radius:3px;overflow:hidden;font-size:9px;flex:1;overflow-y:auto;max-height:260px">
+            <div style="padding:4px 7px;background:var(--paper-l);font-size:8.5px;color:var(--ink-m);letter-spacing:.5px;font-weight:600;border-bottom:1px solid var(--bdr)">安排名称</div>
+            <div style="padding:4px 6px;background:var(--paper-l);font-size:8.5px;color:var(--ink-m);letter-spacing:.5px;font-weight:600;border-bottom:1px solid var(--bdr);text-align:center;white-space:nowrap">出现</div>
+            <div style="padding:4px 6px;background:var(--paper-l);font-size:8.5px;color:var(--ink-m);letter-spacing:.5px;font-weight:600;border-bottom:1px solid var(--bdr);text-align:center;white-space:nowrap">完成</div>
+            <div style="padding:4px 6px;background:var(--paper-l);font-size:8.5px;color:var(--ink-m);letter-spacing:.5px;font-weight:600;border-bottom:1px solid var(--bdr);text-align:center;white-space:nowrap">实际时长</div>
+            ${topTasks.map(([name,cnt],i)=>{
+              const stat=taskActMin[name]||{plan:0,actual:0,done:0};
+              const am=stat.actual;
+              const actStr=am>=60?Math.floor(am/60)+'h'+(am%60?Math.floor(am%60)+'m':''):(am>0?Math.floor(am)+'m':'—');
+              const doneRate=cnt?Math.round(stat.done/cnt*100):0;
+              const rateColor=doneRate>=80?'var(--gr)':doneRate>=50?'var(--bl)':'var(--ink-m)';
+              const rowBg=i%2===0?'transparent':'rgba(0,0,0,.02)';
+              return `<div style="padding:5px 7px;font-size:10px;color:var(--ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;border-bottom:1px solid var(--paper-l);background:${rowBg}" title="${name}">${name}</div>
+              <div style="padding:5px 6px;font-family:var(--mo);font-size:9.5px;color:var(--ac);text-align:center;border-bottom:1px solid var(--paper-l);background:${rowBg};white-space:nowrap">${cnt}天</div>
+              <div style="padding:5px 6px;font-family:var(--mo);font-size:9.5px;color:${rateColor};text-align:center;border-bottom:1px solid var(--paper-l);background:${rowBg};white-space:nowrap">${stat.done}<span style="font-size:8px;opacity:.6">/${cnt}</span></div>
+              <div style="padding:5px 6px;font-family:var(--mo);font-size:9.5px;color:${am>0?'var(--gr)':'var(--ink-m)'};text-align:center;border-bottom:1px solid var(--paper-l);background:${rowBg};white-space:nowrap">${actStr}</div>`;
+            }).join('')}
+          </div>`:`<div style="font-size:11px;color:var(--ink-m);opacity:.5;margin-top:16px;text-align:center">暂无数据</div>`}
         </div>
       </div>`;
   } else {
