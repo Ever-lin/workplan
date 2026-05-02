@@ -889,8 +889,7 @@ body.dark-mode .cdlg-inp{background:var(--paper-l);color:var(--ink)}
           <div style="font-size:10px;color:var(--ink-m);margin-bottom:4px;letter-spacing:.4px">备注</div>
           <textarea id="inbox-new-note" rows="3" placeholder="补充说明、背景信息..." style="width:100%;border:1px solid var(--bdr);background:var(--paper-w);color:var(--ink);font-family:var(--ss);font-size:12px;padding:7px 10px;border-radius:3px;outline:none;resize:vertical;line-height:1.7" onfocus="this.style.borderColor='var(--ac)'" onblur="this.style.borderColor='var(--bdr)'"></textarea>
         </div>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
-          <div>
+        <div>
             <div style="font-size:10px;color:var(--ink-m);margin-bottom:4px;letter-spacing:.4px">分类</div>
             <select id="inbox-new-cat" style="width:100%;border:1px solid var(--bdr);background:var(--paper-w);color:var(--ink);font-family:var(--ss);font-size:12px;padding:6px 8px;border-radius:3px;outline:none">
               <option value="work">工作</option>
@@ -899,11 +898,6 @@ body.dark-mode .cdlg-inp{background:var(--paper-l);color:var(--ink)}
               <option value="other">其他</option>
             </select>
           </div>
-          <div>
-            <div style="font-size:10px;color:var(--ink-m);margin-bottom:4px;letter-spacing:.4px">预估时长</div>
-            <input id="inbox-new-dur" type="text" placeholder="如 30m / 2h" style="width:100%;border:1px solid var(--bdr);background:var(--paper-w);color:var(--ink);font-family:var(--ss);font-size:12px;padding:6px 10px;border-radius:3px;outline:none" onfocus="this.style.borderColor='var(--ac)'" onblur="this.style.borderColor='var(--bdr)'">
-          </div>
-        </div>
         <div>
           <div style="font-size:10px;color:var(--ink-m);margin-bottom:4px;letter-spacing:.4px">优先级</div>
           <div style="display:flex;gap:6px">
@@ -912,7 +906,10 @@ body.dark-mode .cdlg-inp{background:var(--paper-l);color:var(--ink)}
             <label style="display:flex;align-items:center;gap:4px;font-size:12px;cursor:pointer"><input type="radio" name="inbox-pri" value="low" style="accent-color:var(--gr)"> <span style="color:var(--gr)">🟢 低</span></label>
           </div>
         </div>
-        <button onclick="addInboxItem()" style="background:var(--ac);border:none;color:#fff;font-family:var(--ss);font-size:13px;font-weight:600;padding:8px;border-radius:4px;cursor:pointer;transition:opacity .15s" onmouseenter="this.style.opacity='.85'" onmouseleave="this.style.opacity='1'">＋ 添加到待安排</button>
+        <div style="display:flex;gap:6px">
+          <button id="inbox-form-submit" onclick="addInboxItem()" style="flex:1;background:var(--ac);border:none;color:#fff;font-family:var(--ss);font-size:13px;font-weight:600;padding:8px;border-radius:4px;cursor:pointer;transition:opacity .15s" onmouseenter="this.style.opacity='.85'" onmouseleave="this.style.opacity='1'">＋ 添加到待安排</button>
+          <button id="inbox-edit-cancel" onclick="inboxCancelEdit()" style="display:none;padding:8px 14px;background:var(--paper-w);border:1px solid var(--bdr);color:var(--ink-m);font-family:var(--ss);font-size:12px;border-radius:4px;cursor:pointer">取消</button>
+        </div>
       </div>
     </div>
   </div>
@@ -949,15 +946,11 @@ body.dark-mode .cdlg-inp{background:var(--paper-l);color:var(--ink)}
   <!-- 标签时长分类展开区 -->
   <div id="label-time-breakdown" style="display:none;margin-bottom:10px;padding:10px 14px;background:white;border:1px solid var(--bdr);border-radius:2px">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
-      <span style="font-size:11px;font-weight:600;color:var(--ink-m);letter-spacing:.8px">⏱ 按标签分类时长</span>
+      <span style="font-size:11px;font-weight:600;color:var(--ink-m);letter-spacing:.8px">⏱ 按事项分类时长</span>
       <button onclick="toggleLabelTimeBreakdown()" style="background:none;border:none;cursor:pointer;color:var(--ink-m);font-size:14px;line-height:1;padding:0 4px">×</button>
     </div>
-    <div id="label-time-rows" style="display:flex;flex-direction:column;gap:5px"></div>
-    <!-- 按事项分类时长 -->
-    <div style="margin-top:10px;padding-top:8px;border-top:1px solid var(--paper-l)">
-      <div style="font-size:11px;font-weight:600;color:var(--ink-m);letter-spacing:.8px;margin-bottom:6px">⏱ 按事项分类时长</div>
-      <div id="item-time-rows" style="display:flex;flex-direction:column;gap:5px"></div>
-    </div>
+    <div id="label-time-rows" style="display:none"></div>
+    <div id="item-time-rows" style="display:flex;flex-direction:column;gap:5px"></div>
   </div>
 
   <div class="pgrid">
@@ -985,8 +978,8 @@ body.dark-mode .cdlg-inp{background:var(--paper-l);color:var(--ink)}
         </div>
         <!-- 其他事项 -->
         <div class="todo-toolbar" style="margin-top:14px">
-          <div class="todo-toolbar-left">
-            <div class="ptitle" style="margin-bottom:0;border:none;padding:0">临时事项</div>
+          <div class="todo-toolbar-left" style="cursor:pointer" onclick="toggleOtaskSection()" title="点击折叠/展开临时事项">
+            <div class="ptitle" style="margin-bottom:0;border:none;padding:0">临时事项 <span id="otask-count-badge" style="font-size:9px;font-family:var(--mo);color:var(--bl);font-weight:400">0/0</span> <span id="otask-collapse-arrow" style="font-size:10px;color:var(--ink-m);transition:transform .2s;display:inline-block">▾</span></div>
           </div>
           <div style="position:relative;flex-shrink:0">
             <button class="copy-all-btn" id="copy-otasks-btn" onclick="toggleCopyMenu('otasks-copy-menu',this)" title="按标签筛选复制">⎘ 复制 ▾</button>
@@ -996,9 +989,11 @@ body.dark-mode .cdlg-inp{background:var(--paper-l);color:var(--ink)}
             </div>
           </div>
         </div>
+        <div id="otask-section-body">
         <div class="otask-list" id="otask-list"></div>
         <div style="margin-top:5px">
           <button class="addbtn" onclick="addOtask()">＋ 添加临时事项</button>
+        </div>
         </div>
         <!-- 小任务 -->
         <div class="ptitle" style="margin-top:14px;margin-bottom:8px">小任务</div>
@@ -1127,6 +1122,7 @@ body.dark-mode .cdlg-inp{background:var(--paper-l);color:var(--ink)}
       <option value="yearly">年度总结</option>
       <option value="free">随笔</option>
     </select>
+    <button onclick="exportAllJournals()" style="background:var(--paper-w);border:1px solid var(--bdr);color:var(--ink-m);font-family:var(--ss);font-size:12px;padding:4px 11px;border-radius:2px;cursor:pointer;display:flex;align-items:center;gap:4px">📤 导出全部</button>
     <button class="tb" onclick="openJournalEditor(null)" style="display:flex;align-items:center;gap:4px">＋ 新建总结</button>
   </div>
 
@@ -2548,6 +2544,9 @@ function updateStats(){
   if(document.getElementById('s-done'))document.getElementById('s-done').textContent=dn.length;
   if(document.getElementById('s-rate'))document.getElementById('s-rate').textContent=cs.length?Math.round(dn.length/cs.length*100)+'%':'0%';
   if(document.getElementById('s-other'))document.getElementById('s-other').textContent=otDone+'/'+otTotal+(memoTotal?' (+'+memoDone+'/'+memoTotal+')':'');
+  // 更新临时事项标题旁的数量徽章
+  const otBadge=document.getElementById('otask-count-badge');
+  if(otBadge)otBadge.textContent=otDone+'/'+otTotal;
   // 固定安排完成小计徽章（标题旁边）
   const summaryEl=document.getElementById('s-todo-summary');
   if(summaryEl){
@@ -2669,7 +2668,7 @@ function toggleLabelTimeBreakdown(){
   if(!bd)return;
   const isOpen=bd.style.display!=='none';
   bd.style.display=isOpen?'none':'block';
-  if(!isOpen&&window._lastLabelPlanMap)renderLabelTimeBreakdown(window._lastLabelPlanMap,window._lastFmtM||((m)=>m+'m'));
+  // Only render item time breakdown (label breakdown hidden by default)
   if(!isOpen&&window._lastItemTimeMap)renderItemTimeBreakdown(window._lastItemTimeMap,window._lastFmtM||((m)=>m+'m'));
 }
 function renderItemTimeBreakdown(itemTimeMap,fmtM){
@@ -2696,6 +2695,8 @@ function renderItemTimeBreakdown(itemTimeMap,fmtM){
       row.style.cssText='display:grid;grid-template-columns:1fr 80px 80px 80px;gap:8px;align-items:center;padding:5px 0;border-bottom:1px dashed var(--paper-l)';
       const effColor=eff>=100?'var(--gr)':eff>=80?'var(--bl)':eff>0?'var(--am)':'var(--ink-m)';
       const labelBadge=g.labelColor&&g.labelName?`<span style="display:inline-flex;align-items:center;gap:2px;font-size:8px;padding:1px 5px;border-radius:8px;background:${g.labelColor}22;color:${g.labelColor};border:1px solid ${g.labelColor}44;white-space:nowrap;margin-left:4px"><span style="width:5px;height:5px;border-radius:50%;background:${g.labelColor};display:inline-block"></span>${g.labelName}</span>`:'';
+      row.onmouseenter=()=>row.style.background='var(--paper-w)';
+      row.onmouseleave=()=>row.style.background='';
       row.innerHTML=`<span style="display:flex;align-items:center;gap:5px;font-size:11px;color:var(--ink);flex-wrap:wrap">${g.txt}${labelBadge}</span><span style="text-align:right;font-family:var(--mo);font-size:11px;color:var(--ink-m)">${fmtM(g.planMins)}</span><span style="text-align:right;font-family:var(--mo);font-size:11px;color:var(--gr)">${fmtM(g.actualMins)}</span><span style="text-align:right;font-family:var(--mo);font-size:11px;font-weight:600;color:${effColor}">${g.planMins>0?eff+'%':'—'}</span>`;
       rows.appendChild(row);
     });
@@ -2927,6 +2928,15 @@ function addOtask(pre){
   if(pre?.planStart) syncOtaskPlanBadge();
 }
 
+function toggleOtaskSection(){
+  const body=document.getElementById('otask-section-body');
+  const arrow=document.getElementById('otask-collapse-arrow');
+  if(!body)return;
+  const isVisible=body.style.display!=='none';
+  body.style.display=isVisible?'none':'';
+  if(arrow)arrow.textContent=isVisible?'›':'▾';
+}
+
 function addOtaskSegRow(container,div,chk,startVal,endVal){
   const seg=document.createElement('div');seg.className='time-seg otask-seg';
   seg.innerHTML=`<div class="etf"><div class="time-seg-lbl">实际开始</div><input class="oti seg-s" list="dl-t" type="text" placeholder="09:00" value="${startVal}"></div><div class="etf"><div class="time-seg-lbl">实际结束</div><input class="oti seg-e" list="dl-t" type="text" placeholder="10:00" value="${endVal}"></div><button class="time-seg-del" title="删除此段">×</button>`;
@@ -3131,7 +3141,7 @@ function renderWeekly(){
       if(t.planStart&&t.planEnd){const d=timeToMin(t.planEnd)-timeToMin(t.planStart);if(d>0){wPlanMin+=d;wEnsureLabel(lc,ln).planMins+=d;if(t.text){const it=wEnsureItem(t.text,lc,ln,true);it.planMins+=d;}}}
       (t.actualSegs||[]).forEach(s=>{if(s.start&&s.end){const d=timeToMin(s.end)-timeToMin(s.start);if(d>0){wActMin+=d;wEnsureLabel(lc,ln).actualMins+=d;if(t.text)wEnsureItem(t.text,lc,ln,true).actualMins+=d;}}});
       // 收集固定安排跨周状态
-      if(t.text){const fe=wEnsureFixed(t.text,lc,ln);fe.days.push({dow:i,done:!!t.done,skipped:!!t.isSkipped,incomplete:!!(t.isIncomplete&&!t.done),ds});}
+      if(t.text){const fe=wEnsureFixed(t.text,lc,ln);if(!fe.days.some(d=>d.dow===i))fe.days.push({dow:i,done:!!t.done,skipped:!!t.isSkipped,incomplete:!!(t.isIncomplete&&!t.done),ds});}
     });
     otasks.forEach(o=>{
       const lc=o.labelColor||'';const ln=o.label||'';
@@ -3427,10 +3437,11 @@ function renderMonthly(){
   // Build monthly fixed task summary (similar to weekly)
   const mFixedMap={};
   function mEnsureFixed(txt,lc,ln){const k=txt+'|'+(lc||'');if(!mFixedMap[k])mFixedMap[k]={txt,labelColor:lc,labelName:ln,days:{}};return mFixedMap[k];}
+  const fe_days_set={};
   for(const {d,date,data} of allDayData){
     if(!data)continue;
     const todos2=(data.todos||[]).filter(t=>!t.movedToNext);
-    todos2.forEach(t=>{if(t.text){const fe=mEnsureFixed(t.text,t.labelColor||'',t.label||'');fe.days[d]={done:!!t.done,skipped:!!t.isSkipped,incomplete:!!(t.isIncomplete&&!t.done),isMakeup:!!t.isMakeup};}});
+    todos2.forEach(t=>{if(t.text&&!fe_days_set[t.text+'|'+d]){const fe=mEnsureFixed(t.text,t.labelColor||'',t.label||'');fe.days[d]={done:!!t.done,skipped:!!t.isSkipped,incomplete:!!(t.isIncomplete&&!t.done),isMakeup:!!t.isMakeup};fe_days_set[t.text+'|'+d]=true;}});
   }
   if(rd>0){
     sumEl.style.display='block';
@@ -3440,7 +3451,7 @@ function renderMonthly(){
     const fixedEntries=Object.values(mFixedMap).filter(e=>Object.keys(e.days).length>0);
     let fixedHtml='';
     if(fixedEntries.length){
-      fixedHtml=`<div style="margin-top:10px"><div style="font-size:10px;font-weight:600;color:var(--ink-m);letter-spacing:.6px;margin-bottom:6px">🔁 固定安排完成情况（本月 ${rd} 天记录）</div><div style="overflow-x:auto"><table style="border-collapse:collapse;font-size:9px;min-width:100%"><thead><tr><th style="text-align:left;padding:2px 6px 4px 0;color:var(--ink-m);font-weight:500;min-width:100px">任务</th>`;
+      fixedHtml=`<div style="margin-top:0"><div onclick="this.nextElementSibling.style.display=this.nextElementSibling.style.display==='none'?'block':'none';this.querySelector('.fhdr-arr').textContent=this.nextElementSibling.style.display==='none'?'›':'▾'" style="font-size:10px;font-weight:600;color:var(--ink-m);letter-spacing:.6px;padding:10px 14px;cursor:pointer;display:flex;align-items:center;gap:6px;border-bottom:1px solid var(--paper-l);user-select:none">🔁 固定安排完成情况（本月 ${rd} 天记录）<span class="fhdr-arr" style="font-size:12px;transition:transform .2s;margin-left:auto">▾</span></div><div style="overflow-x:auto;padding:8px 14px"><table style="border-collapse:collapse;font-size:9px;min-width:100%"><thead><tr><th style="text-align:left;padding:2px 6px 4px 0;color:var(--ink-m);font-weight:500;min-width:100px">任务</th>`;
       for(let dd=1;dd<=dim;dd++){const isT2=fmt(new Date(y,m,dd))===ts;fixedHtml+=`<th style="text-align:center;padding:2px 1px 4px;min-width:16px;color:${isT2?'var(--ac)':'var(--ink-m)'};font-weight:${isT2?700:400};font-size:8px">${dd}</th>`;}
       fixedHtml+=`<th style="text-align:center;padding:2px 4px 4px;color:var(--ink-m);font-weight:500;min-width:40px;white-space:nowrap">完成</th></tr></thead><tbody>`;
       fixedEntries.sort((a,b)=>Object.keys(b.days).length-Object.keys(a.days).length).forEach(fe=>{
@@ -3448,22 +3459,13 @@ function renderMonthly(){
         const lb=lc?`<span style="display:inline-flex;align-items:center;gap:2px;font-size:6px;padding:0 3px;border-radius:6px;background:${lc}22;color:${lc};border:1px solid ${lc}44;margin-left:3px;white-space:nowrap;vertical-align:middle"><span style="width:3px;height:3px;border-radius:50%;background:${lc};display:inline-block"></span>${ln}</span>`:'';
         fixedHtml+=`<tr onmouseenter="this.style.background='var(--paper-w)'" onmouseleave="this.style.background=''" style="border-top:1px dashed var(--paper-l);transition:background .1s"><td style="padding:3px 6px 3px 0;color:var(--ink);max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:9px">${fe.txt}${lb}</td>`;
         let doneCnt=0,totalCnt=0;
-        for(let dd=1;dd<=dim;dd++){const de=fe.days[dd];if(!de){fixedHtml+=`<td style="text-align:center;padding:2px 1px;color:var(--paper-l);font-size:8px">·</td>`;continue;}totalCnt++;let cell='',color='';if(de.isMakeup){cell='✅';color='#065f46';doneCnt++;}else if(de.skipped){cell='×';color='#ef4444';}else if(de.incomplete){cell='⏳';color='#f59e0b';}else if(de.done){cell='✓';color='var(--gr)';doneCnt++;}else{cell='○';color='var(--bdr)';}fixedHtml+=`<td style="text-align:center;padding:2px 1px;font-size:9px;color:${color};font-weight:600">${cell}</td>`;}
+        for(let dd=1;dd<=dim;dd++){const de=fe.days[dd];if(!de){fixedHtml+=`<td style="text-align:center;padding:2px 1px;color:var(--paper-l);font-size:8px">·</td>`;continue;}totalCnt++;let cell='',color='';if(de.skipped){cell='×';color='#ef4444';}else if(de.incomplete){cell='⏳';color='#f59e0b';}else if(de.done||de.isMakeup){cell='✓';color='var(--gr)';doneCnt++;}else{cell='○';color='var(--bdr)';}fixedHtml+=`<td style="text-align:center;padding:2px 1px;font-size:9px;color:${color};font-weight:600">${cell}</td>`;}
         const dc=doneCnt>=totalCnt?'var(--gr)':doneCnt>=totalCnt*0.8?'var(--bl)':'var(--ac)';
         fixedHtml+=`<td style="text-align:center;padding:2px 4px;font-family:var(--mo);font-size:8px;font-weight:600;color:${dc}">${doneCnt}/${totalCnt}</td></tr>`;
       });
-      fixedHtml+=`</tbody></table></div></div>`;
+      fixedHtml+=`</tbody></table></div></div></div>`;
     }
-    sumEl.innerHTML=`<div style="padding:12px 14px">
-      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:8px">
-        <div style="padding:6px 8px;background:var(--paper-w);border-radius:3px;border-left:3px solid var(--ac)"><div style="color:var(--ac);font-family:var(--mo);font-size:13px;font-weight:600">${td}/${tt}</div><div style="color:var(--ink-m);font-size:10px">固定安排</div></div>
-        <div style="padding:6px 8px;background:var(--paper-w);border-radius:3px;border-left:3px solid var(--bl)"><div style="color:var(--bl);font-family:var(--mo);font-size:13px;font-weight:600">${mod}/${mot}</div><div style="color:var(--ink-m);font-size:10px">临时事项</div></div>
-        <div style="padding:6px 8px;background:var(--paper-w);border-radius:3px;border-left:3px solid var(--am)"><div style="color:var(--am);font-family:var(--mo);font-size:13px;font-weight:600">✓${mmd}</div><div style="color:var(--ink-m);font-size:10px">小任务</div></div>
-        <div style="padding:6px 8px;background:var(--paper-w);border-radius:3px;border-left:3px solid var(--gr)"><div style="color:var(--gr);font-family:var(--mo);font-size:13px;font-weight:600">${rd}天</div><div style="color:var(--ink-m);font-size:10px">有记录</div></div>
-      </div>
-      <div style="height:4px;background:var(--paper-l);border-radius:2px;overflow:hidden;margin-bottom:4px"><div style="height:100%;width:${globalRate}%;background:${globalRate>=80?'var(--gr)':globalRate>=60?'var(--bl)':'var(--ac)'};border-radius:2px"></div></div>
-      ${fixedHtml}
-    </div>`;
+    sumEl.innerHTML=`<div style="padding:0">${fixedHtml}</div>`;
   } else {
     sumEl.style.display='none';
   }
@@ -3486,7 +3488,7 @@ function renderMonthly(){
       if(todos.length>0 && r<100 && ds!==ts){
         c.style.background='rgba(255,220,220,.18)';
       }
-      const pbHtml=todos.length?`<div style="height:2px;background:var(--paper-l);border-radius:1px;overflow:hidden;margin:3px 0"><div style="height:100%;width:${r}%;background:${r>=100?'var(--gr)':r>=60?'var(--bl)':'var(--ac)'};border-radius:1px"></div></div>`:'';
+      const pbHtml='';
 
       function buildMcItem(it, accentColor, doneColor, iconDone, iconPend){
         const isDone=it.done;
@@ -3528,11 +3530,17 @@ function renderMonthly(){
       let sectionsHtml='';
 
       if(todos.length){
+        // 同类型：完成在前，未做在后，跳过排最后
+        const sortedT=[...todos].sort((a,b)=>{
+          const aO=a.isSkipped?2:a.isIncomplete&&!a.done?1:0;
+          const bO=b.isSkipped?2:b.isIncomplete&&!b.done?1:0;
+          return aO-bO;
+        });
         const doneCount=todos.filter(t=>t.done).length;
         const skippedCount=todos.filter(t=>t.isSkipped).length;
         sectionsHtml+=`<div style="margin-top:3px">
           <div style="font-size:8px;color:var(--ac);font-weight:600;letter-spacing:.3px;margin-bottom:2px;display:flex;align-items:center;gap:3px">固定<span style="font-family:var(--mo);font-size:7px;background:var(--ac);color:white;padding:0 3px;border-radius:8px;opacity:.8">${todos.length}</span>${skippedCount?`<span style="font-size:7px;background:#fee2e2;color:#b91c1c;padding:0 3px;border-radius:8px">${skippedCount}未做</span>`:''}</div>
-          ${todos.map(t=>buildMcItem(t,'var(--ac)','var(--gr)','✓','○')).join('')}
+          ${sortedT.map(t=>buildMcItem(t,'var(--ac)','var(--gr)','✓','○')).join('')}
         </div>`;
       }
       if(otasks.length){
@@ -3557,8 +3565,7 @@ function renderMonthly(){
       c.innerHTML=`
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1px">
           <div class="mcd">${d}</div>${wxHtml}
-          ${todos.length?`<span style="font-family:var(--mo);font-size:8px;color:${r>=100?'var(--gr)':r>=60?'var(--bl)':'var(--ink-m)'}">${r}%</span>`:''}
-        </div>${pbHtml}
+        </div>
         <div style="margin-top:1px">${sectionsHtml}</div>`;
     } else {
       c.innerHTML=`<div class="mcd">${d}</div>`;
@@ -3651,14 +3658,15 @@ function renderYearly(){
     const data2=load(dt2);if(!data2)continue;
     const todos2=(data2.todos||[]).filter(t=>!t.movedToNext);
     const mon=dt2.getMonth();
-    todos2.forEach(t=>{if(t.text){const fe=yEnsureFixed(t.text,t.labelColor||'',t.label||'');if(!fe.months[mon])fe.months[mon]={done:0,total:0,skipped:0};fe.months[mon].total++;if(t.done&&!t.isSkipped)fe.months[mon].done++;if(t.isSkipped)fe.months[mon].skipped++;}});
+    const _yKey=fmt(dt2);
+    todos2.forEach(t=>{if(t.text){const fe=yEnsureFixed(t.text,t.labelColor||'',t.label||'');if(!fe._dayKeys)fe._dayKeys={};if(!fe._dayKeys[_yKey]){fe._dayKeys[_yKey]=true;if(!fe.months[mon])fe.months[mon]={done:0,total:0,skipped:0};fe.months[mon].total++;if(t.done&&!t.isSkipped)fe.months[mon].done++;if(t.isSkipped)fe.months[mon].skipped++;}}});
   }
   const ySumWrap=document.createElement('div');
   ySumWrap.style.cssText='margin-bottom:14px;background:var(--card-bg);border:1px solid var(--bdr);border-radius:4px;overflow:hidden';
   const yFixedEntries=Object.values(yFixedMap).filter(e=>Object.keys(e.months).length>0);
   let yFixedHtml='';
   if(yFixedEntries.length){
-    yFixedHtml=`<div style="margin-top:10px"><div style="font-size:10px;font-weight:600;color:var(--ink-m);letter-spacing:.6px;margin-bottom:6px">🔁 固定安排完成情况（本年 ${ydy} 天记录）</div><div style="overflow-x:auto"><table style="border-collapse:collapse;font-size:9px;min-width:100%"><thead><tr><th style="text-align:left;padding:2px 8px 4px 0;color:var(--ink-m);font-weight:500;min-width:100px">任务</th>`;
+    yFixedHtml=`<div style="margin-top:0"><div onclick="this.nextElementSibling.style.display=this.nextElementSibling.style.display==='none'?'block':'none';this.querySelector('.yfhdr-arr').textContent=this.nextElementSibling.style.display==='none'?'›':'▾'" style="font-size:10px;font-weight:600;color:var(--ink-m);letter-spacing:.6px;padding:10px 14px;cursor:pointer;display:flex;align-items:center;gap:6px;border-bottom:1px solid var(--paper-l);user-select:none">🔁 固定安排完成情况（本年 ${ydy} 天记录）<span class="yfhdr-arr" style="font-size:12px;margin-left:auto">▾</span></div><div style="overflow-x:auto;padding:8px 14px"><table style="border-collapse:collapse;font-size:9px;min-width:100%"><thead><tr><th style="text-align:left;padding:2px 8px 4px 0;color:var(--ink-m);font-weight:500;min-width:100px">任务</th>`;
     for(let mo=0;mo<12;mo++){yFixedHtml+=`<th style="text-align:center;padding:2px 3px 4px;color:var(--ink-m);font-weight:400;font-size:8px;min-width:28px">${mo+1}月</th>`;}
     yFixedHtml+=`<th style="text-align:center;padding:2px 4px 4px;color:var(--ink-m);font-weight:500;min-width:40px">全年</th></tr></thead><tbody>`;
     yFixedEntries.sort((a,b)=>Object.keys(b.months).length-Object.keys(a.months).length).forEach(fe=>{
@@ -3678,18 +3686,9 @@ function renderYearly(){
       const dcClr=dc>=80?'var(--gr)':dc>=60?'var(--bl)':'var(--ac)';
       yFixedHtml+=`<td style="text-align:center;padding:2px 4px;font-family:var(--mo);font-size:8px;font-weight:600;color:${dcClr}">${yearDone}/${yearTotal}</td></tr>`;
     });
-    yFixedHtml+=`</tbody></table></div></div>`;
+    yFixedHtml+=`</tbody></table></div></div></div>`;
   }
-  ySumWrap.innerHTML=`<div style="padding:12px 14px">
-    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:8px">
-      <div style="padding:6px 8px;background:var(--paper-w);border-radius:3px;border-left:3px solid var(--ac)"><div style="color:var(--ac);font-family:var(--mo);font-size:13px;font-weight:600">${yd}/${yt}</div><div style="color:var(--ink-m);font-size:10px">固定安排</div></div>
-      <div style="padding:6px 8px;background:var(--paper-w);border-radius:3px;border-left:3px solid var(--bl)"><div style="color:var(--bl);font-family:var(--mo);font-size:13px;font-weight:600">${yod}/${yot}</div><div style="color:var(--ink-m);font-size:10px">临时事项</div></div>
-      <div style="padding:6px 8px;background:var(--paper-w);border-radius:3px;border-left:3px solid var(--am)"><div style="color:var(--am);font-family:var(--mo);font-size:13px;font-weight:600">✓${ymd}</div><div style="color:var(--ink-m);font-size:10px">小任务</div></div>
-      <div style="padding:6px 8px;background:var(--paper-w);border-radius:3px;border-left:3px solid var(--gr)"><div style="color:var(--gr);font-family:var(--mo);font-size:13px;font-weight:600">${ydy}天</div><div style="color:var(--ink-m);font-size:10px">有记录</div></div>
-    </div>
-    <div style="height:4px;background:var(--paper-l);border-radius:2px;overflow:hidden;margin-bottom:4px"><div style="height:100%;width:${yGlobalRate}%;background:${yGlobalRate>=80?'var(--gr)':yGlobalRate>=60?'var(--bl)':'var(--ac)'};border-radius:2px"></div></div>
-    ${yFixedHtml}
-  </div>`;
+  ySumWrap.innerHTML=`<div style="padding:0">${yFixedHtml}</div>`;
   if(sumWrapEl){sumWrapEl.innerHTML='';sumWrapEl.appendChild(ySumWrap);sumWrapEl.style.display='block';}
   else heatWrap.appendChild(ySumWrap);
 
@@ -3752,14 +3751,6 @@ function renderYearly(){
           <span style="color:var(--ink-m);font-size:9px">计划完成</span>
         </div>
         <div style="padding:4px 6px;background:var(--paper-w);border-radius:3px;display:flex;flex-direction:column;gap:1px">
-          <span style="font-family:var(--mo);font-size:12px;font-weight:600;color:var(--bl)">${mod}/${mot}</span>
-          <span style="color:var(--ink-m);font-size:9px">临时完成</span>
-        </div>
-        <div style="padding:4px 6px;background:var(--paper-w);border-radius:3px;display:flex;flex-direction:column;gap:1px">
-          <span style="font-family:var(--mo);font-size:12px;font-weight:600;color:var(--am)">✓${mmd}</span>
-          <span style="color:var(--ink-m);font-size:9px">小任务</span>
-        </div>
-        <div style="padding:4px 6px;background:var(--paper-w);border-radius:3px;display:flex;flex-direction:column;gap:1px">
           <span style="font-family:var(--mo);font-size:12px;font-weight:600;color:var(--gr)">${mdy}天</span>
           <span style="color:var(--ink-m);font-size:9px">有记录</span>
         </div>
@@ -3769,12 +3760,12 @@ function renderYearly(){
     card.innerHTML=`
       <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:6px;padding-bottom:5px;border-bottom:1px solid var(--paper-l)">
         <div class="ymn" style="margin:0;border:none;padding:0">${MCN[m]}</div>
-        <span style="font-family:var(--mo);font-size:13px;font-weight:600;color:${r>=80?'var(--gr)':r>=60?'var(--bl)':mt?'var(--ac)':'var(--ink-m)'}">${mt?r+'%':'—'}</span>
+        <div style="display:flex;align-items:center;gap:5px">
+          ${mdy?`<span style="font-size:9px;color:var(--ink-m)">${mdy}天</span>`:''}
+          <span style="font-family:var(--mo);font-size:13px;font-weight:600;color:${r>=80?'var(--gr)':r>=60?'var(--bl)':mt?'var(--ac)':'var(--ink-m)'}">${mt?r+'%':'—'}</span>
+        </div>
       </div>
       ${miniCal}
-      <div style="height:4px;background:var(--paper-l);border-radius:2px;overflow:hidden;margin-bottom:8px">
-        <div style="height:100%;width:${r}%;background:${r>=80?'var(--gr)':r>=60?'var(--bl)':'var(--ac)'};border-radius:2px;transition:width .4s"></div>
-      </div>
       ${mdy?statsHtml:'<div style="font-size:10px;color:var(--ink-m);text-align:center;padding:10px 0;opacity:.4">暂无记录</div>'}`;
     grid.appendChild(card);
   }
@@ -5662,6 +5653,19 @@ function renderJournal() {
         <div style="display:flex;gap:4px">${tagsHtml}</div>
       </div>
       ${preview ? `<div style="padding:9px 14px;font-size:11px;color:var(--ink-m);line-height:1.65;white-space:pre-wrap;max-height:60px;overflow:hidden">${preview}${preview.length>=120?'…':''}</div>` : ''}`;
+    // Add export button to card
+    const cardActions = document.createElement('div');
+    cardActions.style.cssText = 'display:flex;gap:6px;padding:6px 14px 8px;border-top:1px solid var(--paper-l)';
+    const editBtn2 = document.createElement('button');
+    editBtn2.style.cssText = 'font-size:11px;padding:3px 10px;background:var(--ac);border:none;color:white;border-radius:3px;cursor:pointer;font-family:var(--ss)';
+    editBtn2.textContent = '✏️ 编辑';
+    editBtn2.onclick = (e) => { e.stopPropagation(); openJournalEditor(j); };
+    const expBtn2 = document.createElement('button');
+    expBtn2.style.cssText = 'font-size:11px;padding:3px 10px;background:var(--paper-w);border:1px solid var(--bdr);color:var(--ink-m);border-radius:3px;cursor:pointer;font-family:var(--ss)';
+    expBtn2.textContent = '📤 导出';
+    expBtn2.onclick = (e) => { e.stopPropagation(); exportJournalEntry(j); };
+    cardActions.appendChild(editBtn2); cardActions.appendChild(expBtn2);
+    card.appendChild(cardActions);
     card.onclick = () => openJournalEditor(j);
     list.appendChild(card);
   });
@@ -5703,8 +5707,8 @@ function renderJnlMiniCal() {
     const isToday = ds===todayStr;
     const cell = document.createElement('div');
     let bg='var(--paper-l)', border='1px solid transparent';
-    if(cnt===1) bg='rgba(92,110,248,.55)';
-    else if(cnt>1) bg='var(--ac)';
+    if(cnt===1) bg='rgba(60,80,220,.75)';
+    else if(cnt>1) bg='#3c50dc';
     if(isToday) border='1.5px solid var(--ac)';
     cell.style.cssText=`width:22px;height:22px;border-radius:3px;background:${bg};border:${border};font-size:8.5px;display:flex;align-items:center;justify-content:center;cursor:pointer;color:${cnt>0?'white':isToday?'var(--ac)':'var(--ink-m)'};font-family:var(--mo);transition:transform .1s;position:relative`;
     cell.title = ds+(cnt?` (${cnt}条总结)`:'');
@@ -5847,6 +5851,52 @@ function exportJournalTxt(){
   URL.revokeObjectURL(a.href);
 }
 
+function exportAllJournals() {
+  const all = jnlLoadAll();
+  const filter = document.getElementById('jnl-filter')?.value || 'all';
+  const q = (document.getElementById('jnl-search')?.value || '').toLowerCase();
+  let filtered = all.filter(j => {
+    if (filter !== 'all' && j.type !== filter) return false;
+    if (q) {
+      const text = [j.title, j.body, j.done_txt, j.insight, j.next_txt, (j.tags||[]).join(' ')].join(' ').toLowerCase();
+      return text.includes(q);
+    }
+    return true;
+  });
+  filtered.sort((a,b) => b.date.localeCompare(a.date));
+  if(!filtered.length){cdlgAlert('没有可导出的总结');return;}
+  const siteName = localStorage.getItem('site_name')||'工作计划';
+  let txt = `${siteName} · 总结导出\n导出时间：${new Date().toLocaleString('zh-CN')}\n共 ${filtered.length} 条\n${'═'.repeat(50)}\n\n`;
+  filtered.forEach(j => {
+    const typeLabel = JNL_TYPE_LABEL[j.type]||j.type;
+    const tags = (j.tags||[]).join(' ');
+    txt += `【${typeLabel}】${j.date}${j.mood?' '+j.mood:''}\n`;
+    if(tags) txt += `标签：${tags}\n`;
+    txt += '─'.repeat(40)+'\n';
+    if(j.body) txt += j.body+'\n';
+    txt += '\n\n';
+  });
+  const blob = new Blob([txt], {type:'text/plain;charset=utf-8'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `总结全部导出_${fmt(new Date())}.txt`;
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+
+function exportJournalEntry(j) {
+  const siteName = localStorage.getItem('site_name')||'工作计划';
+  const typeLabel = JNL_TYPE_LABEL[j.type]||j.type;
+  const tags = (j.tags||[]).join(' ');
+  const txt = `${siteName} · ${typeLabel}\n日期：${j.date}${j.mood?' 心情：'+j.mood:''}\n标签：${tags||'无'}\n${'─'.repeat(40)}\n\n${j.body||''}`;
+  const blob = new Blob([txt], {type:'text/plain;charset=utf-8'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `总结_${j.date}.txt`;
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+
 function closeJournalEditor() {
   document.getElementById('jnl-modal').style.display='none';
   jnlEditingId=null;
@@ -5916,71 +5966,227 @@ function inboxLoadAll(){try{return JSON.parse(localStorage.getItem(INBOX_KEY)||'
 function inboxSaveAll(arr){localStorage.setItem(INBOX_KEY,JSON.stringify(arr));}
 function inboxGenId(){return 'ibx_'+Date.now().toString(36)+'_'+Math.random().toString(36).slice(2,5);}
 
+let _inboxEditingId = null;
+
 function addInboxItem(){
   const title=(document.getElementById('inbox-new-title')?.value||'').trim();
   if(!title){cdlgAlert('请输入事项内容');return;}
   const note=(document.getElementById('inbox-new-note')?.value||'').trim();
   const cat=document.getElementById('inbox-new-cat')?.value||'other';
-  const dur=(document.getElementById('inbox-new-dur')?.value||'').trim();
   const pri=document.querySelector('input[name="inbox-pri"]:checked')?.value||'mid';
-  const item={id:inboxGenId(),title,note,cat,dur,pri,createdAt:new Date().toISOString()};
-  const all=inboxLoadAll();all.push(item);inboxSaveAll(all);
+  const all=inboxLoadAll();
+  if(_inboxEditingId){
+    // 编辑模式
+    const idx=all.findIndex(i=>i.id===_inboxEditingId);
+    if(idx>=0){all[idx]={...all[idx],title,note,cat,pri,updatedAt:new Date().toISOString()};}
+    _inboxEditingId=null;
+    // 重置按钮
+    const addBtn=document.querySelector('#view-inbox .tb');
+    const formSubmitBtn=document.querySelector('#inbox-form-submit');
+    if(formSubmitBtn)formSubmitBtn.textContent='＋ 添加到待安排';
+    const cancelBtn=document.getElementById('inbox-edit-cancel');
+    if(cancelBtn)cancelBtn.style.display='none';
+  } else {
+    const item={id:inboxGenId(),title,note,cat,pri,createdAt:new Date().toISOString()};
+    all.push(item);
+  }
+  inboxSaveAll(all);
   document.getElementById('inbox-new-title').value='';
   document.getElementById('inbox-new-note').value='';
-  document.getElementById('inbox-new-dur').value='';
   renderInbox();
+}
+
+function inboxStartEdit(id){
+  const all=inboxLoadAll();
+  const item=all.find(i=>i.id===id);
+  if(!item)return;
+  _inboxEditingId=id;
+  document.getElementById('inbox-new-title').value=item.title||'';
+  document.getElementById('inbox-new-note').value=item.note||'';
+  const catSel=document.getElementById('inbox-new-cat');
+  if(catSel)catSel.value=item.cat||'other';
+  const priRadio=document.querySelector(`input[name="inbox-pri"][value="${item.pri||'mid'}"]`);
+  if(priRadio)priRadio.checked=true;
+  document.getElementById('inbox-new-title').focus();
+  const formSubmitBtn=document.getElementById('inbox-form-submit');
+  if(formSubmitBtn)formSubmitBtn.textContent='💾 保存修改';
+  const cancelBtn=document.getElementById('inbox-edit-cancel');
+  if(cancelBtn)cancelBtn.style.display='';
+}
+
+function inboxCancelEdit(){
+  _inboxEditingId=null;
+  document.getElementById('inbox-new-title').value='';
+  document.getElementById('inbox-new-note').value='';
+  const formSubmitBtn=document.getElementById('inbox-form-submit');
+  if(formSubmitBtn)formSubmitBtn.textContent='＋ 添加到待安排';
+  const cancelBtn=document.getElementById('inbox-edit-cancel');
+  if(cancelBtn)cancelBtn.style.display='none';
+}
+
+function getInboxCatColor(cat){
+  // 优先匹配用户标签名称
+  const labels=getLabels();
+  const catLabel=INBOX_CAT_LABEL[cat||'other']||cat;
+  const matched=labels.find(l=>l.name===catLabel);
+  if(matched)return matched.color;
+  return INBOX_CAT_COLOR[cat||'other']||'var(--ink-m)';
 }
 
 function renderInbox(){
   const all=inboxLoadAll();
   const filter=document.getElementById('inbox-filter')?.value||'all';
-  const filtered=filter==='all'?all:all.filter(i=>i.cat===filter);
-  document.getElementById('inbox-count').textContent=all.length;
+  // 分为待安排和已安排
+  const pending=all.filter(i=>!i.arrangedAt);
+  const arranged=all.filter(i=>i.arrangedAt);
+  const filtered=filter==='all'?pending:pending.filter(i=>i.cat===filter);
+  
+  document.getElementById('inbox-count').textContent=pending.length;
   const list=document.getElementById('inbox-list');
   if(!list)return;
   list.innerHTML='';
-  if(!filtered.length){list.innerHTML='<div style="text-align:center;padding:40px 20px;color:var(--ink-m);opacity:.5;font-size:12px">暂无待安排事项<br>在右侧添加吧 →</div>';return;}
-  filtered.forEach(item=>{
-    const card=document.createElement('div');
-    card.style.cssText='background:var(--paper-w);border:1px solid var(--bdr);border-radius:4px;padding:10px 12px;position:relative;transition:border-color .15s,box-shadow .15s';
-    card.onmouseenter=()=>{card.style.borderColor='var(--ac-l)';card.style.boxShadow='0 2px 8px var(--shd)';};
-    card.onmouseleave=()=>{card.style.borderColor='var(--bdr)';card.style.boxShadow='';};
-    const priColor=INBOX_PRI_COLOR[item.pri||'mid']||'var(--am)';
-    const catColor=INBOX_CAT_COLOR[item.cat||'other']||'var(--ink-m)';
-    const catLabel=INBOX_CAT_LABEL[item.cat||'other']||item.cat;
-    card.innerHTML=`
-      <div style="display:flex;align-items:flex-start;gap:8px">
-        <div style="width:3px;border-radius:2px;background:${priColor};flex-shrink:0;align-self:stretch"></div>
-        <div style="flex:1;min-width:0">
-          <div style="font-size:12px;font-weight:500;color:var(--ink);margin-bottom:4px;line-height:1.4">${item.title}</div>
-          ${item.note?`<div style="font-size:10px;color:var(--ink-m);line-height:1.5;margin-bottom:5px">${item.note}</div>`:''}
-          <div style="display:flex;gap:5px;flex-wrap:wrap;align-items:center">
-            <span style="font-size:9px;padding:1px 7px;background:${catColor}22;color:${catColor};border:1px solid ${catColor}44;border-radius:10px">${catLabel}</span>
-            ${item.dur?`<span style="font-size:9px;padding:1px 7px;background:var(--paper-l);color:var(--ink-m);border-radius:10px">⏱ ${item.dur}</span>`:''}
-            <span style="font-size:9px;color:var(--ink-m);margin-left:auto">${(item.createdAt||'').slice(0,10)}</span>
+  
+  if(!filtered.length&&!arranged.length){
+    list.innerHTML='<div style="text-align:center;padding:40px 20px;color:var(--ink-m);opacity:.5;font-size:12px">暂无待安排事项<br>在右侧添加吧 →</div>';
+    return;
+  }
+  
+  // 渲染待安排事项
+  if(filtered.length){
+    filtered.forEach(item=>{
+      const card=document.createElement('div');
+      card.style.cssText='background:var(--paper-w);border:1px solid var(--bdr);border-radius:4px;padding:10px 12px;position:relative;transition:border-color .15s,box-shadow .15s';
+      card.onmouseenter=()=>{card.style.borderColor='var(--ac-l)';card.style.boxShadow='0 2px 8px var(--shd)';};
+      card.onmouseleave=()=>{card.style.borderColor='var(--bdr)';card.style.boxShadow='';};
+      const priColor=INBOX_PRI_COLOR[item.pri||'mid']||'var(--am)';
+      const catColor=getInboxCatColor(item.cat);
+      const catLabel=INBOX_CAT_LABEL[item.cat||'other']||item.cat;
+      card.innerHTML=`
+        <div style="display:flex;align-items:flex-start;gap:8px">
+          <div style="width:3px;border-radius:2px;background:${priColor};flex-shrink:0;align-self:stretch"></div>
+          <div style="flex:1;min-width:0">
+            <div style="font-size:12px;font-weight:500;color:var(--ink);margin-bottom:4px;line-height:1.4">${item.title}</div>
+            ${item.note?`<div style="font-size:10px;color:var(--ink-m);line-height:1.5;margin-bottom:5px">${item.note}</div>`:''}
+            <div style="display:flex;gap:5px;flex-wrap:wrap;align-items:center">
+              <span style="font-size:9px;padding:1px 7px;background:${catColor}22;color:${catColor};border:1px solid ${catColor}44;border-radius:10px">${catLabel}</span>
+              <span style="font-size:9px;color:var(--ink-m);margin-left:auto">${(item.createdAt||'').slice(0,10)}</span>
+            </div>
           </div>
-        </div>
-        <div style="display:flex;flex-direction:column;gap:4px;flex-shrink:0">
-          <button onclick="inboxSendToToday('${item.id}')" title="添加到今日计划" style="font-size:9px;padding:2px 7px;background:var(--ac-p);color:var(--ac);border:1px solid var(--ac-l);border-radius:2px;cursor:pointer;white-space:nowrap">→今日</button>
-          <button onclick="inboxDelete('${item.id}')" title="删除" style="font-size:9px;padding:2px 7px;background:none;color:var(--ink-m);border:1px solid var(--paper-l);border-radius:2px;cursor:pointer">删除</button>
-        </div>
-      </div>`;
-    list.appendChild(card);
-  });
+          <div style="display:flex;flex-direction:column;gap:4px;flex-shrink:0">
+            <button onclick="inboxSendToToday('${item.id}')" title="安排到今日临时事项" style="font-size:9px;padding:2px 7px;background:var(--ac-p);color:var(--ac);border:1px solid var(--ac-l);border-radius:2px;cursor:pointer;white-space:nowrap">→今日</button>
+            <button onclick="inboxStartEdit('${item.id}')" title="编辑" style="font-size:9px;padding:2px 7px;background:var(--paper-w);color:var(--ink-m);border:1px solid var(--bdr);border-radius:2px;cursor:pointer">✏️ 编辑</button>
+            <button onclick="inboxDelete('${item.id}')" title="删除" style="font-size:9px;padding:2px 7px;background:none;color:var(--ink-m);border:1px solid var(--paper-l);border-radius:2px;cursor:pointer">删除</button>
+          </div>
+        </div>`;
+      list.appendChild(card);
+    });
+  } else if(!arranged.length){
+    list.innerHTML='<div style="text-align:center;padding:40px 20px;color:var(--ink-m);opacity:.5;font-size:12px">暂无待安排事项<br>在右侧添加吧 →</div>';
+  }
+  
+  // 渲染已安排事项（按周折叠）
+  if(arranged.length){
+    // 按周分组
+    const weekGroups={};
+    arranged.forEach(item=>{
+      const dt=new Date(item.arrangedDate||item.arrangedAt||item.createdAt);
+      // 找本周周一
+      const day=dt.getDay();
+      const diffToMon=day===0?-6:1-day;
+      const mon=new Date(dt);mon.setDate(dt.getDate()+diffToMon);mon.setHours(0,0,0,0);
+      const weekKey=fmt(mon);
+      if(!weekGroups[weekKey])weekGroups[weekKey]={monDate:mon,items:[]};
+      weekGroups[weekKey].items.push(item);
+    });
+    const sortedWeeks=Object.keys(weekGroups).sort((a,b)=>b.localeCompare(a));
+    
+    const sep=document.createElement('div');
+    sep.style.cssText='margin-top:10px;padding:6px 0 4px;border-top:1px dashed var(--paper-l);display:flex;align-items:center;gap:6px';
+    sep.innerHTML=`<span style="font-size:9px;font-weight:600;color:var(--gr);letter-spacing:.6px">✅ 已安排 (${arranged.length})</span>`;
+    list.appendChild(sep);
+    
+    sortedWeeks.forEach((wk,wi)=>{
+      const group=weekGroups[wk];
+      const mon2=group.monDate;
+      const sun=new Date(mon2);sun.setDate(mon2.getDate()+6);
+      const wkLabel=`${mon2.getMonth()+1}/${mon2.getDate()} – ${sun.getMonth()+1}/${sun.getDate()}`;
+      const collapsed=wi>0; // 默认最新周展开，其余折叠
+      
+      const wkHeader=document.createElement('div');
+      wkHeader.style.cssText='display:flex;align-items:center;gap:6px;padding:5px 8px;background:var(--paper-w);border:1px solid var(--paper-l);border-radius:3px;cursor:pointer;margin-bottom:2px;margin-top:4px';
+      wkHeader.innerHTML=`<span style="font-size:9px;font-weight:600;color:var(--ink-m)">${wkLabel}</span><span style="font-size:9px;background:var(--gr-l);color:var(--gr);padding:0 5px;border-radius:8px">${group.items.length}条</span><span style="margin-left:auto;font-size:12px;color:var(--ink-m);transition:transform .2s" class="wk-arrow">${collapsed?'›':'▾'}</span>`;
+      list.appendChild(wkHeader);
+      
+      const wkBody=document.createElement('div');
+      wkBody.style.cssText=`display:flex;flex-direction:column;gap:4px;overflow:hidden;transition:max-height .3s;max-height:${collapsed?'0':'9999px'}`;
+      
+      wkHeader.onclick=()=>{
+        const isOpen=wkBody.style.maxHeight!=='0px'&&wkBody.style.maxHeight!=='0';
+        wkBody.style.maxHeight=isOpen?'0':'9999px';
+        const arrow=wkHeader.querySelector('.wk-arrow');
+        if(arrow)arrow.textContent=isOpen?'›':'▾';
+      };
+      
+      group.items.forEach(item=>{
+        const catColor=getInboxCatColor(item.cat);
+        const catLabel=INBOX_CAT_LABEL[item.cat||'other']||item.cat;
+        const icard=document.createElement('div');
+        icard.style.cssText='background:var(--paper-w);border:1px solid var(--paper-l);border-radius:3px;padding:7px 10px;opacity:.75';
+        icard.innerHTML=`<div style="display:flex;align-items:flex-start;gap:6px">
+          <span style="color:var(--gr);font-size:10px;flex-shrink:0;margin-top:1px">✓</span>
+          <div style="flex:1;min-width:0">
+            <div style="font-size:11px;color:var(--ink-m);text-decoration:line-through;line-height:1.4">${item.title}</div>
+            <div style="display:flex;gap:4px;margin-top:3px;flex-wrap:wrap">
+              <span style="font-size:8px;padding:1px 6px;background:${catColor}22;color:${catColor};border:1px solid ${catColor}44;border-radius:8px">${catLabel}</span>
+              ${item.arrangedDate?`<span style="font-size:8px;color:var(--gr);background:var(--gr-l);padding:1px 5px;border-radius:8px">→ ${item.arrangedDate}</span>`:''}
+            </div>
+          </div>
+          <button onclick="inboxDeleteArranged('${item.id}')" style="font-size:8px;padding:1px 5px;background:none;color:var(--ink-m);border:1px solid var(--paper-l);border-radius:2px;cursor:pointer;flex-shrink:0;opacity:.6">✕</button>
+        </div>`;
+        wkBody.appendChild(icard);
+      });
+      
+      list.appendChild(wkBody);
+    });
+  }
+}
+
+function inboxDeleteArranged(id){
+  inboxSaveAll(inboxLoadAll().filter(i=>i.id!==id));
+  renderInbox();
 }
 
 function inboxSendToToday(id){
   const all=inboxLoadAll();
   const item=all.find(i=>i.id===id);
   if(!item)return;
-  const data=load(currentDate)||{todos:[],otasks:[],memos:[]};
-  if(!data.todos)data.todos=[];
-  data.todos.push({id:'t_'+fmt(currentDate)+'_'+Math.random().toString(36).slice(2,6),text:item.title,planStart:'',planEnd:'',note:item.note||'',noteChecklist:[],done:false,actualSegs:[],execOpen:!!(item.note),priority:data.todos.length+1});
-  localStorage.setItem(gkey(currentDate),JSON.stringify(data));
-  // Remove from inbox
-  inboxSaveAll(all.filter(i=>i.id!==id));
-  renderInbox();
-  const toast=document.getElementById('saved');if(toast){toast.textContent='已添加到今日计划';toast.classList.add('show');setTimeout(()=>{toast.textContent='已保存';toast.classList.remove('show');},1600);}
+  // 找到对应标签颜色（通过分类名匹配用户标签）
+  const labels=getLabels();
+  const catLabel=INBOX_CAT_LABEL[item.cat||'other']||item.cat;
+  const matchedLabel=labels.find(l=>l.name===catLabel)||null;
+  const labelColor=matchedLabel?matchedLabel.color:'';
+  const labelName=matchedLabel?matchedLabel.name:'';
+  // 询问计划时间
+  cdlgPrompt('请输入计划安排时间（如 14:00-15:00，留空跳过）','','安排时间').then(timeVal=>{
+    let planStart='',planEnd='';
+    if(timeVal&&timeVal.trim()){
+      const parts=timeVal.trim().split(/[-–]/);
+      planStart=normalizeTime(parts[0])||'';
+      planEnd=parts[1]?normalizeTime(parts[1]):'';
+    }
+    const data=load(currentDate)||{todos:[],otasks:[],memos:[]};
+    if(!data.otasks)data.otasks=[];
+    // 标记为已安排，不从inbox删除，而是标记
+    const arranged={...item, arrangedAt:new Date().toISOString(), arrangedDate:fmt(currentDate)};
+    // 更新inbox中该条目为已安排状态
+    const updatedAll=all.map(i=>i.id===id?arranged:i);
+    inboxSaveAll(updatedAll);
+    // 添加到临时事项
+    data.otasks.push({text:item.title,done:false,actualSegs:[],noteChecklist:[],note:item.note||'',planStart,planEnd,execOpen:!!(item.note||planStart),movedToNext:'',deferredFrom:'',label:labelName,labelColor:labelColor});
+    localStorage.setItem(gkey(currentDate),JSON.stringify(data));
+    renderInbox();
+    const toast=document.getElementById('saved');if(toast){toast.textContent='已添加到今日临时事项';toast.classList.add('show');setTimeout(()=>{toast.textContent='已保存';toast.classList.remove('show');},1600);}
+  });
 }
 function inboxDelete(id){
   inboxSaveAll(inboxLoadAll().filter(i=>i.id!==id));
