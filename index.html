@@ -896,7 +896,7 @@ body.dark-mode .cdlg-inp{background:var(--paper-l);color:var(--ink)}
             <div class="ptitle" style="margin-bottom:0;border:none;padding:0">每日固定安排</div>
             <span id="s-todo-summary" style="font-size:10px;color:var(--ink-m);font-family:var(--mo)"></span>
           </div>
-          <button class="sort-lock-btn" id="sort-lock-btn" onclick="toggleSortLock()" title="锁定排序：记住当前顺序，套用模板时保持">⇅ 记住排序</button>
+
           <div style="position:relative;flex-shrink:0">
             <button class="copy-all-btn" id="copy-todos-btn" onclick="toggleCopyMenu('todos-copy-menu',this)" title="按标签筛选复制">⎘ 复制 ▾</button>
             <div id="todos-copy-menu" style="display:none;position:absolute;top:calc(100% + 4px);right:0;z-index:600;background:var(--card-bg);border:1px solid var(--bdr);border-radius:6px;box-shadow:0 6px 20px var(--shd);min-width:140px;padding:4px 0;white-space:nowrap">
@@ -2775,6 +2775,12 @@ function addOtask(pre){
 
   const mv=document.createElement('button');mv.className='otask-mv';mv.title='推迟到明天';mv.textContent='→明';
   mv.onclick=()=>moveOtaskToNextDay(div);
+  // Move-to-date button (always visible, disabled after deferred)
+  const mvDate=document.createElement('button');mvDate.className='otask-mv-date';mvDate.title='移动到指定日期';mvDate.textContent='→日期';
+  mvDate.style.cssText='font-size:9px;color:var(--ink-m);cursor:pointer;padding:1px 6px;border:1px solid var(--paper-l);border-radius:2px;background:none;font-family:var(--ss);flex-shrink:0;white-space:nowrap;transition:all var(--t)';
+  mvDate.onmouseenter=()=>{if(!mvDate.disabled){mvDate.style.borderColor='var(--bl)';mvDate.style.color='var(--bl)';}};
+  mvDate.onmouseleave=()=>{if(!mvDate.disabled){mvDate.style.borderColor='var(--paper-l)';mvDate.style.color='var(--ink-m)';}};
+  mvDate.onclick=()=>moveOtaskToDate(div);
   // Restore deferred visual state if previously saved
   if(pre?.movedToNext){
     div.dataset.movedToNext=pre.movedToNext;
@@ -2805,7 +2811,9 @@ function addOtask(pre){
     </div>`;
   // init picker on open
 
-  topRow.appendChild(drag);topRow.appendChild(chk);topRow.appendChild(labelDotWrap);topRow.appendChild(inp);topRow.appendChild(mv);topRow.appendChild(toggle);topRow.appendChild(del);
+  topRow.appendChild(drag);topRow.appendChild(chk);topRow.appendChild(labelDotWrap);topRow.appendChild(inp);topRow.appendChild(mv);topRow.appendChild(mvDate);topRow.appendChild(toggle);topRow.appendChild(del);
+  // Restore label tag if label already set (after page load from saved data)
+  if(pre?.labelColor&&pre?.label){const initTag=document.createElement('span');initTag.className='label-tag otask-label-tag';initTag.style.cssText=`background:${pre.labelColor}22;color:${pre.labelColor};border:1px solid ${pre.labelColor}44`;initTag.innerHTML=`<span class="label-dot-sm" style="background:${pre.labelColor}"></span>${pre.label}`;topRow.insertBefore(initTag,toggle);}
 
   // exec section: plan time + actual segs + note (collapsible)
   const execSec=document.createElement('div');execSec.className='otask-exec';
@@ -2880,24 +2888,57 @@ function addOtaskSegRow(container,div,chk,startVal,endVal){
   container.appendChild(seg);
 }
 
-function moveOtaskToNextDay(div){
+function _moveOtaskToDate(div, targetDate){
   const text=div.querySelector('.otask-txt')?.value||'';
   const note=div.querySelector('.otnote')?.value||'';
+  const ps=div.querySelector('.ops')?.value||'';
+  const pe=div.querySelector('.ope')?.value||'';
+  const label=div.dataset.label||'';
+  const labelColor=div.dataset.labelColor||'';
   if(!text)return;
-  const tomorrow=new Date(currentDate.getTime()+86400000);
-  const tomorrowKey='plan_'+fmt(tomorrow);
-  let tData={};try{const r=localStorage.getItem(tomorrowKey);if(r)tData=JSON.parse(r)}catch{}
+  const key='plan_'+fmt(targetDate);
+  let tData={};try{const r=localStorage.getItem(key);if(r)tData=JSON.parse(r)}catch{}
   if(!tData.otasks)tData.otasks=[];
   if(!tData.otasks.some(o=>o.text===text)){
-    tData.otasks.push({text,done:false,note,actualSegs:[],execOpen:!!note,deferredFrom:fmt(currentDate)});
-    localStorage.setItem(tomorrowKey,JSON.stringify(tData));
-    const dateStr=(tomorrow.getMonth()+1)+'/'+(tomorrow.getDate());
+    tData.otasks.push({text,done:false,note,actualSegs:[],execOpen:!!note,planStart:ps,planEnd:pe,label,labelColor,deferredFrom:fmt(currentDate)});
+    localStorage.setItem(key,JSON.stringify(tData));
+    const dateStr=(targetDate.getMonth()+1)+'/'+(targetDate.getDate());
     div.dataset.movedToNext=dateStr;
     saveDayData();
     applyOtaskDeferredStyle(div,dateStr);
   } else {
-    cdlgAlert('明天已有相同安排');
+    cdlgAlert('目标日期已有相同安排');
   }
+}
+function moveOtaskToNextDay(div){
+  const tomorrow=new Date(currentDate.getTime()+86400000);
+  _moveOtaskToDate(div, tomorrow);
+}
+function restoreOtaskToToday(div){
+  const movedTo=div.dataset.movedToNext;
+  if(!movedTo)return;
+  // Try to clear from target date
+  const text=div.querySelector('.otask-txt')?.value||'';
+  // Find which date it was moved to
+  const parts=movedTo.split('/');
+  if(parts.length===2){
+    const targetDate=new Date(currentDate.getFullYear(),parseInt(parts[0])-1,parseInt(parts[1]));
+    const key='plan_'+fmt(targetDate);
+    let tData={};try{const r=localStorage.getItem(key);if(r)tData=JSON.parse(r)}catch{}
+    if(tData.otasks){tData.otasks=tData.otasks.filter(o=>o.text!==text);localStorage.setItem(key,JSON.stringify(tData));}
+  }
+  restoreOtaskFromDeferred(div);
+}
+function moveOtaskToDate(div){
+  cdlgPrompt('移动到指定日期（格式：月/日，如 5/20）','','指定日期').then(val=>{
+    if(!val)return;
+    const parts=val.trim().split('/');
+    if(parts.length!==2||isNaN(parts[0])||isNaN(parts[1])){cdlgAlert('日期格式错误，请输入如 5/20');return;}
+    const m=parseInt(parts[0])-1,d=parseInt(parts[1]);
+    const targetDate=new Date(currentDate.getFullYear(),m,d);
+    if(isNaN(targetDate.getTime())){cdlgAlert('日期无效');return;}
+    _moveOtaskToDate(div,targetDate);
+  });
 }
 
 function applyOtaskDeferredStyle(div,dateStr){
@@ -2908,6 +2949,17 @@ function applyOtaskDeferredStyle(div,dateStr){
     mv.textContent='→'+dateStr;
     mv.style.color='var(--am)';mv.style.borderColor='var(--am)';mv.style.background='var(--am-l)';
     mv.disabled=true;mv.style.cursor='default';
+  }
+  // Disable the move-to-date button
+  const mvDateBtn=div.querySelector('.otask-mv-date');
+  if(mvDateBtn){mvDateBtn.disabled=true;mvDateBtn.style.opacity='.4';mvDateBtn.style.cursor='default';mvDateBtn.style.borderColor='var(--paper-l)';mvDateBtn.style.color='var(--ink-m)';}
+  // Add restore button if not already there
+  if(!div.querySelector('.otask-restore')){
+    const restoreBtn=document.createElement('button');restoreBtn.className='otask-restore';
+    restoreBtn.textContent='↩今天';restoreBtn.title='恢复到今天';
+    restoreBtn.style.cssText='font-size:9px;color:var(--gr);cursor:pointer;padding:1px 6px;border:1px solid var(--gr);border-radius:2px;background:var(--gr-l);font-family:var(--ss);flex-shrink:0;white-space:nowrap;transition:all var(--t)';
+    restoreBtn.onclick=()=>restoreOtaskToToday(div);
+    if(mvDateBtn)mvDateBtn.after(restoreBtn);else if(mv)mv.after(restoreBtn);
   }
 }
 
@@ -2920,6 +2972,9 @@ function restoreOtaskFromDeferred(div){
     mv.style.color='';mv.style.borderColor='';mv.style.background='';
     mv.disabled=false;mv.style.cursor='pointer';
   }
+  const mvDateBtn=div.querySelector('.otask-mv-date');
+  if(mvDateBtn){mvDateBtn.disabled=false;mvDateBtn.style.opacity='1';mvDateBtn.style.cursor='pointer';}
+  div.querySelector('.otask-restore')?.remove();
   delete div.dataset.movedToNext;
   saveDayData();
 }
@@ -3126,6 +3181,7 @@ function renderWeekly(){
           const isSkipped=item.isSkipped;
           const isIncomplete=item.isIncomplete&&!isDone;
           const isMoved=item.movedToNext;
+          const isMakeup=item.isMakeup;
           let rowBg='';
           if(isSkipped) rowBg='background:rgba(239,68,68,.06);';
           else if(isIncomplete) rowBg='background:rgba(245,158,11,.06);';
@@ -3134,6 +3190,7 @@ function renderWeekly(){
           const skipTag=isSkipped?`<span style="font-size:7px;padding:1px 4px;background:#fee2e2;color:#b91c1c;border-radius:2px;white-space:nowrap;flex-shrink:0;margin-top:1px">× 未做</span>`:'';
           const incTag=isIncomplete?`<span style="font-size:7px;padding:1px 4px;background:#fef3c7;color:#92400e;border-radius:2px;white-space:nowrap;flex-shrink:0;margin-top:1px">⏳ 未完成</span>`:'';
           const movedTag=isMoved?`<span style="font-size:7px;padding:1px 4px;background:rgba(107,114,128,.1);color:#6b7280;border-radius:2px;white-space:nowrap;flex-shrink:0;margin-top:1px">→推后</span>`:'';
+          const makeupTag=isMakeup?`<span style="font-size:7px;padding:1px 4px;background:rgba(42,92,63,.15);color:#1a4830;border:1px solid #6ee7b7;border-radius:2px;white-space:nowrap;flex-shrink:0;margin-top:1px">✅补完${item.completedDate?' '+item.completedDate:''}</span>`:'';
           const lc=item.labelColor||'';const ln=item.label||'';
           const labelTag=lc?`<span style="display:inline-flex;align-items:center;gap:2px;font-size:7px;padding:1px 5px;border-radius:8px;background:${lc}22;color:${lc};border:1px solid ${lc}44;white-space:nowrap;flex-shrink:0;margin-top:1px"><span style="width:5px;height:5px;border-radius:50%;background:${lc};flex-shrink:0;display:inline-block"></span>${ln}</span>`:'';
           const iconColor=isSkipped?'#ef4444':isIncomplete?'#f59e0b':isDone?doneColor:'var(--bdr)';
@@ -3142,7 +3199,7 @@ function renderWeekly(){
             <span style="color:${iconColor};flex-shrink:0;margin-top:2px;font-size:9px">${iconText}</span>
             <div style="flex:1;min-width:0">
               <div style="font-size:11px;color:${isSkipped?'#b91c1c':isIncomplete?'#92400e':isDone?'var(--ink-m)':'var(--ink)'};${isDone||isSkipped?'text-decoration:line-through;':''}line-height:1.35;word-break:break-all">${item.text}</div>
-              ${(labelTag||skipTag||incTag||movedTag||timeTag||actualTag||clTag)?`<div style="display:flex;flex-wrap:wrap;gap:3px;margin-top:2px">${labelTag}${skipTag}${incTag}${movedTag}${timeTag}${actualTag}${clTag}</div>`:''}
+              ${(labelTag||skipTag||incTag||makeupTag||movedTag||timeTag||actualTag||clTag)?`<div style="display:flex;flex-wrap:wrap;gap:3px;margin-top:2px">${labelTag}${skipTag}${incTag}${makeupTag}${movedTag}${timeTag}${actualTag}${clTag}</div>`:''}
             </div>`;
           col.appendChild(row);
         });
@@ -3488,6 +3545,8 @@ function renderMonthly(){
         if(isSkipped) statusTag=`<span style="font-size:7px;padding:0 3px;background:#fee2e2;color:#b91c1c;border-radius:2px;white-space:nowrap;flex-shrink:0">× 未做</span>`;
         else if(isIncomplete) statusTag=`<span style="font-size:7px;padding:0 3px;background:#fef3c7;color:#92400e;border-radius:2px;white-space:nowrap;flex-shrink:0">⏳</span>`;
         else if(isMoved) statusTag=`<span style="font-size:7px;padding:0 3px;background:rgba(107,114,128,.1);color:#6b7280;border-radius:2px;white-space:nowrap;flex-shrink:0">→推</span>`;
+        const isMakeup=it.isMakeup;
+        const makeupTag=isMakeup?`<span style="font-size:7px;padding:0 3px;background:rgba(42,92,63,.15);color:#1a4830;border:1px solid #6ee7b7;border-radius:2px;white-space:nowrap;flex-shrink:0">✅补完${it.completedDate?' '+it.completedDate:''}</span>`:'';
         const iconColor=isSkipped?'#ef4444':isIncomplete?'#f59e0b':isDone?doneColor:'var(--bdr)';
         const iconText=isSkipped?'×':isIncomplete?'⏳':isDone?iconDone:iconPend;
         const textStyle=`font-size:9px;color:${isSkipped?'#b91c1c':isIncomplete?'#92400e':isDone?'var(--ink-m)':'var(--ink)'};${isDone||isSkipped?'text-decoration:line-through;':''}overflow:hidden;white-space:nowrap;text-overflow:ellipsis;line-height:1.3`;
@@ -3497,7 +3556,7 @@ function renderMonthly(){
           <span style="color:${iconColor};font-size:7px;flex-shrink:0;margin-top:1.5px">${iconText}</span>
           <div style="flex:1;min-width:0">
             <div style="${textStyle}">${it.text}</div>
-            ${(labelTag||statusTag||timeTag||segsStr||clTag)?`<div style="display:flex;flex-wrap:wrap;gap:2px;margin-top:1px">${labelTag}${statusTag}${timeTag}${segsStr}${clTag}</div>`:''}
+            ${(labelTag||statusTag||makeupTag||timeTag||segsStr||clTag)?`<div style="display:flex;flex-wrap:wrap;gap:2px;margin-top:1px">${labelTag}${statusTag}${makeupTag}${timeTag}${segsStr}${clTag}</div>`:''}
           </div>
         </div>`;
       }
@@ -4072,6 +4131,11 @@ function addMemo(pre){
 
   const mv=document.createElement('button');mv.className='memo-mv';mv.title='推迟到明天';mv.textContent='→明';
   mv.onclick=()=>moveMemoToNextDay(div);
+  const mvDate=document.createElement('button');mvDate.className='memo-mv-date';mvDate.title='移动到指定日期';mvDate.textContent='→日期';
+  mvDate.style.cssText='font-size:9px;color:var(--ink-m);cursor:pointer;padding:1px 6px;border:1px solid var(--paper-l);border-radius:2px;background:none;font-family:var(--ss);flex-shrink:0;white-space:nowrap;transition:all var(--t)';
+  mvDate.onmouseenter=()=>{if(!mvDate.disabled){mvDate.style.borderColor='var(--bl)';mvDate.style.color='var(--bl)';}};
+  mvDate.onmouseleave=()=>{if(!mvDate.disabled){mvDate.style.borderColor='var(--paper-l)';mvDate.style.color='var(--ink-m)';}};
+  mvDate.onclick=()=>moveMemoToDate(div);
   if(pre?.movedToNext){
     setTimeout(()=>applyMemoDeferredStyle(div,pre.movedToNext),0);
   }
@@ -4111,29 +4175,70 @@ function addMemo(pre){
     div.remove();saveDayData();renderUnifiedTimeline();
   };
 
-  topRow.appendChild(drag);topRow.appendChild(chk);topRow.appendChild(mLabelDotWrap);topRow.appendChild(inp);topRow.appendChild(mv);topRow.appendChild(del);
+  topRow.appendChild(drag);topRow.appendChild(chk);topRow.appendChild(mLabelDotWrap);topRow.appendChild(inp);topRow.appendChild(mv);topRow.appendChild(mvDate);topRow.appendChild(del);
+  // Restore label tag if label already set (after page load from saved data)
+  if(pre?.labelColor&&pre?.label){const initTag=document.createElement('span');initTag.className='label-tag memo-label-tag';initTag.style.cssText=`background:${pre.labelColor}22;color:${pre.labelColor};border:1px solid ${pre.labelColor}44`;initTag.innerHTML=`<span class="label-dot-sm" style="background:${pre.labelColor}"></span>${pre.label}`;topRow.insertBefore(initTag,del);}
   div.appendChild(topRow);
   list.appendChild(div);
 }
 
-function moveMemoToNextDay(div){
+function _moveMemoToDate(div, targetDate){
   const text=div.querySelector('.memo-ta')?.value||'';
-  const note=div.querySelector('.mnote')?.value||'';
+  const label=div.dataset.label||'';
+  const labelColor=div.dataset.labelColor||'';
   if(!text)return;
-  const tomorrow=new Date(currentDate.getTime()+86400000);
-  const tomorrowKey='plan_'+fmt(tomorrow);
-  let tData={};try{const r=localStorage.getItem(tomorrowKey);if(r)tData=JSON.parse(r)}catch{}
+  const key='plan_'+fmt(targetDate);
+  let tData={};try{const r=localStorage.getItem(key);if(r)tData=JSON.parse(r)}catch{}
   if(!tData.memos)tData.memos=[];
   if(!tData.memos.some(m=>m.text===text)){
-    tData.memos.push({text,done:false});
-    localStorage.setItem(tomorrowKey,JSON.stringify(tData));
-    const dateStr=(tomorrow.getMonth()+1)+'/'+(tomorrow.getDate());
+    tData.memos.push({text,done:false,label,labelColor});
+    localStorage.setItem(key,JSON.stringify(tData));
+    const dateStr=(targetDate.getMonth()+1)+'/'+(targetDate.getDate());
     div.dataset.movedToNext=dateStr;
     saveDayData();
     applyMemoDeferredStyle(div,dateStr);
   } else {
-    cdlgAlert('明天已有相同小任务');
+    cdlgAlert('目标日期已有相同小任务');
   }
+}
+function moveMemoToNextDay(div){
+  const tomorrow=new Date(currentDate.getTime()+86400000);
+  _moveMemoToDate(div,tomorrow);
+}
+function restoreMemoToToday(div){
+  const movedTo=div.dataset.movedToNext;
+  if(!movedTo)return;
+  const text=div.querySelector('.memo-ta')?.value||'';
+  const parts=movedTo.split('/');
+  if(parts.length===2){
+    const targetDate=new Date(currentDate.getFullYear(),parseInt(parts[0])-1,parseInt(parts[1]));
+    const key='plan_'+fmt(targetDate);
+    let tData={};try{const r=localStorage.getItem(key);if(r)tData=JSON.parse(r)}catch{}
+    if(tData.memos){tData.memos=tData.memos.filter(m=>m.text!==text);localStorage.setItem(key,JSON.stringify(tData));}
+  }
+  restoreMemoFromDeferred(div);
+}
+function moveMemoToDate(div){
+  cdlgPrompt('移动到指定日期（格式：月/日，如 5/20）','','指定日期').then(val=>{
+    if(!val)return;
+    const parts=val.trim().split('/');
+    if(parts.length!==2||isNaN(parts[0])||isNaN(parts[1])){cdlgAlert('日期格式错误，请输入如 5/20');return;}
+    const m=parseInt(parts[0])-1,d=parseInt(parts[1]);
+    const targetDate=new Date(currentDate.getFullYear(),m,d);
+    if(isNaN(targetDate.getTime())){cdlgAlert('日期无效');return;}
+    _moveMemoToDate(div,targetDate);
+  });
+}
+function restoreMemoFromDeferred(div){
+  const inp=div.querySelector('.memo-ta');
+  if(inp){inp.style.textDecoration='';inp.style.color='';}
+  const mv=div.querySelector('.memo-mv');
+  if(mv){mv.textContent='→明';mv.style.color='';mv.style.borderColor='';mv.style.background='';mv.disabled=false;mv.style.cursor='pointer';}
+  const mvDateBtn=div.querySelector('.memo-mv-date');
+  if(mvDateBtn){mvDateBtn.disabled=false;mvDateBtn.style.opacity='1';mvDateBtn.style.cursor='pointer';}
+  div.querySelector('.memo-restore')?.remove();
+  delete div.dataset.movedToNext;
+  saveDayData();
 }
 
 function applyMemoDeferredStyle(div,dateStr){
@@ -4144,6 +4249,15 @@ function applyMemoDeferredStyle(div,dateStr){
     mv.textContent='→'+dateStr;
     mv.style.color='var(--am)';mv.style.borderColor='var(--am)';mv.style.background='var(--am-l)';
     mv.disabled=true;mv.style.cursor='default';
+  }
+  const mvDateBtn=div.querySelector('.memo-mv-date');
+  if(mvDateBtn){mvDateBtn.disabled=true;mvDateBtn.style.opacity='.4';mvDateBtn.style.cursor='default';}
+  if(!div.querySelector('.memo-restore')){
+    const restoreBtn=document.createElement('button');restoreBtn.className='memo-restore';
+    restoreBtn.textContent='↩今天';restoreBtn.title='恢复到今天';
+    restoreBtn.style.cssText='font-size:9px;color:var(--gr);cursor:pointer;padding:1px 6px;border:1px solid var(--gr);border-radius:2px;background:var(--gr-l);font-family:var(--ss);flex-shrink:0;white-space:nowrap;transition:all var(--t)';
+    restoreBtn.onclick=()=>restoreMemoToToday(div);
+    if(mvDateBtn)mvDateBtn.after(restoreBtn);else if(mv)mv.after(restoreBtn);
   }
 }
 
