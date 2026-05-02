@@ -5519,6 +5519,7 @@ function handleFullRestore(e) {
       if(document.getElementById('view-monthly')?.classList.contains('active')) renderMonthly();
       if(document.getElementById('view-yearly')?.classList.contains('active')) renderYearly();
       if(document.getElementById('view-journal')?.classList.contains('active')) renderJournal();
+      if(document.getElementById('view-inbox')?.classList.contains('active')) renderInbox();
       const restoredKeys = Object.keys(bundle._keys).length;
       const actualKeys = localStorage.length;
       if (failCount > 0) {
@@ -5548,6 +5549,8 @@ function openFullBackupModal() {
   }
   try { templates = (JSON.parse(localStorage.getItem('todo_templates') || '[]')).length; } catch {}
   try { journals = (JSON.parse(localStorage.getItem('journals_v1') || '[]')).length; } catch {}
+  let inboxItems = 0;
+  try { inboxItems = (JSON.parse(localStorage.getItem('inbox_items') || '[]')).length; } catch {}
   const siteName = localStorage.getItem('site_name') || '工作计划';
 
   const pct = getStorageUsagePercent();
@@ -5558,6 +5561,8 @@ function openFullBackupModal() {
   document.getElementById('fbk-storage').textContent = pct + '%';
   const fbkJnlEl = document.getElementById('fbk-journals');
   if (fbkJnlEl) fbkJnlEl.textContent = journals;
+  const fbkInboxEl = document.getElementById('fbk-inbox');
+  if (fbkInboxEl) fbkInboxEl.textContent = inboxItems;
 
   const ts = localStorage.getItem(FULL_BACKUP_TS_KEY);
   const lastEl = document.getElementById('fbk-lastbackup');
@@ -6141,6 +6146,10 @@ document.addEventListener('DOMContentLoaded', function() {
         <div style="background:var(--paper-w);border:1px solid var(--bdr);border-radius:6px;padding:10px 12px">
           <div style="font-family:var(--mo);font-size:20px;font-weight:500;color:var(--am)" id="fbk-journals">0</div>
           <div style="font-size:11px;color:var(--ink-m);margin-top:2px">条总结日志</div>
+        </div>
+        <div style="background:var(--paper-w);border:1px solid var(--bdr);border-radius:6px;padding:10px 12px">
+          <div style="font-family:var(--mo);font-size:20px;font-weight:500;color:var(--bl)" id="fbk-inbox">0</div>
+          <div style="font-size:11px;color:var(--ink-m);margin-top:2px">条待安排事项</div>
         </div>
         <div style="background:var(--paper-w);border:1px solid var(--bdr);border-radius:6px;padding:10px 12px">
           <div style="font-family:var(--mo);font-size:13px;font-weight:500;color:var(--ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap" id="fbk-name">—</div>
