@@ -1556,6 +1556,11 @@ function switchView(v,btn){
   else if(v==='journal'){renderJournal();}
   else renderYearly();
 }
+// 通过视图名称安全切换，不依赖 .nb 的 DOM 顺序
+function _switchViewByName(v){
+  const btn=[...document.querySelectorAll('.nb')].find(b=>b.getAttribute('onclick')?.includes("'"+v+"'"));
+  if(btn){switchView(v,btn);}else{switchView(v,null);}
+}
 
 // ── DATE SELECTORS ──
 function buildYearOpts(selId,year){
@@ -3174,7 +3179,7 @@ function renderWeekly(){
 
     const card=document.createElement('div');
     card.style.cssText=`background:var(--card-bg);border:${isToday?'2px solid var(--ac)':'1px solid var(--bdr)'};border-radius:4px;overflow:hidden;transition:border-color .15s;cursor:pointer`;
-    card.onclick=()=>{currentDate=d;document.querySelectorAll('.nb')[1].click()};
+    card.onclick=()=>{currentDate=d;_switchViewByName('daily')};
     card.onmouseenter=()=>{if(!isToday)card.style.borderColor='var(--ac-l)'};
     card.onmouseleave=()=>{if(!isToday)card.style.borderColor='var(--bdr)'};
 
@@ -3579,7 +3584,7 @@ function renderMonthly(){
 
     const c=document.createElement('div');
     c.style.cssText=`background:var(--card-bg);border:${isToday2?'2px solid var(--ac)':'1px solid var(--bdr)'};border-radius:4px;overflow:hidden;transition:border-color .15s;cursor:pointer`;
-    c.onclick=()=>{currentDate=date;document.querySelectorAll('.nb')[1].click()};
+    c.onclick=()=>{currentDate=date;_switchViewByName('daily')};
 
     if(data){
       const todos=(data.todos||[]).filter(t=>!t.movedToNext);
@@ -3916,7 +3921,7 @@ function renderYearly(){
 
     const card=document.createElement('div');
     card.className='ymc';
-    card.onclick=()=>{currentMonth=m;document.querySelectorAll('.nb')[3].click()};
+    card.onclick=()=>{currentMonth=m;_switchViewByName('monthly')};
 
     // 迷你日历色块
     const firstDow2=new Date(currentYear,m,1).getDay();
@@ -4923,7 +4928,7 @@ function apvConfirm() {
 
   if (apvTargetToday) {
     currentDate = new Date();
-    document.querySelectorAll('.nb')[1].click();
+    _switchViewByName('daily');
   } else {
     renderDaily();
   }
@@ -5595,9 +5600,7 @@ checkStorageUsage();
 function mobSwitchTab(v,btn){
   document.querySelectorAll('.mob-tab-btn').forEach(b=>b.classList.remove('active'));
   btn.classList.add('active');
-  const nbMap={inbox:0,daily:1,weekly:2,monthly:3,yearly:4,journal:5};
-  const nb=document.querySelectorAll('.nb')[nbMap[v]];
-  if(nb)switchView(v,nb);
+  _switchViewByName(v);
   // 时间轴按钮只在每日视图显示
   const tlBtn=document.getElementById('mob-tl-toggle');
   if(tlBtn)tlBtn.style.display=v==='daily'?'':'none';
