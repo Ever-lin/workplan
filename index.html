@@ -2456,7 +2456,6 @@ function toggleSkipped(btn){
   const isSkipped=c.dataset.isSkipped==='1';
   if(isSkipped){
     // 恢复：取消未做标记
-    c.dataset.isSkipped='0';
     delete c.dataset.isSkipped;
     c.classList.remove('is-skipped');
     btn.classList.remove('skipped');
@@ -2487,7 +2486,7 @@ function onTodoActualTimeChange(inp){
   const c=inp?.closest('.tcard');
   if(!c)return;
   const segs=[...c.querySelectorAll('.todo-segs .time-seg')];
-  const anyComplete=segs.some(s=>s.querySelector('.seg-s')?.value&&s.querySelector('.seg-e')?.value);
+  const anyComplete=segs.some(s=>{const sv=s.querySelector('.seg-s')?.value;const ev=s.querySelector('.seg-e')?.value;return !!(sv&&ev);});
   if(anyComplete&&!c.classList.contains('done')){
     c.classList.add('done');
     c.classList.remove('is-incomplete','is-makeup');
@@ -5108,9 +5107,9 @@ function addPresetLabel(id) {
   labels.push({name, color});
   saveLabels(labels);
   if (inp) inp.value = '';
-  // find the card for this picker
+  // find the card for this picker — support .tcard, .otask and .memo-item
   const picker = document.getElementById('lp_'+id);
-  const card = picker?.closest('.tcard');
+  const card = picker?.closest('.tcard') || picker?.closest('.otask') || picker?.closest('.memo-item');
   const cur = card?.dataset.labelColor||'';
   const curN = card?.dataset.label||'';
   renderLabelPickerList(card, id, cur, curN);
@@ -5577,12 +5576,11 @@ document.addEventListener('keydown',e=>{
     const apv=document.getElementById('apv-modal');if(apv&&apv.classList.contains('open'))apv.classList.remove('open');
     const tm=document.getElementById('tpl-modal');if(tm&&tm.classList.contains('open'))closeTplModal();
   }
-  // 1/2/3 : 切换视图（非输入状态）
+  // 1/2/3/4 : 切换视图（非输入状态）
   if(!isInput&&!e.ctrlKey&&!e.metaKey){
-    if(e.key==='1'){const btn=document.querySelectorAll('.nb')[1];if(btn){switchView('daily',btn);}}
-    if(e.key==='2'){const btn=document.querySelectorAll('.nb')[2];if(btn){switchView('weekly',btn);}}
-    if(e.key==='3'){const btn=document.querySelectorAll('.nb')[3];if(btn){switchView('monthly',btn);}}
-    if(e.key==='4'){const btn=document.querySelectorAll('.nb')[4];if(btn){switchView('yearly',btn);}}
+    const viewMap={'1':'daily','2':'weekly','3':'monthly','4':'yearly'};
+    const v=viewMap[e.key];
+    if(v){const btn=[...document.querySelectorAll('.nb')].find(b=>b.getAttribute('onclick')?.includes("'"+v+"'"));if(btn){switchView(v,btn);}}
   }
 });
 
@@ -5619,12 +5617,15 @@ const FULL_BACKUP_TS_KEY = 'full_backup_ts';
 
 function _buildFullBackupBundle() {
   const bundle = { _version: 1, _app: 'work-plan', _exportedAt: new Date().toISOString(), _keys: {} };
-  for (let i = 0; i < localStorage.length; i++) {
-    const k = localStorage.key(i);
-    if (!k) continue;
+  // 先收集所有 key，避免迭代中 localStorage 写入导致索引漂移
+  const keys = [];
+  for (let i = 0; i < localStorage.length; i++) { const k = localStorage.key(i); if (k) keys.push(k); }
+  keys.forEach(k => {
+    // 排除备份时间戳本身，恢复后由 doFullBackup 重新写入，防止旧时间戳覆盖
+    if (k === FULL_BACKUP_TS_KEY) return;
     try { bundle._keys[k] = JSON.parse(localStorage.getItem(k)); }
     catch { bundle._keys[k] = localStorage.getItem(k); }
-  }
+  });
   return bundle;
 }
 
@@ -5640,7 +5641,7 @@ function doFullBackup() {
   document.body.appendChild(a);
   a.click();
   document.body.removeChild(a);
-  setTimeout(() => URL.revokeObjectURL(url), 2000);
+  setTimeout(() => URL.revokeObjectURL(url), 30000);
   localStorage.setItem(FULL_BACKUP_TS_KEY, Date.now().toString());
   updateFullBackupBtn();
 }
@@ -5676,6 +5677,7 @@ function updateFullBackupBtn() {
 
 function handleFullRestore(e) {
   const file = e.target.files[0]; if (!file) return;
+  // 立即克隆 file 引用，之后清空 input 不会影响读取
   const r = new FileReader();
   r.onload = ev => {
     let bundle;
@@ -5697,7 +5699,7 @@ function handleFullRestore(e) {
           curA.href = curUrl;
           curA.download = `恢复前自动备份_${new Date().toISOString().slice(0,10)}.json`;
           document.body.appendChild(curA); curA.click(); document.body.removeChild(curA);
-          setTimeout(() => URL.revokeObjectURL(curUrl), 2000);
+          setTimeout(() => URL.revokeObjectURL(curUrl), 30000); // 延长到 30s，防止大文件下载失败
         }
       } catch(backupErr) { console.warn('auto-backup before restore failed:', backupErr); }
       // ── 2. 清空并写入备份数据 ──
@@ -5707,6 +5709,8 @@ function handleFullRestore(e) {
         try { localStorage.setItem(k, typeof v === 'string' ? v : JSON.stringify(v)); successCount++; }
         catch(err) { console.warn('restore key failed:', k, err); failCount++; }
       });
+      // 恢复完成后重置备份时间戳为当前时间（而非备份文件里可能携带的旧时间戳）
+      localStorage.setItem(FULL_BACKUP_TS_KEY, Date.now().toString());
       e.target.value='';
       closeFullBackupModal();
       // ── 3. 刷新界面 ──
@@ -5732,18 +5736,20 @@ function handleFullRestore(e) {
 }
 
 function openFullBackupModal() {
-  // Count data
+  // 先收集所有 key，避免 localStorage 迭代中写入导致索引漂移
+  const allKeys = [];
+  for (let i = 0; i < localStorage.length; i++) { const k = localStorage.key(i); if (k) allKeys.push(k); }
+
   let planDays = 0, templates = 0, totalSkipped = 0, journals = 0;
-  for (let i = 0; i < localStorage.length; i++) {
-    const k = localStorage.key(i);
-    if (k && k.startsWith('plan_')) {
+  allKeys.forEach(k => {
+    if (k.startsWith('plan_')) {
       planDays++;
       try {
         const d = JSON.parse(localStorage.getItem(k));
         if (d && d.todos) totalSkipped += d.todos.filter(t => t.isSkipped).length;
       } catch {}
     }
-  }
+  });
   try { templates = (JSON.parse(localStorage.getItem('todo_templates') || '[]')).length; } catch {}
   try { journals = (JSON.parse(localStorage.getItem('journals_v1') || '[]')).length; } catch {}
   let inboxItems = 0;
@@ -5919,8 +5925,8 @@ function renderJnlMiniCal() {
     if(isToday) border='1.5px solid var(--ac)';
     cell.style.cssText=`width:22px;height:22px;border-radius:3px;background:${bg};border:${border};font-size:8.5px;display:flex;align-items:center;justify-content:center;cursor:pointer;color:${cnt>0?'white':isToday?'var(--ac)':'var(--ink-m)'};font-family:var(--mo);transition:transform .1s;position:relative`;
     cell.title = ds+(cnt?` (${cnt}条总结)`:'');
-    if(cnt>1) { const badge=document.createElement('div'); badge.style.cssText='position:absolute;top:-3px;right:-3px;width:10px;height:10px;background:var(--gr);border-radius:50%;font-size:6px;color:white;display:flex;align-items:center;justify-content:center;font-weight:700'; badge.textContent=cnt; cell.appendChild(badge); }
     cell.textContent=d;
+    if(cnt>1) { const badge=document.createElement('div'); badge.style.cssText='position:absolute;top:-3px;right:-3px;width:10px;height:10px;background:var(--gr);border-radius:50%;font-size:6px;color:white;display:flex;align-items:center;justify-content:center;font-weight:700'; badge.textContent=cnt; cell.appendChild(badge); }
     cell.onmouseenter=()=>cell.style.transform='scale(1.15)';
     cell.onmouseleave=()=>cell.style.transform='';
     cell.onclick=()=>{
@@ -5978,9 +5984,9 @@ function openJournalEditor(j, preType) {
   // Set date
   const today = fmt(new Date());
   document.getElementById('jnl-date-inp').value = j?.date || today;
-  // Combine all text content into body
-  const bodyParts = [j?.done_txt, j?.insight, j?.next_txt, j?.body].filter(Boolean);
-  document.getElementById('jnl-body').value = j?.body || (bodyParts.length > 1 ? bodyParts.join('\n\n') : '');
+  // Set body: prefer j.body; fallback to merging legacy fields only when body is absent
+  const legacyParts = [j?.done_txt, j?.insight, j?.next_txt].filter(Boolean);
+  document.getElementById('jnl-body').value = j?.body || (legacyParts.length ? legacyParts.join('\n\n') : '');
   const bodyTa = document.getElementById('jnl-body');
   bodyTa.style.height = '';
   document.getElementById('jnl-modal').style.display='flex';
@@ -5995,8 +6001,10 @@ function openJournalEditor(j, preType) {
   document.getElementById('jnl-tags-inp').value = '';
   // Mood
   document.querySelectorAll('.jnl-mood').forEach(el=>{
-    el.style.opacity = el.dataset.v === j?.mood ? '1' : '.4';
-    el.style.background = el.dataset.v === j?.mood ? 'var(--ac-p)' : 'transparent';
+    const active = el.dataset.v === j?.mood;
+    el.style.opacity = active ? '1' : '.4';
+    el.style.background = active ? 'var(--ac-p)' : 'transparent';
+    if(active) el.dataset.selected='1'; else delete el.dataset.selected;
   });
   const hint = document.getElementById('jnl-autosave-hint');
   if(hint) hint.style.display='none';
@@ -6035,8 +6043,8 @@ function jnlAutoSave(){
   jnlAutoSaveTimer = setTimeout(()=>{
     const date = document.getElementById('jnl-date-inp')?.value;
     if(!date) return;
-    const selectedMood = document.querySelector('.jnl-mood[style*="opacity: 1"]');
-    const mood = selectedMood ? selectedMood.dataset.v : (document.querySelector('.jnl-mood[style*="opacity:1"]')?.dataset.v || '');
+    const selectedMood = document.querySelector('.jnl-mood[data-selected="1"]');
+    const mood = selectedMood?.dataset.v || '';
     const entry = {
       id: jnlEditingId || jnlGenId(),
       type: document.getElementById('jnl-type-sel').value,
@@ -6132,16 +6140,18 @@ function jnlTypeChanged() {
 
 function selectMood(el) {
   document.querySelectorAll('.jnl-mood').forEach(m=>{
-    m.style.opacity = m===el ? '1' : '.4';
-    m.style.background = m===el ? 'var(--ac-p)' : 'transparent';
+    const active = m===el;
+    m.style.opacity = active ? '1' : '.4';
+    m.style.background = active ? 'var(--ac-p)' : 'transparent';
+    if(active) m.dataset.selected='1'; else delete m.dataset.selected;
   });
 }
 
 function saveJournal() {
   const date = document.getElementById('jnl-date-inp').value;
   if (!date) { cdlgAlert('请选择日期'); return; }
-  const selectedMood = document.querySelector('.jnl-mood[style*="opacity: 1"]');
-  const mood = selectedMood ? selectedMood.dataset.v : (document.querySelector('.jnl-mood[style*="opacity:1"]')?.dataset.v || '');
+  const selectedMood = document.querySelector('.jnl-mood[data-selected="1"]');
+  const mood = selectedMood?.dataset.v || '';
 
   const entry = {
     id: jnlEditingId || jnlGenId(),
