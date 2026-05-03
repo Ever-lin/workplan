@@ -3146,7 +3146,18 @@ function renderWeekly(){
       if(t.planStart&&t.planEnd){const d=timeToMin(t.planEnd)-timeToMin(t.planStart);if(d>0){wPlanMin+=d;wEnsureLabel(lc,ln).planMins+=d;if(t.text){const it=wEnsureItem(t.text,lc,ln,true);it.planMins+=d;}}}
       (t.actualSegs||[]).forEach(s=>{if(s.start&&s.end){const d=timeToMin(s.end)-timeToMin(s.start);if(d>0){wActMin+=d;wEnsureLabel(lc,ln).actualMins+=d;if(t.text)wEnsureItem(t.text,lc,ln,true).actualMins+=d;}}});
       // 收集固定安排跨周状态
-      if(t.text){const fe=wEnsureFixed(t.text,lc,ln);if(!fe.days.some(d=>d.dow===i))fe.days.push({dow:i,done:!!t.done,skipped:!!t.isSkipped,incomplete:!!(t.isIncomplete&&!t.done),ds});}
+      if(t.text){
+        const fe=wEnsureFixed(t.text,lc,ln);
+        const existDay=fe.days.find(dd=>dd.dow===i);
+        if(!existDay){
+          fe.days.push({dow:i,done:!!t.done,skipped:!!t.isSkipped,incomplete:!!(t.isIncomplete&&!t.done),ds});
+        } else {
+          // 同一天同名任务：完成优先，其次未做，再次未完成
+          if(t.done&&!existDay.done){existDay.done=true;existDay.skipped=false;existDay.incomplete=false;}
+          else if(!existDay.done&&t.isSkipped&&!existDay.skipped){existDay.skipped=true;}
+          else if(!existDay.done&&!existDay.skipped&&t.isIncomplete&&!t.done&&!existDay.incomplete){existDay.incomplete=true;}
+        }
+      }
     });
     otasks.forEach(o=>{
       const lc=o.labelColor||'';const ln=o.label||'';
@@ -3495,7 +3506,21 @@ function renderMonthly(){
   for(const {d,date,data} of allDayData){
     if(!data)continue;
     const todos2=(data.todos||[]).filter(t=>!t.movedToNext);
-    todos2.forEach(t=>{if(t.text&&!fe_days_set[t.text+'|'+d]){const fe=mEnsureFixed(t.text,t.labelColor||'',t.label||'');fe.days[d]={done:!!t.done,skipped:!!t.isSkipped,incomplete:!!(t.isIncomplete&&!t.done),isMakeup:!!t.isMakeup};fe_days_set[t.text+'|'+d]=true;}});
+    todos2.forEach(t=>{
+      if(!t.text)return;
+      const fe=mEnsureFixed(t.text,t.labelColor||'',t.label||'');
+      const setKey=t.text.trim()+'|'+d;
+      if(!fe_days_set[setKey]){
+        fe.days[d]={done:!!t.done,skipped:!!t.isSkipped,incomplete:!!(t.isIncomplete&&!t.done),isMakeup:!!t.isMakeup};
+        fe_days_set[setKey]=true;
+      } else {
+        // 同一天同名任务：完成优先，其次未做，再次未完成
+        const ed=fe.days[d];
+        if(t.done&&!ed.done){ed.done=true;ed.skipped=false;ed.incomplete=false;}
+        else if(!ed.done&&t.isSkipped&&!ed.skipped){ed.skipped=true;}
+        else if(!ed.done&&!ed.skipped&&t.isIncomplete&&!t.done&&!ed.incomplete){ed.incomplete=true;}
+      }
+    });
   }
   if(rd>0){
     sumEl.style.display='block';
@@ -3744,7 +3769,25 @@ function renderYearly(){
     const todos2=(data2.todos||[]).filter(t=>!t.movedToNext);
     const mon=dt2.getMonth();
     const _yKey=fmt(dt2);
-    todos2.forEach(t=>{if(t.text){const fe=yEnsureFixed(t.text,t.labelColor||'',t.label||'');if(!fe._dayKeys)fe._dayKeys={};if(!fe._dayKeys[_yKey]){fe._dayKeys[_yKey]=true;if(!fe.months[mon])fe.months[mon]={done:0,total:0,skipped:0};fe.months[mon].total++;if(t.done&&!t.isSkipped)fe.months[mon].done++;if(t.isSkipped)fe.months[mon].skipped++;}}});
+    todos2.forEach(t=>{
+      if(!t.text)return;
+      const fe=yEnsureFixed(t.text,t.labelColor||'',t.label||'');
+      if(!fe._dayKeys)fe._dayKeys={};
+      const _dk=t.text.trim()+'|'+_yKey; // 用trim后的名+日期去重
+      if(!fe._dayKeys[_dk]){
+        fe._dayKeys[_dk]=true;
+        if(!fe.months[mon])fe.months[mon]={done:0,total:0,skipped:0};
+        fe.months[mon].total++;
+        if(t.done&&!t.isSkipped)fe.months[mon].done++;
+        if(t.isSkipped)fe.months[mon].skipped++;
+      } else {
+        // 同一天同名任务：完成优先覆盖未做/未完成
+        if(t.done&&!t.isSkipped&&fe.months[mon]){
+          // 如果之前记的是 skipped，修正：减skipped，加done
+          if(fe.months[mon].skipped>0){fe.months[mon].skipped--;fe.months[mon].done++;}
+        }
+      }
+    });
   }
   // ── 年度时间汇总 ──
   const fmtMy2=m=>{if(!m)return'—';const h=Math.floor(m/60),mn=m%60;return(h?h+'h':'')+(mn?mn+'m':'');};
