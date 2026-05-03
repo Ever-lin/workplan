@@ -3109,7 +3109,7 @@ function renderWeekly(){
   const wItemMap={}; // txt -> {txt, labelColor, labelName, planMins, actualMins, days, isTodo}
   function wEnsureItem(txt,lc,ln,isTodo){
     // 只用任务名+类型作key，同名任务合并时长统计
-    const k=txt.trim()+(isTodo?'|todo':'|otask');
+    const k=txt.trim().replace(/\s+/g,' ')+(isTodo?'|todo':'|otask');
     if(!wItemMap[k])wItemMap[k]={txt,labelColor:lc,labelName:ln,planMins:0,actualMins:0,days:0,isTodo:!!isTodo};
     else if(lc&&!wItemMap[k].labelColor){wItemMap[k].labelColor=lc;wItemMap[k].labelName=ln;}
     return wItemMap[k];
@@ -3117,7 +3117,7 @@ function renderWeekly(){
   // 固定安排跨周汇总：只按任务名合并（同名任务不同天/不同模板均合并为一行）
   const wFixedMap={}; // txt -> {txt, labelColor, labelName, days:[...]}
   function wEnsureFixed(txt,lc,ln){
-    const k=txt.trim(); // 只用任务名作key，忽略标签差异，实现跨天合并
+    const k=txt.trim().replace(/\s+/g,' '); // 规范化空格，忽略标签差异，实现跨天合并
     if(!wFixedMap[k]){wFixedMap[k]={txt,labelColor:lc,labelName:ln,days:[]};}
     else if(lc&&!wFixedMap[k].labelColor){wFixedMap[k].labelColor=lc;wFixedMap[k].labelName=ln;}
     return wFixedMap[k];
@@ -3139,11 +3139,16 @@ function renderWeekly(){
     const rate=todos.length?Math.round(done/todos.length*100):0;
     const hasAny=todos.length||otasks.length||memos.length;
     if(hasAny)wdy++;
-    wt+=todos.length;wd+=done;wot+=otasks.length;wod+=otDone;wmd+=memoDone;
+    const uniqTodos=[...new Map(todos.map(t=>[t.text.trim().replace(/\s+/g,' '),t])).values()];
+    const uniqDone=uniqTodos.filter(t=>t.done||t.isMakeup).length;
+    wt+=uniqTodos.length;wd+=uniqDone;wot+=otasks.length;wod+=otDone;wmd+=memoDone;
     // 累计计划和实际时间（含未做任务，保留数据）
+    const _wSeenPlan=new Set();
     todos.forEach(t=>{
       const lc=t.labelColor||'';const ln=t.label||'';
-      if(t.planStart&&t.planEnd){const d=timeToMin(t.planEnd)-timeToMin(t.planStart);if(d>0){wPlanMin+=d;wEnsureLabel(lc,ln).planMins+=d;if(t.text){const it=wEnsureItem(t.text,lc,ln,true);it.planMins+=d;}}}
+      const _wPk=(t.text||'').trim().replace(/\s+/g,' ')+'|'+ds;
+      const _wFirst=!_wSeenPlan.has(_wPk);if(_wFirst)_wSeenPlan.add(_wPk);
+      if(_wFirst&&t.planStart&&t.planEnd){const d=timeToMin(t.planEnd)-timeToMin(t.planStart);if(d>0){wPlanMin+=d;wEnsureLabel(lc,ln).planMins+=d;if(t.text){const it=wEnsureItem(t.text,lc,ln,true);it.planMins+=d;}}}
       (t.actualSegs||[]).forEach(s=>{if(s.start&&s.end){const d=timeToMin(s.end)-timeToMin(s.start);if(d>0){wActMin+=d;wEnsureLabel(lc,ln).actualMins+=d;if(t.text)wEnsureItem(t.text,lc,ln,true).actualMins+=d;}}});
       // 收集固定安排跨周状态
       if(t.text){
@@ -3384,7 +3389,7 @@ function renderWeekly(){
           <td style="padding:5px 6px 5px 0;color:var(--ink);max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${fe.txt}${labelBadge}</td>`;
         let doneCnt=0,totalCnt=0;
         for(let i=0;i<7;i++){
-          const dayEntry=fe.days.find(d=>d.dow===i);
+          const dayEntry=fe.days.find(dd2=>dd2.dow===i);
           if(!dayEntry){html+=`<td style="text-align:center;padding:5px 4px;color:var(--paper-l);font-size:11px">·</td>`;continue;}
           totalCnt++;
           let cell='',bg='',color='';
@@ -3438,7 +3443,7 @@ function renderMonthly(){
   const fmtMm=mn=>{if(!mn)return'—';const h=Math.floor(mn/60),mi=mn%60;return(h?h+'h':'')+(mi?mi+'m':'');};
   const mItemMap={}; // txt+'|todo/otask' -> {txt,lc,ln,planMins,actualMins,isTodo}
   function mEnsureItem(txt,lc,ln,isTodo){
-    const k=txt.trim()+(isTodo?'|todo':'|otask'); // 只用任务名+类型合并
+    const k=txt.trim().replace(/\s+/g,' ')+(isTodo?'|todo':'|otask'); // 只用任务名+类型合并
     if(!mItemMap[k])mItemMap[k]={txt,labelColor:lc,labelName:ln,planMins:0,actualMins:0,isTodo:!!isTodo};
     else if(lc&&!mItemMap[k].labelColor){mItemMap[k].labelColor=lc;mItemMap[k].labelName=ln;}
     return mItemMap[k];
@@ -3456,7 +3461,9 @@ function renderMonthly(){
     const dn=todos.filter(t=>t.done).length;
     const otDn=otasks.filter(o=>o.done).length;
     const memDn=memos.filter(mm=>mm.done).length;
-    tt+=todos.length;td+=dn;mot+=otasks.length;mod+=otDn;mmd+=memDn;
+    const uniqT=[...new Map(todos.map(t=>[t.text.trim().replace(/\s+/g,' '),t])).values()];
+    const uniqD=uniqT.filter(t=>t.done||t.isMakeup).length;
+    tt+=uniqT.length;td+=uniqD;mot+=otasks.length;mod+=otDn;mmd+=memDn;
     if(todos.length||otasks.length||memos.length)rd++;
     // 完成率最高天
     const r=todos.length?Math.round(dn/todos.length*100):0;
@@ -3497,7 +3504,7 @@ function renderMonthly(){
   // Build monthly fixed task summary (similar to weekly)
   const mFixedMap={};
   function mEnsureFixed(txt,lc,ln){
-    const k=txt.trim(); // 只用任务名合并
+    const k=txt.trim().replace(/\s+/g,' '); // 规范化空格合并同名任务
     if(!mFixedMap[k]){mFixedMap[k]={txt,labelColor:lc,labelName:ln,days:{}};}
     else if(lc&&!mFixedMap[k].labelColor){mFixedMap[k].labelColor=lc;mFixedMap[k].labelName=ln;}
     return mFixedMap[k];
@@ -3509,16 +3516,18 @@ function renderMonthly(){
     todos2.forEach(t=>{
       if(!t.text)return;
       const fe=mEnsureFixed(t.text,t.labelColor||'',t.label||'');
-      const setKey=t.text.trim()+'|'+d;
+      const setKey=t.text.trim().replace(/\s+/g,' ')+'|'+d;
       if(!fe_days_set[setKey]){
         fe.days[d]={done:!!t.done,skipped:!!t.isSkipped,incomplete:!!(t.isIncomplete&&!t.done),isMakeup:!!t.isMakeup};
         fe_days_set[setKey]=true;
       } else {
         // 同一天同名任务：完成优先，其次未做，再次未完成
         const ed=fe.days[d];
-        if(t.done&&!ed.done){ed.done=true;ed.skipped=false;ed.incomplete=false;}
-        else if(!ed.done&&t.isSkipped&&!ed.skipped){ed.skipped=true;}
-        else if(!ed.done&&!ed.skipped&&t.isIncomplete&&!t.done&&!ed.incomplete){ed.incomplete=true;}
+        if(ed){
+          if(t.done&&!ed.done){ed.done=true;ed.skipped=false;ed.incomplete=false;}
+          else if(!ed.done&&t.isSkipped&&!ed.skipped){ed.skipped=true;}
+          else if(!ed.done&&!ed.skipped&&t.isIncomplete&&!t.done&&!ed.incomplete){ed.incomplete=true;}
+        }
       }
     });
   }
@@ -3700,7 +3709,7 @@ function renderYearly(){
   const yTaskFreq={};const yTaskLabelMap={};const yTaskDayMap={};const yTaskActualMap={};
   const yItemMap={}; // txt+'|todo/otask' -> {txt,lc,ln,planMins,actualMins,isTodo}
   function yEnsureItem(txt,lc,ln,isTodo){
-    const k=txt.trim()+(isTodo?'|todo':'|otask'); // 只用任务名+类型合并
+    const k=txt.trim().replace(/\s+/g,' ')+(isTodo?'|todo':'|otask'); // 只用任务名+类型合并
     if(!yItemMap[k])yItemMap[k]={txt,labelColor:lc,labelName:ln,planMins:0,actualMins:0,isTodo:!!isTodo};
     else if(lc&&!yItemMap[k].labelColor){yItemMap[k].labelColor=lc;yItemMap[k].labelName=ln;}
     return yItemMap[k];
@@ -3720,7 +3729,8 @@ function renderYearly(){
     const todos=(data.todos||[]).filter(t=>!t.movedToNext);
     const otasks=(data.otasks||[]).filter(o=>!o.movedToNext);
     const memos=(data.memos||[]).filter(m=>!m.movedToNext);
-    const total=todos.length,done=todos.filter(t=>t.done).length;
+    const uniqTY=[...new Map(todos.map(t=>[t.text.trim().replace(/\s+/g,' '),t])).values()];
+    const total=uniqTY.length,done=uniqTY.filter(t=>t.done||t.isMakeup).length;
     const hasData=total>0||otasks.length>0||memos.length>0;
     const rate=total?Math.round(done/total*100):0;
     dayMap[key]={rate,total,done,hasData,otasks:otasks.length,memos:memos.length};
@@ -3758,7 +3768,7 @@ function renderYearly(){
   // Build yearly fixed task summary per month
   const yFixedMap={};
   function yEnsureFixed(txt,lc,ln){
-    const k=txt.trim(); // 只用任务名合并，同名任务视为同一条
+    const k=txt.trim().replace(/\s+/g,' '); // 规范化空格合并同名任务
     if(!yFixedMap[k]){yFixedMap[k]={txt,labelColor:lc,labelName:ln,months:{}};}
     else if(lc&&!yFixedMap[k].labelColor){yFixedMap[k].labelColor=lc;yFixedMap[k].labelName=ln;}
     return yFixedMap[k];
@@ -3773,12 +3783,12 @@ function renderYearly(){
       if(!t.text)return;
       const fe=yEnsureFixed(t.text,t.labelColor||'',t.label||'');
       if(!fe._dayKeys)fe._dayKeys={};
-      const _dk=t.text.trim()+'|'+_yKey; // 用trim后的名+日期去重
+      const _dk=t.text.trim().replace(/\s+/g,' ')+'|'+_yKey; // 规范化空格+日期去重
       if(!fe._dayKeys[_dk]){
         fe._dayKeys[_dk]=true;
         if(!fe.months[mon])fe.months[mon]={done:0,total:0,skipped:0};
         fe.months[mon].total++;
-        if(t.done&&!t.isSkipped)fe.months[mon].done++;
+        if((t.done||t.isMakeup)&&!t.isSkipped)fe.months[mon].done++;
         if(t.isSkipped)fe.months[mon].skipped++;
       } else {
         // 同一天同名任务：完成优先覆盖未做/未完成
@@ -5602,15 +5612,22 @@ function updateFullBackupBtn() {
   const el = document.getElementById('full-backup-ts');
   if (!el) return;
   const ts = localStorage.getItem(FULL_BACKUP_TS_KEY);
-  if (!ts) { el.textContent = '一键备份'; return; }
+  const btn = document.getElementById('full-backup-btn');
+  if (!ts) {
+    el.textContent = '一键备份';
+    if (btn) { btn.style.background = 'rgba(239,68,68,.18)'; btn.style.borderColor = 'rgba(239,68,68,.5)'; }
+    return;
+  }
   const diff = Math.round((Date.now() - parseInt(ts)) / 60000);
   if (diff < 1) el.textContent = '一键备份 · 刚备份';
   else if (diff < 60) el.textContent = `一键备份 · ${diff}m前`;
   else if (diff < 1440) el.textContent = `一键备份 · ${Math.round(diff/60)}h前`;
   else el.textContent = `一键备份 · ${Math.round(diff/1440)}d前`;
-  const btn = document.getElementById('full-backup-btn');
   if (btn) {
-    if (diff > 120) {
+    if (diff > 1440) {
+      btn.style.background = 'rgba(239,68,68,.18)';
+      btn.style.borderColor = 'rgba(239,68,68,.5)';
+    } else if (diff > 120) {
       btn.style.background = 'rgba(245,158,11,.18)';
       btn.style.borderColor = 'rgba(245,158,11,.5)';
     } else {
@@ -5664,12 +5681,13 @@ function handleFullRestore(e) {
       if(document.getElementById('view-inbox')?.classList.contains('active')) renderInbox();
       const restoredKeys = Object.keys(bundle._keys).length;
       const actualKeys = localStorage.length;
+      const srcTime = bundle._exportedAt ? new Date(bundle._exportedAt).toLocaleString('zh-CN',{year:'numeric',month:'numeric',day:'numeric',hour:'2-digit',minute:'2-digit'}) : '未知';
       if (failCount > 0) {
-        cdlgAlert(`⚠️ 恢复完成，但 ${failCount} 个条目写入失败（可能存储空间不足）。成功恢复 ${successCount} 个条目，请检查数据完整性。`);
+        cdlgAlert(`⚠️ 恢复完成，但 ${failCount} 个条目写入失败（可能存储空间不足）。\n成功恢复 ${successCount} 个条目，请检查数据完整性。`);
       } else if(Math.abs(restoredKeys - actualKeys) <= 2) {
-        cdlgAlert(`✅ 恢复成功！共还原 ${actualKeys} 个数据条目。`);
+        cdlgAlert(`✅ 恢复成功！\n\n共还原 ${actualKeys} 个数据条目\n备份来源时间：${srcTime}`);
       } else {
-        cdlgAlert(`⚠️ 恢复完成，数据条目数量略有差异（预期 ${restoredKeys}，实际 ${actualKeys}），建议核查数据是否完整。`);
+        cdlgAlert(`⚠️ 恢复完成，数据条目数量略有差异（预期 ${restoredKeys}，实际 ${actualKeys}），建议核查数据是否完整。\n备份来源时间：${srcTime}`);
       }
     });
   };
@@ -6471,8 +6489,10 @@ async function toggleNotifyPermission() {
 }
 
 function snoozeBackupRemind() {
-  // 稍后提醒：30分钟后再提示
-  localStorage.setItem(REMIND_SNOOZE_KEY, (Date.now() + 30 * 60000).toString());
+  const snoozeUntil = Date.now() + 30 * 60000;
+  localStorage.setItem(REMIND_SNOOZE_KEY, snoozeUntil.toString());
+  const todayKey = 'backup_reminded_' + new Date().toISOString().slice(0,10);
+  localStorage.removeItem(todayKey);
   document.getElementById('backup-remind-bar').style.display = 'none';
 }
 
@@ -6485,16 +6505,16 @@ function checkBackupRemind() {
   // 解析设定时间
   const [th, tm] = (s.time || '17:50').split(':').map(Number);
 
+  // 检查 snooze（优先判断）
+  const snooze = localStorage.getItem(REMIND_SNOOZE_KEY);
+  if (snooze && Date.now() < parseInt(snooze)) return;
+
   // 只在设定时间的那一分钟触发（hh:mm === th:tm）
   if (hh !== th || mm !== tm) return;
 
   // 检查今天是否已经提醒过（避免同一分钟内多次触发）
   const todayKey = 'backup_reminded_' + now.toISOString().slice(0,10);
   if (localStorage.getItem(todayKey)) return;
-
-  // 检查 snooze
-  const snooze = localStorage.getItem(REMIND_SNOOZE_KEY);
-  if (snooze && Date.now() < parseInt(snooze)) return;
 
   // 标记今天已提醒
   localStorage.setItem(todayKey, '1');
