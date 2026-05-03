@@ -3107,10 +3107,21 @@ function renderWeekly(){
   const wLabelMap={}; // labelColor -> {name, planMins, actualMins}
   function wEnsureLabel(lc,ln){const k=lc||'__none__';if(!wLabelMap[k])wLabelMap[k]={name:ln||'无标签',color:lc||'var(--ink-m)',planMins:0,actualMins:0};return wLabelMap[k];}
   const wItemMap={}; // txt -> {txt, labelColor, labelName, planMins, actualMins, days, isTodo}
-  function wEnsureItem(txt,lc,ln,isTodo){const k=txt+(isTodo?'|todo':'|otask');if(!wItemMap[k])wItemMap[k]={txt,labelColor:lc,labelName:ln,planMins:0,actualMins:0,days:0,isTodo:!!isTodo};return wItemMap[k];}
-  // 固定安排跨周汇总：任务名 -> 7天状态数组
-  const wFixedMap={}; // txt -> {txt, labelColor, labelName, days:[{dow,done,skipped,incomplete,hasData}]}
-  function wEnsureFixed(txt,lc,ln){const k=txt+'|'+(lc||'');if(!wFixedMap[k])wFixedMap[k]={txt,labelColor:lc,labelName:ln,days:[]};return wFixedMap[k];}
+  function wEnsureItem(txt,lc,ln,isTodo){
+    // 只用任务名+类型作key，同名任务合并时长统计
+    const k=txt.trim()+(isTodo?'|todo':'|otask');
+    if(!wItemMap[k])wItemMap[k]={txt,labelColor:lc,labelName:ln,planMins:0,actualMins:0,days:0,isTodo:!!isTodo};
+    else if(lc&&!wItemMap[k].labelColor){wItemMap[k].labelColor=lc;wItemMap[k].labelName=ln;}
+    return wItemMap[k];
+  }
+  // 固定安排跨周汇总：只按任务名合并（同名任务不同天/不同模板均合并为一行）
+  const wFixedMap={}; // txt -> {txt, labelColor, labelName, days:[...]}
+  function wEnsureFixed(txt,lc,ln){
+    const k=txt.trim(); // 只用任务名作key，忽略标签差异，实现跨天合并
+    if(!wFixedMap[k]){wFixedMap[k]={txt,labelColor:lc,labelName:ln,days:[]};}
+    else if(lc&&!wFixedMap[k].labelColor){wFixedMap[k].labelColor=lc;wFixedMap[k].labelName=ln;}
+    return wFixedMap[k];
+  }
   const fmtMw=m=>{if(!m)return'—';const h=Math.floor(m/60),mn=m%60;return(h?h+'h':'')+(mn?mn+'m':'');};
 
   // ── 新布局：垂直堆叠，每天一行大卡片 ──
@@ -3415,7 +3426,12 @@ function renderMonthly(){
   function mEnsureLabel(lc,ln){const k=lc||'__none__';if(!mLabelMap[k])mLabelMap[k]={name:ln||'无标签',color:lc||'',todoPlan:0,todoAct:0,todoTotal:0,todoDone:0,otaskPlan:0,otaskAct:0,otaskTotal:0,otaskDone:0};return mLabelMap[k];}
   const fmtMm=mn=>{if(!mn)return'—';const h=Math.floor(mn/60),mi=mn%60;return(h?h+'h':'')+(mi?mi+'m':'');};
   const mItemMap={}; // txt+'|todo/otask' -> {txt,lc,ln,planMins,actualMins,isTodo}
-  function mEnsureItem(txt,lc,ln,isTodo){const k=txt+(isTodo?'|todo':'|otask');if(!mItemMap[k])mItemMap[k]={txt,labelColor:lc,labelName:ln,planMins:0,actualMins:0,isTodo:!!isTodo};return mItemMap[k];}
+  function mEnsureItem(txt,lc,ln,isTodo){
+    const k=txt.trim()+(isTodo?'|todo':'|otask'); // 只用任务名+类型合并
+    if(!mItemMap[k])mItemMap[k]={txt,labelColor:lc,labelName:ln,planMins:0,actualMins:0,isTodo:!!isTodo};
+    else if(lc&&!mItemMap[k].labelColor){mItemMap[k].labelColor=lc;mItemMap[k].labelName=ln;}
+    return mItemMap[k];
+  }
 
   for(let d=1;d<=dim;d++){
     const date=new Date(y,m,d);
@@ -3469,7 +3485,12 @@ function renderMonthly(){
   const sumEl=document.getElementById('m-summary');
   // Build monthly fixed task summary (similar to weekly)
   const mFixedMap={};
-  function mEnsureFixed(txt,lc,ln){const k=txt+'|'+(lc||'');if(!mFixedMap[k])mFixedMap[k]={txt,labelColor:lc,labelName:ln,days:{}};return mFixedMap[k];}
+  function mEnsureFixed(txt,lc,ln){
+    const k=txt.trim(); // 只用任务名合并
+    if(!mFixedMap[k]){mFixedMap[k]={txt,labelColor:lc,labelName:ln,days:{}};}
+    else if(lc&&!mFixedMap[k].labelColor){mFixedMap[k].labelColor=lc;mFixedMap[k].labelName=ln;}
+    return mFixedMap[k];
+  }
   const fe_days_set={};
   for(const {d,date,data} of allDayData){
     if(!data)continue;
@@ -3653,7 +3674,12 @@ function renderYearly(){
   function yEnsureLabel(lc,ln){const k=lc||'__none__';if(!yLabelMap[k])yLabelMap[k]={name:ln||'无标签',color:lc||'',planMins:0,actualMins:0,todoTotal:0,todoDone:0,otaskTotal:0,otaskDone:0};return yLabelMap[k];}
   const yTaskFreq={};const yTaskLabelMap={};const yTaskDayMap={};const yTaskActualMap={};
   const yItemMap={}; // txt+'|todo/otask' -> {txt,lc,ln,planMins,actualMins,isTodo}
-  function yEnsureItem(txt,lc,ln,isTodo){const k=txt+(isTodo?'|todo':'|otask');if(!yItemMap[k])yItemMap[k]={txt,labelColor:lc,labelName:ln,planMins:0,actualMins:0,isTodo:!!isTodo};return yItemMap[k];}
+  function yEnsureItem(txt,lc,ln,isTodo){
+    const k=txt.trim()+(isTodo?'|todo':'|otask'); // 只用任务名+类型合并
+    if(!yItemMap[k])yItemMap[k]={txt,labelColor:lc,labelName:ln,planMins:0,actualMins:0,isTodo:!!isTodo};
+    else if(lc&&!yItemMap[k].labelColor){yItemMap[k].labelColor=lc;yItemMap[k].labelName=ln;}
+    return yItemMap[k];
+  }
   const fmtMy=m=>{if(!m)return'—';const h=Math.floor(m/60),mn=m%60;return(h?h+'h':'')+(mn?mn+'m':'');};
 
   // ── 1. 收集全年每日数据 ──
@@ -3706,7 +3732,12 @@ function renderYearly(){
   const yGlobalRate=yt?Math.round(yd/yt*100):0;
   // Build yearly fixed task summary per month
   const yFixedMap={};
-  function yEnsureFixed(txt,lc,ln){const k=txt+'|'+(lc||'');if(!yFixedMap[k])yFixedMap[k]={txt,labelColor:lc,labelName:ln,months:{}};return yFixedMap[k];}
+  function yEnsureFixed(txt,lc,ln){
+    const k=txt.trim(); // 只用任务名合并，同名任务视为同一条
+    if(!yFixedMap[k]){yFixedMap[k]={txt,labelColor:lc,labelName:ln,months:{}};}
+    else if(lc&&!yFixedMap[k].labelColor){yFixedMap[k].labelColor=lc;yFixedMap[k].labelName=ln;}
+    return yFixedMap[k];
+  }
   for(let di2=0;;di2++){
     const dt2=new Date(currentYear,0,1+di2);if(dt2.getFullYear()!==currentYear)break;
     const data2=load(dt2);if(!data2)continue;
