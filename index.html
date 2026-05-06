@@ -3477,7 +3477,7 @@ function renderWeekly(){
       fixedEntries.sort((a,b)=>b.days.length-a.days.length).forEach(fe=>{
         const lc=fe.labelColor||'';const ln=fe.labelName||'';
         const labelBadge=lc?`<span style="display:inline-flex;align-items:center;gap:2px;font-size:7px;padding:0 4px;border-radius:8px;background:${lc}22;color:${lc};border:1px solid ${lc}44;white-space:nowrap;vertical-align:middle;margin-left:3px"><span style="width:4px;height:4px;border-radius:50%;background:${lc};display:inline-block"></span>${ln}</span>`:'';
-        html+=`<tr style="border-top:1px dashed var(--paper-l)">
+        html+=`<tr onmouseenter="this.style.background='var(--paper-w)'" onmouseleave="this.style.background=''" style="border-top:1px dashed var(--paper-l);transition:background .1s">
           <td style="padding:5px 6px 5px 0;color:var(--ink);max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${fe.txt}${labelBadge}</td>`;
         let doneCnt=0,totalCnt=0;
         for(let i=0;i<7;i++){
@@ -4540,7 +4540,6 @@ function tplRenderList() {
     el.className = 'tpl-item' + (tpl.id === tplCurrentId ? ' active' : '');
     const tc = (tpl.todos||[]).length;
     const oc = (tpl.otasks||[]).length;
-    const mc = (tpl.memos||[]).length;
     
     const parts = [];
     if(tc) parts.push(`<span style="color:var(--ac)">${tc}项固定安排</span>`);
