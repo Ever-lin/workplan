@@ -857,7 +857,6 @@ body.dark-mode .cdlg-inp{background:var(--paper-l);color:var(--ink)}
       <div class="ds">写下想做但还没安排的事，需要时拖到每日计划</div>
     </div>
     <div style="flex:1"></div>
-    <button class="tb" onclick="const nb=[...document.querySelectorAll('.nb')].find(b=>b.onclick?.toString().includes('inbox'));if(nb){switchView('inbox',nb);}setTimeout(()=>{const inp=document.getElementById('inbox-new-title');if(inp){inp.focus();}},80)" style="display:flex;align-items:center;gap:4px">＋ 添加事项</button>
   </div>
   <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;align-items:start">
     <!-- LEFT: 待安排列表 -->
