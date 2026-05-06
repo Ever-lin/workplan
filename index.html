@@ -490,6 +490,7 @@ body.dark-mode .goal-input{background:var(--paper-l);color:var(--ink)}
 .memo-mv:hover{border-color:var(--am);color:var(--am);background:var(--am-l)}
 /* memo exec section */
 .memo-exec{border-top:1px dashed var(--paper-l);padding:6px 8px;background:rgba(139,105,20,.04);display:flex;flex-direction:column;gap:5px}
+.memo-time-wrap{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:5px;padding:5px 8px 6px;border-top:1px dashed var(--paper-l);background:rgba(245,158,11,.03)}
 .memo-times{display:flex;gap:8px;align-items:center}
 .mtl{font-size:9px;color:var(--ink-m);white-space:nowrap}
 .mti{font-family:var(--mo);font-size:10px;color:var(--ink);border:1px solid var(--bdr);background:white;padding:2px 4px;border-radius:2px;width:62px}
@@ -1508,7 +1509,7 @@ function gather(){
   const memos=[];
   document.querySelectorAll('.memo-item').forEach(el=>{
     const v=el.querySelector('.memo-ta')?.value||'';
-    if(v)memos.push({text:v,done:el.classList.contains('ck'),movedToNext:el.dataset.movedToNext||'',label:el.dataset.label||'',labelColor:el.dataset.labelColor||''});
+    if(v)memos.push({text:v,done:el.classList.contains('ck'),movedToNext:el.dataset.movedToNext||'',label:el.dataset.label||'',labelColor:el.dataset.labelColor||'',planStart:el.querySelector('.memo-ps')?.value||'',planEnd:el.querySelector('.memo-pe')?.value||'',actualStart:el.querySelector('.memo-as')?.value||'',actualEnd:el.querySelector('.memo-ae')?.value||''});
   });
   return{
     date:fmt(currentDate),
@@ -1717,21 +1718,38 @@ function renderUnifiedTimeline(){
       const sortMin=timeToMin(ps);
       const endMin=pe?timeToMin(pe):sortMin+1;
       events.push({type:'otask',sortMin,endMin,data:{txt,ps,pe,as:'',ae:'',noteChecklist,done,isPlan:true,isActual:false,labelColor,labelName}});
+    } else {
+      // 无任何时间 — 仍显示在时间轴（noTime标记，排到最后）
+      events.push({type:'otask',sortMin:99999,endMin:99999,data:{txt,ps:'',pe:'',as:'',ae:'',noteChecklist,done,isPlan:false,isActual:false,noTime:true,labelColor,labelName}});
     }
   });
 
-  // 小任务不出现在时间轴主体，只显示在底部已完成区
+  // 小任务：有时间则加入时间轴，无时间只在底部 mini 区显示
+  document.querySelectorAll('.memo-item').forEach(el=>{
+    if(el.dataset.movedToNext)return;
+    const txt=el.querySelector('.memo-ta')?.value||'';
+    const ps=el.querySelector('.memo-ps')?.value||'';
+    const pe=el.querySelector('.memo-pe')?.value||'';
+    const as_=el.querySelector('.memo-as')?.value||'';
+    const ae=el.querySelector('.memo-ae')?.value||'';
+    const done=el.classList.contains('ck');
+    const labelColor=el.dataset.labelColor||'';
+    const labelName=el.dataset.label||'';
+    if(!txt)return;
+    if(as_){
+      const sortMin=timeToMin(as_);
+      const endMin=ae?timeToMin(ae):sortMin+1;
+      events.push({type:'memo',sortMin,endMin,data:{txt,ps,pe,as:as_,ae,done,isPlan:!!ps,isActual:true,labelColor,labelName}});
+    } else if(ps){
+      const sortMin=timeToMin(ps);
+      const endMin=pe?timeToMin(pe):sortMin+1;
+      events.push({type:'memo',sortMin,endMin,data:{txt,ps,pe,as:'',ae:'',done,isPlan:true,isActual:false,labelColor,labelName}});
+    }
+    // 无时间：只在底部 mini 区显示，不加入 events
+  });
 
   // Sort by actual/plan start time
   events.sort((a,b)=>a.sortMin-b.sortMin);
-
-  // ── 空状态 ──
-  if(events.length===0){
-    const empty=document.createElement('div');empty.className='utl-empty';
-    empty.innerHTML='<div class="utl-empty-icon">⏱</div><div class="utl-empty-txt">还没有填写时间的事项<br>在左侧计划里填入计划开始/结束时间<br>时间轴会自动显示</div>';
-    rows.appendChild(empty);
-    return;
-  }
 
   // ── 1.5. 检测时间重叠 ──
   // 只检测「纯计划」事项之间的重叠（未填实际时间、未完成、未标未完成）
@@ -1764,10 +1782,28 @@ function renderUnifiedTimeline(){
   }
 
   // ── 2. Merge intervals to find gaps (exclude incomplete & makeup from occupying time) ──
-  const intervals=events
-    .filter(e=>!(e.data.isIncomplete)||e.data.isActual) // incomplete plan-only = zero width already
-    .filter(e=>!e.data.isMakeup)                        // makeup = not counted as today's work
-    .map(e=>({s:e.sortMin,e:e.endMin}));
+  // 展开多时间段事项：每个实际时间段单独作为一个 interval，避免不连续段之间的空隙被误填
+  const intervals=[];
+  events
+    .filter(e=>!(e.data.isIncomplete)||e.data.isActual)
+    .filter(e=>!e.data.isMakeup)
+    .filter(e=>!e.data.noTime)  // 无时间的事项不占用区间
+    .forEach(e=>{
+      const t=e.data;
+      if(t.isActual&&t.allSegs&&t.allSegs.length>1){
+        // 多段：每段单独计入
+        t.allSegs.forEach(seg=>{
+          if(seg.as){
+            const s=timeToMin(seg.as);
+            const en=seg.ae?timeToMin(seg.ae):s+1;
+            intervals.push({s,e:en});
+          }
+        });
+      } else {
+        intervals.push({s:e.sortMin,e:e.endMin});
+      }
+    });
+  intervals.sort((a,b)=>a.s-b.s);
   const merged=[];
   intervals.forEach(iv=>{
     if(!merged.length||iv.s>=merged[merged.length-1].e) merged.push({...iv});
@@ -1785,9 +1821,11 @@ function renderUnifiedTimeline(){
   // But since events can start at non-hour times, we need a merged pass.
 
   // Build sorted sequence of "things to render": hour-ticks + events + gaps
+  // noTime events go to a separate pending section
+  const noTimeEvents=events.filter(ev=>ev.data.noTime);
   const items=[]; // {kind:'hour'|'event'|'gap', sortMin, ...}
   HOURS.forEach(h=>items.push({kind:'hour',sortMin:parseInt(h)*60,label:h}));
-  events.forEach((ev,i)=>items.push({kind:'event',sortMin:ev.sortMin,endMin:ev.endMin,ev}));
+  events.filter(ev=>!ev.data.noTime).forEach((ev,i)=>items.push({kind:'event',sortMin:ev.sortMin,endMin:ev.endMin,ev}));
   gaps.forEach(g=>items.push({kind:'gap',sortMin:g.startMin,gap:g}));
   items.sort((a,b)=>{
     if(a.sortMin!==b.sortMin) return a.sortMin-b.sortMin;
@@ -1797,11 +1835,11 @@ function renderUnifiedTimeline(){
   });
 
   // ── 4. Column header ──
-  // 空状态提示
-  if(events.length===0){
-    const empty=document.createElement('div');
-    empty.style.cssText='display:flex;flex-direction:column;align-items:center;justify-content:center;flex:1;padding:40px 20px;gap:8px;opacity:.45';
-    empty.innerHTML=`<div style="font-size:32px">📭</div><div style="font-size:12px;color:var(--ink-m);font-family:var(--ss);text-align:center;line-height:1.8">今日暂无带时间的安排<br>填写计划/实际时间后会显示在这里</div>`;
+  // 空状态：既无有时间事项，也无待执行事项
+  const timedEvents=events.filter(ev=>!ev.data.noTime);
+  if(timedEvents.length===0&&noTimeEvents.length===0){
+    const empty=document.createElement('div');empty.className='utl-empty';
+    empty.innerHTML='<div class="utl-empty-icon">⏱</div><div class="utl-empty-txt">还没有填写时间的事项<br>在左侧计划里填入计划开始/结束时间<br>时间轴会自动显示</div>';
     rows.appendChild(empty);
     return;
   }
@@ -1970,6 +2008,52 @@ function renderUnifiedTimeline(){
           });
         }
         colActual.appendChild(actSlot);
+        // noTime otask — 在实际列显示「待执行」标签
+        if(t.noTime){
+          const pendBadge=document.createElement('span');
+          pendBadge.style.cssText='font-size:8px;padding:1px 6px;background:rgba(14,165,233,.12);color:#0369a1;border:1px dashed rgba(14,165,233,.4);border-radius:3px;white-space:nowrap;font-family:var(--ss)';
+          pendBadge.textContent='待执行';
+          colActual.appendChild(pendBadge);
+        }
+      } else if(ev.type==='memo'){
+        // 小任务 — 琥珀色系
+        row.classList.add('is-otask');
+        row.style.background='linear-gradient(to right,rgba(245,158,11,.05),transparent)';
+        row.style.setProperty('--before-color','var(--am)');
+        const nameEntry=document.createElement('div');nameEntry.className='utl-name-entry';
+        const dot=document.createElement('span');
+        dot.style.cssText='width:7px;height:7px;border-radius:50%;background:var(--am);flex-shrink:0;opacity:.8';
+        const memoTag=document.createElement('span');memoTag.className='utl-extra-tag';
+        memoTag.style.cssText='font-size:8px;padding:1px 5px;background:var(--am);color:white;border-radius:2px;white-space:nowrap;flex-shrink:0';
+        memoTag.textContent='小任务';
+        const txt4=document.createElement('span');txt4.className='utl-plan-txt'+(t.done?' is-done':'');
+        txt4.textContent=t.txt;
+        nameEntry.appendChild(dot);nameEntry.appendChild(memoTag);nameEntry.appendChild(txt4);
+        if(t.labelColor&&t.labelName){
+          const ltag=document.createElement('span');
+          ltag.style.cssText=`display:inline-flex;align-items:center;gap:2px;font-size:8px;padding:1px 5px;border-radius:8px;background:${t.labelColor}22;color:${t.labelColor};border:1px solid ${t.labelColor}44;white-space:nowrap;flex-shrink:0`;
+          ltag.innerHTML=`<span style="width:5px;height:5px;border-radius:50%;background:${t.labelColor};flex-shrink:0;display:inline-block"></span>${t.labelName}`;
+          nameEntry.appendChild(ltag);
+        }
+        colName.appendChild(nameEntry);
+        const planSlot2=document.createElement('div');planSlot2.className='utl-plan-slot';
+        if(t.ps){
+          const badge=document.createElement('span');badge.className='utl-time-badge plan';
+          let planTxt=t.ps+(t.pe?'–'+t.pe:'');
+          if(t.ps&&t.pe){const dur=timeToMin(t.pe)-timeToMin(t.ps);if(dur>0)planTxt+='（'+dur+'分）';}
+          badge.textContent=planTxt;planSlot2.appendChild(badge);
+        }
+        colPlan.appendChild(planSlot2);
+        const actSlot2=document.createElement('div');actSlot2.className='utl-actual-slot';
+        if(t.as){
+          const badge=document.createElement('span');
+          const cls=t.done?'actual-done':'actual-same';
+          badge.className=`utl-time-badge ${cls}`;
+          let actTxt=t.as+(t.ae?'–'+t.ae:'');
+          if(t.as&&t.ae){const dur=timeToMin(t.ae)-timeToMin(t.as);if(dur>0)actTxt+='（'+dur+'分）';}
+          badge.textContent=actTxt;actSlot2.appendChild(badge);
+        }
+        colActual.appendChild(actSlot2);
       }
 
       row.appendChild(colName);row.appendChild(colPlan);row.appendChild(colActual);
@@ -1999,6 +2083,36 @@ function renderUnifiedTimeline(){
       rows.appendChild(rowGap);
     }
   });
+
+  // ── 5.5. 无时间待执行临时事项区 ──
+  if(noTimeEvents.length>0){
+    const ntSec=document.createElement('div');
+    ntSec.style.cssText='margin-top:8px;border-top:2px dashed rgba(14,165,233,.25);padding-top:6px';
+    const ntTitle=document.createElement('div');
+    ntTitle.style.cssText='font-size:10px;color:rgba(14,165,233,.9);font-family:var(--ss);font-weight:500;letter-spacing:.8px;margin-bottom:5px;display:flex;align-items:center;gap:6px';
+    ntTitle.textContent='🕐 待执行（未填时间）';
+    const ntLine=document.createElement('span');ntLine.style.cssText='flex:1;height:1px;background:rgba(14,165,233,.2)';
+    ntTitle.appendChild(ntLine);
+    ntSec.appendChild(ntTitle);
+    noTimeEvents.forEach(ev=>{
+      const t=ev.data;
+      const ntRow=document.createElement('div');
+      ntRow.style.cssText='display:flex;align-items:center;gap:7px;padding:4px 7px;border-radius:2px;background:rgba(14,165,233,.05);border:1px dashed rgba(14,165,233,.2);margin-bottom:4px';
+      const dot2=document.createElement('span');dot2.style.cssText='width:7px;height:7px;border-radius:2px;background:var(--bl);flex-shrink:0;opacity:.7';
+      const tag2=document.createElement('span');tag2.style.cssText='font-size:8px;padding:1px 5px;background:rgba(14,165,233,.8);color:white;border-radius:2px;white-space:nowrap;flex-shrink:0';tag2.textContent='临时';
+      const txt5=document.createElement('span');txt5.style.cssText='font-size:11px;color:var(--ink-m);flex:1;font-family:var(--ss)';txt5.textContent=t.txt;
+      if(t.done){txt5.style.textDecoration='line-through';txt5.style.opacity='.55';}
+      ntRow.appendChild(dot2);ntRow.appendChild(tag2);ntRow.appendChild(txt5);
+      if(t.labelColor&&t.labelName){
+        const ltag=document.createElement('span');
+        ltag.style.cssText=`display:inline-flex;align-items:center;gap:2px;font-size:8px;padding:1px 5px;border-radius:8px;background:${t.labelColor}22;color:${t.labelColor};border:1px solid ${t.labelColor}44;white-space:nowrap;flex-shrink:0`;
+        ltag.innerHTML=`<span style="width:5px;height:5px;border-radius:50%;background:${t.labelColor};flex-shrink:0;display:inline-block"></span>${t.labelName}`;
+        ntRow.appendChild(ltag);
+      }
+      ntSec.appendChild(ntRow);
+    });
+    rows.appendChild(ntSec);
+  }
 
   // ── 6. Mini sections ──
   const miniDone=[];
@@ -2031,7 +2145,9 @@ function renderUnifiedTimeline(){
     const labelColor=el.dataset.labelColor||'';
     const labelName=el.dataset.label||'';
     if(!txt)return;
-    if(!segs.length&&done) miniDone.push({type:'otask',txt,note,labelColor,labelName});
+    const ps2=el.querySelector('.ops')?.value||'';
+    // 无实际段且无计划时间的 otask 已在时间轴主体显示（noTime），有实际段的也在主体，只有「有计划无实际但完成」的才在mini区
+    if(!segs.length&&done&&ps2) miniDone.push({type:'otask',txt,note,labelColor,labelName});
   });
 
   document.querySelectorAll('.memo-item').forEach(el=>{
@@ -2039,7 +2155,10 @@ function renderUnifiedTimeline(){
     const txt=el.querySelector('.memo-ta')?.value||'';
     const labelColor=el.dataset.labelColor||'';
     const labelName=el.dataset.label||'';
+    const hasTime=!!(el.querySelector('.memo-ps')?.value||el.querySelector('.memo-as')?.value);
     if(!txt||!done)return;
+    // 有时间的小任务已经在时间轴主体显示，不在mini区重复显示
+    if(hasTime)return;
     miniDone.push({type:'memo',txt,note:'',labelColor,labelName});
   });
 
@@ -4255,7 +4374,36 @@ function addMemo(pre){
   topRow.appendChild(drag);topRow.appendChild(chk);topRow.appendChild(mLabelDotWrap);topRow.appendChild(inp);topRow.appendChild(mv);topRow.appendChild(mvDate2);topRow.appendChild(del);
   // Restore label tag on load from saved data
   if(pre?.labelColor&&pre?.label){const _lt=document.createElement('span');_lt.className='label-tag memo-label-tag';_lt.style.cssText=`background:${pre.labelColor}22;color:${pre.labelColor};border:1px solid ${pre.labelColor}44`;_lt.innerHTML=`<span class="label-dot-sm" style="background:${pre.labelColor}"></span>${pre.label}`;topRow.insertBefore(_lt,del);}
+
+  // 时间行（计划 + 实际，可折叠）
+  const memoTimeToggle=document.createElement('button');
+  memoTimeToggle.style.cssText='font-size:9px;color:var(--ink-m);cursor:pointer;padding:1px 5px;border:1px solid var(--paper-l);border-radius:2px;background:none;font-family:var(--ss);flex-shrink:0;white-space:nowrap;transition:all var(--t);margin-left:2px';
+  const hasPreTime=!!(pre?.planStart||pre?.actualStart);
+  memoTimeToggle.textContent='时间 '+(hasPreTime?'▴':'▾');
+  memoTimeToggle.onclick=()=>{
+    const wrap=div.querySelector('.memo-time-wrap');
+    const open=wrap.style.display==='none';
+    wrap.style.display=open?'':'none';
+    memoTimeToggle.textContent='时间 '+(open?'▴':'▾');
+  };
+  topRow.insertBefore(memoTimeToggle,del);
+
+  const memoTimeWrap=document.createElement('div');
+  memoTimeWrap.className='memo-time-wrap';
+  memoTimeWrap.style.cssText='display:'+(hasPreTime?'':'none')+';grid-template-columns:1fr 1fr 1fr 1fr;gap:5px;padding:5px 8px 6px;border-top:1px dashed var(--paper-l);background:rgba(245,158,11,.03)';
+  memoTimeWrap.innerHTML=`
+    <div class="etf"><div class="etl">计划开始</div><input class="oti memo-ps" list="dl-t" type="text" placeholder="09:00" value="${pre?.planStart||''}"></div>
+    <div class="etf"><div class="etl">计划结束</div><input class="oti memo-pe" list="dl-t" type="text" placeholder="09:30" value="${pre?.planEnd||''}"></div>
+    <div class="etf"><div class="etl">实际开始</div><input class="oti memo-as" list="dl-t" type="text" placeholder="09:00" value="${pre?.actualStart||''}"></div>
+    <div class="etf"><div class="etl">实际结束</div><input class="oti memo-ae" list="dl-t" type="text" placeholder="09:30" value="${pre?.actualEnd||''}"></div>
+  `;
+  memoTimeWrap.querySelectorAll('input').forEach(i=>{
+    i.addEventListener('input',()=>{saveDayData();renderUnifiedTimeline();});
+    i.addEventListener('blur',()=>{i.value=normalizeTime(i.value)||i.value;saveDayData();renderUnifiedTimeline();});
+  });
+
   div.appendChild(topRow);
+  div.appendChild(memoTimeWrap);
   list.appendChild(div);
 }
 
