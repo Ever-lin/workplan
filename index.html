@@ -383,7 +383,7 @@ body.dark-mode .tbtn-skip.skipped{background:#1f2937;border-color:#4b5563;color:
 .tacts-more{position:relative;flex-shrink:0}
 .tbtn-more{background:none;border:none;cursor:pointer;color:var(--ink-m);padding:2px 5px;font-size:13px;line-height:1;border-radius:2px;transition:all var(--t);letter-spacing:2px}
 .tbtn-more:hover{color:var(--ac);background:var(--ac-p)}
-.more-menu{display:none;position:absolute;top:calc(100% + 4px);right:0;z-index:600;background:var(--card-bg);border:1px solid var(--bdr);border-radius:4px;box-shadow:0 6px 20px var(--shd);min-width:128px;padding:4px 0;white-space:nowrap}
+.more-menu{display:none;position:fixed;z-index:9000;background:var(--card-bg);border:1px solid var(--bdr);border-radius:4px;box-shadow:0 6px 20px var(--shd);min-width:128px;padding:4px 0;white-space:nowrap}
 .more-menu.open{display:block}
 .more-menu-item{display:flex;align-items:center;gap:7px;padding:6px 12px;font-size:11px;color:var(--ink);cursor:pointer;font-family:var(--ss);transition:background var(--t)}
 .more-menu-item:hover{background:var(--paper-w)}
@@ -5389,13 +5389,19 @@ function toggleMoreMenu(btn){
   const isOpen=menu.classList.contains('open');
   closeAllMoreMenus(null);
   if(!isOpen){
-    menu.style.right='';menu.style.left='';menu.style.top='';menu.style.bottom='';
     menu.classList.add('open');
-    const rect=menu.getBoundingClientRect();
+    const r=btn.getBoundingClientRect();
     const vw=window.innerWidth||document.documentElement.clientWidth;
     const vh=window.innerHeight||document.documentElement.clientHeight;
-    if(rect.right>vw-8){menu.style.right='0';menu.style.left='auto';}
-    if(rect.bottom>vh-8){menu.style.top='auto';menu.style.bottom='calc(100% + 4px)';}
+    const mw=menu.offsetWidth||130;
+    const mh=menu.offsetHeight||120;
+    let left=r.right-mw;
+    if(left<4)left=r.left;
+    if(left+mw>vw-4)left=vw-mw-4;
+    let top=r.bottom+4;
+    if(top+mh>vh-4)top=r.top-mh-4;
+    menu.style.left=left+'px';
+    menu.style.top=top+'px';
   }
 }
 document.addEventListener('click',e=>{
