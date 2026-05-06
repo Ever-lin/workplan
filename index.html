@@ -4540,6 +4540,7 @@ function tplRenderList() {
     el.className = 'tpl-item' + (tpl.id === tplCurrentId ? ' active' : '');
     const tc = (tpl.todos||[]).length;
     const oc = (tpl.otasks||[]).length;
+    const mc = (tpl.memos||[]).length;
     
     const parts = [];
     if(tc) parts.push(`<span style="color:var(--ac)">${tc}项固定安排</span>`);
