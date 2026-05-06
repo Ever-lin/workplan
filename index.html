@@ -383,7 +383,7 @@ body.dark-mode .tbtn-skip.skipped{background:#1f2937;border-color:#4b5563;color:
 .tacts-more{position:relative;flex-shrink:0}
 .tbtn-more{background:none;border:none;cursor:pointer;color:var(--ink-m);padding:2px 5px;font-size:13px;line-height:1;border-radius:2px;transition:all var(--t);letter-spacing:2px}
 .tbtn-more:hover{color:var(--ac);background:var(--ac-p)}
-.more-menu{display:none;position:absolute;top:calc(100% + 4px);right:0;z-index:500;background:var(--card-bg);border:1px solid var(--bdr);border-radius:4px;box-shadow:0 6px 20px var(--shd);min-width:128px;padding:4px 0;white-space:nowrap}
+.more-menu{display:none;position:absolute;top:calc(100% + 4px);right:0;z-index:600;background:var(--card-bg);border:1px solid var(--bdr);border-radius:4px;box-shadow:0 6px 20px var(--shd);min-width:128px;padding:4px 0;white-space:nowrap}
 .more-menu.open{display:block}
 .more-menu-item{display:flex;align-items:center;gap:7px;padding:6px 12px;font-size:11px;color:var(--ink);cursor:pointer;font-family:var(--ss);transition:background var(--t)}
 .more-menu-item:hover{background:var(--paper-w)}
@@ -3477,7 +3477,7 @@ function renderWeekly(){
       fixedEntries.sort((a,b)=>b.days.length-a.days.length).forEach(fe=>{
         const lc=fe.labelColor||'';const ln=fe.labelName||'';
         const labelBadge=lc?`<span style="display:inline-flex;align-items:center;gap:2px;font-size:7px;padding:0 4px;border-radius:8px;background:${lc}22;color:${lc};border:1px solid ${lc}44;white-space:nowrap;vertical-align:middle;margin-left:3px"><span style="width:4px;height:4px;border-radius:50%;background:${lc};display:inline-block"></span>${ln}</span>`:'';
-        html+=`<tr onmouseenter="this.style.background='var(--paper-w)'" onmouseleave="this.style.background=''" style="border-top:1px dashed var(--paper-l);transition:background .1s">
+        html+=`<tr style="border-top:1px dashed var(--paper-l)">
           <td style="padding:5px 6px 5px 0;color:var(--ink);max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${fe.txt}${labelBadge}</td>`;
         let doneCnt=0,totalCnt=0;
         for(let i=0;i<7;i++){
@@ -5388,7 +5388,15 @@ function toggleMoreMenu(btn){
   const menu=btn.nextElementSibling;
   const isOpen=menu.classList.contains('open');
   closeAllMoreMenus(null);
-  if(!isOpen)menu.classList.add('open');
+  if(!isOpen){
+    menu.style.right='';menu.style.left='';menu.style.top='';menu.style.bottom='';
+    menu.classList.add('open');
+    const rect=menu.getBoundingClientRect();
+    const vw=window.innerWidth||document.documentElement.clientWidth;
+    const vh=window.innerHeight||document.documentElement.clientHeight;
+    if(rect.right>vw-8){menu.style.right='0';menu.style.left='auto';}
+    if(rect.bottom>vh-8){menu.style.top='auto';menu.style.bottom='calc(100% + 4px)';}
+  }
 }
 document.addEventListener('click',e=>{
   if(!e.target.closest('.tacts-more'))closeAllMoreMenus(null);
