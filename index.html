@@ -1706,7 +1706,9 @@ function renderUnifiedTimeline(){
     const labelColor=el.dataset.labelColor||'';
     const labelName=el.dataset.label||'';
     if(!txt)return;
-    const segs=[...el.querySelectorAll('.otask-segs-wrap .time-seg')].map(s=>({as:s.querySelector('.seg-s')?.value||'',ae:s.querySelector('.seg-e')?.value||''})).filter(s=>s.as);
+    const asVal=el.querySelector('.otask-segs-wrap .otask-as-inp')?.value||el.querySelector('.otask-segs-wrap .seg-s')?.value||'';
+    const aeVal=el.querySelector('.otask-segs-wrap .otask-ae-inp')?.value||el.querySelector('.otask-segs-wrap .seg-e')?.value||'';
+    const segs=asVal?[{as:asVal,ae:aeVal}]:[];
     if(segs.length){
       const sortMin=timeToMin(segs[0].as);
       const endMin=segs[segs.length-1].ae?timeToMin(segs[segs.length-1].ae):sortMin+1;
@@ -2075,7 +2077,8 @@ function renderUnifiedTimeline(){
   });
 
   document.querySelectorAll('.otask').forEach(el=>{
-    const segs=[...el.querySelectorAll('.otask-segs-wrap .time-seg')].map(s=>s.querySelector('.seg-s')?.value||'').filter(Boolean);
+    const asVal=el.querySelector('.otask-segs-wrap .otask-as-inp')?.value||el.querySelector('.otask-segs-wrap .seg-s')?.value||'';
+    const hasActual=!!asVal;
     const done=el.classList.contains('ck');
     const txt=el.querySelector('.otask-txt')?.value||'';
     const note=el.querySelector('.otnote')?.value||'';
@@ -2084,10 +2087,8 @@ function renderUnifiedTimeline(){
     if(!txt)return;
     const ps2=el.querySelector('.ops')?.value||'';
     const movedTo=el.dataset.movedToNext||'';
-    // 已移到明天：显示在mini区（带移走标记）
     if(movedTo){miniDone.push({type:'otask-moved',txt,note,labelColor,labelName,movedTo});return;}
-    // 无实际段且无计划时间的 otask 已在时间轴主体显示（noTime），有实际段的也在主体，只有「有计划无实际但完成」的才在mini区
-    if(!segs.length&&done&&ps2) miniDone.push({type:'otask',txt,note,labelColor,labelName});
+    if(!hasActual&&done&&ps2) miniDone.push({type:'otask',txt,note,labelColor,labelName});
   });
 
   // 今日待办已合并到今日待办，无需单独收集
@@ -2645,11 +2646,9 @@ function updateStats(){
   });
   document.querySelectorAll('.otask').forEach(el=>{
     const lc=el.dataset.labelColor||'';const ln=el.dataset.label||'';
-    [...el.querySelectorAll('.otask-segs-wrap .time-seg')].forEach(s=>{
-      const as=s.querySelector('.seg-s')?.value||'';
-      const ae=s.querySelector('.seg-e')?.value||'';
-      if(as&&ae){const d=timeToMin(ae)-timeToMin(as);if(d>0){actualMins+=d;ensureLabel(lc,ln).actualMins+=d;}}
-    });
+    const as=el.querySelector('.otask-segs-wrap .otask-as-inp')?.value||el.querySelector('.otask-segs-wrap .seg-s')?.value||'';
+    const ae=el.querySelector('.otask-segs-wrap .otask-ae-inp')?.value||el.querySelector('.otask-segs-wrap .seg-e')?.value||'';
+    if(as&&ae){const d=timeToMin(ae)-timeToMin(as);if(d>0){actualMins+=d;ensureLabel(lc,ln).actualMins+=d;}}
   });
   const actualEl=document.getElementById('s-actualtime');
   if(actualEl){
@@ -2684,10 +2683,9 @@ function updateStats(){
     const lc=el.dataset.labelColor||'';const ln=el.dataset.label||'';
     if(!txt)return;
     if(ps&&pe){const d=timeToMin(pe)-timeToMin(ps);if(d>0)ensureItem(txt,lc,ln,false).planMins+=d;}
-    [...el.querySelectorAll('.otask-segs-wrap .time-seg')].forEach(s=>{
-      const as=s.querySelector('.seg-s')?.value||'';const ae=s.querySelector('.seg-e')?.value||'';
-      if(as&&ae){const d=timeToMin(ae)-timeToMin(as);if(d>0)ensureItem(txt,lc,ln,false).actualMins+=d;}
-    });
+    const as=el.querySelector('.otask-segs-wrap .otask-as-inp')?.value||el.querySelector('.otask-segs-wrap .seg-s')?.value||'';
+    const ae=el.querySelector('.otask-segs-wrap .otask-ae-inp')?.value||el.querySelector('.otask-segs-wrap .seg-e')?.value||'';
+    if(as&&ae){const d=timeToMin(ae)-timeToMin(as);if(d>0)ensureItem(txt,lc,ln,false).actualMins+=d;}
   });
   window._lastItemTimeMap=itemTimeMap;
   if(breakdown&&breakdown.style.display!=='none')renderItemTimeBreakdown(itemTimeMap,fmtM);
