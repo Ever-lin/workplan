@@ -857,7 +857,7 @@ body.dark-mode .cdlg-inp{background:var(--paper-l);color:var(--ink)}
       <div class="ds">写下想做但还没安排的事，需要时拖到每日计划</div>
     </div>
     <div style="flex:1"></div>
-    <button class="tb" onclick="addInboxItem()" style="display:flex;align-items:center;gap:4px">＋ 添加事项</button>
+    <button class="tb" onclick="const nb=[...document.querySelectorAll('.nb')].find(b=>b.onclick?.toString().includes('inbox'));if(nb){switchView('inbox',nb);}setTimeout(()=>{const inp=document.getElementById('inbox-new-title');if(inp){inp.focus();}},80)" style="display:flex;align-items:center;gap:4px">＋ 添加事项</button>
   </div>
   <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;align-items:start">
     <!-- LEFT: 待安排列表 -->
@@ -1003,7 +1003,7 @@ body.dark-mode .cdlg-inp{background:var(--paper-l);color:var(--ink)}
             <span><span style="display:inline-block;padding:1px 5px;background:rgba(139,105,20,.18);color:#6b5000;border-radius:3px;font-size:9px;font-family:var(--mo)">计划</span></span>
             <span><span style="display:inline-block;padding:1px 5px;background:rgba(42,92,63,.2);color:#1a4830;border-radius:3px;font-size:9px;font-family:var(--mo)">完成/准时</span></span>
             <span><span style="display:inline-block;padding:1px 5px;background:rgba(139,58,58,.18);color:#7a1a1a;border-radius:3px;font-size:9px;font-family:var(--mo)">有偏差</span></span>
-            <span><span style="display:inline-block;padding:1px 5px;background:rgba(107,63,160,.18);color:#3d1878;border-radius:3px;font-size:9px;font-family:var(--mo)">临时</span></span>
+            <span><span style="display:inline-block;padding:1px 5px;background:rgba(107,63,160,.18);color:#3d1878;border-radius:3px;font-size:9px;font-family:var(--mo)">待办</span></span>
             <span><span style="display:inline-block;padding:1px 5px;background:rgba(245,158,11,.18);color:#78350f;border-radius:3px;font-size:9px;font-family:var(--mo)">未完成</span></span>
             <span><span style="display:inline-block;padding:1px 5px;background:rgba(42,92,63,.2);color:#1a4830;border-radius:3px;font-size:9px;font-family:var(--mo)">补完</span></span>
           </div>
@@ -1034,7 +1034,7 @@ body.dark-mode .cdlg-inp{background:var(--paper-l);color:var(--ink)}
     <div class="sc g"><div class="sv" id="w-done">0</div><div class="sl">计划完成</div></div>
     <div class="sc"><div class="sv" id="w-rate">0%</div><div class="sl">计划完成率</div></div>
     <div class="sc"><div class="sv" id="w-otasks">0</div><div class="sl">今日待办</div></div>
-    <div class="sc g"><div class="sv" id="w-otdone">0</div><div class="sl">临时完成</div></div>
+    <div class="sc g"><div class="sv" id="w-otdone">0</div><div class="sl">待办完成</div></div>
   </div>
   <div id="w-time-summary" style="display:none;margin-bottom:10px;padding:10px 14px;background:var(--card-bg);border:1px solid var(--bdr);border-radius:4px"></div>
   <div id="w-fixed-summary" style="display:none;margin-bottom:10px;background:var(--card-bg);border:1px solid var(--bdr);border-radius:4px;overflow:hidden"></div>
@@ -1059,7 +1059,7 @@ body.dark-mode .cdlg-inp{background:var(--paper-l);color:var(--ink)}
     <div class="sc g"><div class="sv" id="m-done">0</div><div class="sl">计划完成</div></div>
     <div class="sc"><div class="sv" id="m-rate">0%</div><div class="sl">计划完成率</div></div>
     <div class="sc"><div class="sv" id="m-otasks">0</div><div class="sl">今日待办</div></div>
-    <div class="sc g"><div class="sv" id="m-otdone">0</div><div class="sl">临时完成</div></div>
+    <div class="sc g"><div class="sv" id="m-otdone">0</div><div class="sl">待办完成</div></div>
   </div>
   <!-- 月度摘要面板 -->
   <div id="m-summary" style="display:none;margin-bottom:12px;background:var(--card-bg);border:1px solid var(--bdr);border-radius:4px;overflow:hidden"></div>
@@ -1083,7 +1083,7 @@ body.dark-mode .cdlg-inp{background:var(--paper-l);color:var(--ink)}
     <div class="sc g"><div class="sv" id="y-done">0</div><div class="sl">计划完成</div></div>
     <div class="sc"><div class="sv" id="y-rate">0%</div><div class="sl">计划完成率</div></div>
     <div class="sc"><div class="sv" id="y-otasks">0</div><div class="sl">今日待办</div></div>
-    <div class="sc g"><div class="sv" id="y-otdone">0</div><div class="sl">临时完成</div></div>
+    <div class="sc g"><div class="sv" id="y-otdone">0</div><div class="sl">待办完成</div></div>
   </div>
   <!-- 年度摘要面板 -->
   <div id="y-summary" style="margin-bottom:14px;background:var(--card-bg);border:1px solid var(--bdr);border-radius:4px;overflow:hidden;display:none"></div>
@@ -1943,7 +1943,7 @@ function renderUnifiedTimeline(){
         const nameEntry=document.createElement('div');nameEntry.className='utl-name-entry';
         const dot=document.createElement('span');
         dot.style.cssText='width:7px;height:7px;border-radius:2px;background:var(--bl);flex-shrink:0;opacity:.8';
-        const tag=document.createElement('span');tag.className='utl-extra-tag';tag.textContent='临时';
+        const tag=document.createElement('span');tag.className='utl-extra-tag';tag.textContent='今日待办';
         const txt3=document.createElement('span');txt3.className='utl-plan-txt'+(t.done?' is-done':'');
         txt3.textContent=t.txt;
         nameEntry.appendChild(dot);nameEntry.appendChild(tag);nameEntry.appendChild(txt3);
@@ -2037,7 +2037,7 @@ function renderUnifiedTimeline(){
       const ntRow=document.createElement('div');
       ntRow.style.cssText='display:flex;align-items:center;gap:7px;padding:4px 7px;border-radius:2px;background:rgba(14,165,233,.05);border:1px dashed rgba(14,165,233,.2);margin-bottom:4px';
       const dot2=document.createElement('span');dot2.style.cssText='width:7px;height:7px;border-radius:2px;background:var(--bl);flex-shrink:0;opacity:.7';
-      const tag2=document.createElement('span');tag2.style.cssText='font-size:8px;padding:1px 5px;background:rgba(14,165,233,.8);color:white;border-radius:2px;white-space:nowrap;flex-shrink:0';tag2.textContent='临时';
+      const tag2=document.createElement('span');tag2.style.cssText='font-size:8px;padding:1px 5px;background:rgba(14,165,233,.8);color:white;border-radius:2px;white-space:nowrap;flex-shrink:0';tag2.textContent='今日待办';
       const txt5=document.createElement('span');txt5.style.cssText='font-size:11px;color:var(--ink-m);flex:1;font-family:var(--ss)';txt5.textContent=t.txt;
       if(t.done){txt5.style.textDecoration='line-through';txt5.style.opacity='.55';}
       ntRow.appendChild(dot2);ntRow.appendChild(tag2);ntRow.appendChild(txt5);
@@ -2135,10 +2135,10 @@ function renderUnifiedTimeline(){
       const chk=document.createElement('span');chk.className='utl-mini-check';
       chk.textContent=isMoved?'→':'✓';
       if(isMoved)chk.style.cssText='color:var(--am);font-size:11px;flex-shrink:0';
-      const tagMap={todo:'计划',otask:'临时',makeup:'补完','otask-moved':'临时→'+item.movedTo};
+      const tagMap={todo:'计划',otask:'今日待办',makeup:'补完','otask-moved':'今日待办→'+item.movedTo};
       const tagCls=item.type==='makeup'?'tag-makeup':item.type==='otask-moved'?'tag-otask':'tag-'+item.type;
       const tag=document.createElement('span');tag.className='utl-mini-tag '+tagCls;
-      tag.textContent=(tagMap[item.type]||'临时')+(item.completedDate?' ('+item.completedDate+')':'');
+      tag.textContent=(tagMap[item.type]||'今日待办')+(item.completedDate?' ('+item.completedDate+')':'');
       if(isMoved)tag.style.cssText='font-size:8px;padding:1px 5px;background:rgba(245,158,11,.18);color:#92400e;border-radius:2px;white-space:nowrap;flex-shrink:0';
       const txtEl=document.createElement('span');txtEl.className='utl-mini-txt';txtEl.textContent=item.txt;
       if(isMoved){txtEl.style.textDecoration='line-through';txtEl.style.opacity='.55';}
@@ -3291,7 +3291,7 @@ function renderWeekly(){
     if(hasAny){
       const chips=[];
       if(todos.length) chips.push(`<span style="display:inline-flex;align-items:center;gap:3px;padding:2px 7px;background:var(--ac-p);border-radius:10px;font-size:10px;font-family:var(--mo);color:var(--ac)"><span style="font-size:9px">${done}/${todos.length}</span><span style="font-size:9px;opacity:.7">计划</span></span>`);
-      chips.push(`<span style="display:inline-flex;align-items:center;gap:3px;padding:2px 7px;background:var(--bl-l);border-radius:10px;font-size:10px;font-family:var(--mo);color:var(--bl)"><span style="font-size:9px">${otDone}/${otasks.length}</span><span style="font-size:9px;opacity:.7">临时</span></span>`);
+      chips.push(`<span style="display:inline-flex;align-items:center;gap:3px;padding:2px 7px;background:var(--bl-l);border-radius:10px;font-size:10px;font-family:var(--mo);color:var(--bl)"><span style="font-size:9px">${otDone}/${otasks.length}</span><span style="font-size:9px;opacity:.7">待办</span></span>`);
       headInfo.innerHTML=`<div style="display:flex;flex-wrap:wrap;gap:5px;margin-bottom:5px">${chips.join('')}</div>`;
       if(todos.length){
         const pbWrap=document.createElement('div');
@@ -3698,7 +3698,7 @@ function renderMonthly(){
       if(hasAnyM){
         const chipsM=[];
         if(todos.length) chipsM.push(`<span style="display:inline-flex;align-items:center;gap:3px;padding:2px 7px;background:var(--ac-p);border-radius:10px;font-size:10px;font-family:var(--mo);color:var(--ac)"><span style="font-size:9px">${dn}/${todos.length}</span><span style="font-size:9px;opacity:.7">计划</span></span>`);
-        chipsM.push(`<span style="display:inline-flex;align-items:center;gap:3px;padding:2px 7px;background:var(--bl-l);border-radius:10px;font-size:10px;font-family:var(--mo);color:var(--bl)"><span style="font-size:9px">${otDn2}/${otasks.length}</span><span style="font-size:9px;opacity:.7">临时</span></span>`);
+        chipsM.push(`<span style="display:inline-flex;align-items:center;gap:3px;padding:2px 7px;background:var(--bl-l);border-radius:10px;font-size:10px;font-family:var(--mo);color:var(--bl)"><span style="font-size:9px">${otDn2}/${otasks.length}</span><span style="font-size:9px;opacity:.7">待办</span></span>`);
         headInfoM.innerHTML=`<div style="display:flex;flex-wrap:wrap;gap:5px;margin-bottom:5px">${chipsM.join('')}</div>`;
         if(todos.length){
           const pbWrapM=document.createElement('div');
@@ -4022,7 +4022,7 @@ function renderYearly(){
         </div>
         <div style="padding:4px 6px;background:var(--paper-w);border-radius:3px;display:flex;flex-direction:column;gap:1px">
           <span style="font-family:var(--mo);font-size:11px;font-weight:600;color:var(--bl)">${mod}/${mot}</span>
-          <span style="color:var(--ink-m);font-size:8px">临时完成</span>
+          <span style="color:var(--ink-m);font-size:8px">待办完成</span>
         </div>
         <div style="padding:4px 6px;background:var(--paper-w);border-radius:3px;display:flex;flex-direction:column;gap:1px">
           <span style="font-family:var(--mo);font-size:11px;font-weight:600;color:var(--gr)">${mdy}天</span>
@@ -6100,22 +6100,22 @@ function addInboxItem(){
   const title=(document.getElementById('inbox-new-title')?.value||'').trim();
   if(!title){cdlgAlert('请输入事项内容');return;}
   const note=(document.getElementById('inbox-new-note')?.value||'').trim();
-  const labels2=getLabels();const cat=document.getElementById('inbox-new-cat')?.value||(labels2[0]?.name||'工作');
+  const labels2=getLabels();
+  const cat=document.getElementById('inbox-new-cat')?.value||(labels2[0]?.name||'工作');
+  // 同时存颜色，保证渲染时颜色与添加时一致
+  const catColor=(labels2.find(l=>l.name===cat)||{}).color||'var(--ink-m)';
   const pri=document.querySelector('input[name="inbox-pri"]:checked')?.value||'mid';
   const all=inboxLoadAll();
   if(_inboxEditingId){
-    // 编辑模式
     const idx=all.findIndex(i=>i.id===_inboxEditingId);
-    if(idx>=0){all[idx]={...all[idx],title,note,cat,pri,updatedAt:new Date().toISOString()};}
+    if(idx>=0){all[idx]={...all[idx],title,note,cat,catColor,pri,updatedAt:new Date().toISOString()};}
     _inboxEditingId=null;
-    // 重置按钮
-    const addBtn=document.querySelector('#view-inbox .tb');
     const formSubmitBtn=document.querySelector('#inbox-form-submit');
     if(formSubmitBtn)formSubmitBtn.textContent='＋ 添加到待安排';
     const cancelBtn=document.getElementById('inbox-edit-cancel');
     if(cancelBtn)cancelBtn.style.display='none';
   } else {
-    const item={id:inboxGenId(),title,note,cat,pri,createdAt:new Date().toISOString()};
+    const item={id:inboxGenId(),title,note,cat,catColor,pri,createdAt:new Date().toISOString()};
     all.push(item);
   }
   inboxSaveAll(all);
@@ -6197,6 +6197,8 @@ function renderInbox(){
   const pending=all.filter(i=>!i.arrangedAt);
   const arranged=all.filter(i=>i.arrangedAt);
   const filtered=filter==='all'?pending:pending.filter(i=>i.cat===filter);
+  // 按分类排序，同分类内按创建时间排序
+  filtered.sort((a,b)=>(a.cat||'').localeCompare(b.cat||'') || (a.createdAt||'').localeCompare(b.createdAt||''));
   
   document.getElementById('inbox-count').textContent=pending.length;
   const list=document.getElementById('inbox-list');
@@ -6208,35 +6210,31 @@ function renderInbox(){
     return;
   }
   
-  // 渲染待安排事项
+  // 渲染待安排事项（紧凑单行）
   if(filtered.length){
-    filtered.forEach(item=>{
-      const card=document.createElement('div');
-      card.style.cssText='background:var(--paper-w);border:1px solid var(--bdr);border-radius:4px;padding:10px 12px;position:relative;transition:border-color .15s,box-shadow .15s';
-      card.onmouseenter=()=>{card.style.borderColor='var(--ac-l)';card.style.boxShadow='0 2px 8px var(--shd)';};
-      card.onmouseleave=()=>{card.style.borderColor='var(--bdr)';card.style.boxShadow='';};
+    const rowWrap=document.createElement('div');
+    rowWrap.style.cssText='display:flex;flex-direction:column;gap:1px;border:1px solid var(--bdr);border-radius:4px;overflow:hidden';
+    filtered.forEach((item,idx)=>{
       const priColor=INBOX_PRI_COLOR[item.pri||'mid']||'var(--am)';
-      const catColor=getInboxCatColor(item.cat);
+      const catColor=item.catColor||getInboxCatColor(item.cat);
       const catLabel=item.cat||'';
-      card.innerHTML=`
-        <div style="display:flex;align-items:flex-start;gap:8px">
-          <div style="width:3px;border-radius:2px;background:${priColor};flex-shrink:0;align-self:stretch"></div>
-          <div style="flex:1;min-width:0">
-            <div style="font-size:12px;font-weight:500;color:var(--ink);margin-bottom:4px;line-height:1.4">${item.title}</div>
-            ${item.note?`<div style="font-size:10px;color:var(--ink-m);line-height:1.5;margin-bottom:5px">${item.note}</div>`:''}
-            <div style="display:flex;gap:5px;flex-wrap:wrap;align-items:center">
-              <span style="font-size:9px;padding:1px 7px;background:${catColor}22;color:${catColor};border:1px solid ${catColor}44;border-radius:10px">${catLabel}</span>
-              <span style="font-size:9px;color:var(--ink-m);margin-left:auto">${(item.createdAt||'').slice(0,10)}</span>
-            </div>
-          </div>
-          <div style="display:flex;flex-direction:column;gap:4px;flex-shrink:0">
-            <button onclick="inboxSendToToday('${item.id}')" title="安排到今日今日待办" style="font-size:9px;padding:2px 7px;background:var(--ac-p);color:var(--ac);border:1px solid var(--ac-l);border-radius:2px;cursor:pointer;white-space:nowrap">→今日</button>
-            <button onclick="inboxStartEdit('${item.id}')" title="编辑" style="font-size:9px;padding:2px 7px;background:var(--paper-w);color:var(--ink-m);border:1px solid var(--bdr);border-radius:2px;cursor:pointer">✏️ 编辑</button>
-            <button onclick="inboxDelete('${item.id}')" title="删除" style="font-size:9px;padding:2px 7px;background:none;color:var(--ink-m);border:1px solid var(--paper-l);border-radius:2px;cursor:pointer">删除</button>
-          </div>
+      const row=document.createElement('div');
+      row.style.cssText=`display:flex;align-items:center;gap:7px;padding:6px 10px;background:var(--card-bg);border-bottom:1px solid var(--paper-l);transition:background .12s;cursor:default;position:relative`;
+      row.onmouseenter=()=>{row.style.background='var(--paper-w)';row.querySelector('.inbox-row-acts').style.opacity='1';};
+      row.onmouseleave=()=>{row.style.background='var(--card-bg)';row.querySelector('.inbox-row-acts').style.opacity='0';};
+      row.innerHTML=`
+        <div style="width:3px;min-height:16px;border-radius:2px;background:${priColor};flex-shrink:0;align-self:stretch"></div>
+        <span style="font-size:9px;padding:1px 6px;background:${catColor}22;color:${catColor};border:1px solid ${catColor}44;border-radius:8px;white-space:nowrap;flex-shrink:0">${catLabel}</span>
+        <span style="font-size:12px;color:var(--ink);flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${item.title}${item.note?'\n'+item.note:''}">${item.title}</span>
+        <span style="font-size:9px;color:var(--ink-m);flex-shrink:0;opacity:.6">${(item.createdAt||'').slice(5,10)}</span>
+        <div class="inbox-row-acts" style="display:flex;gap:3px;flex-shrink:0;opacity:0;transition:opacity .12s">
+          <button onclick="inboxSendToToday('${item.id}')" style="font-size:9px;padding:1px 6px;background:var(--ac-p);color:var(--ac);border:1px solid var(--ac-l);border-radius:2px;cursor:pointer;white-space:nowrap">→今日</button>
+          <button onclick="inboxStartEdit('${item.id}')" style="font-size:9px;padding:1px 5px;background:var(--paper-w);color:var(--ink-m);border:1px solid var(--bdr);border-radius:2px;cursor:pointer">✏️</button>
+          <button onclick="inboxDelete('${item.id}')" style="font-size:9px;padding:1px 5px;background:none;color:var(--ink-m);border:1px solid var(--paper-l);border-radius:2px;cursor:pointer">×</button>
         </div>`;
-      list.appendChild(card);
+      rowWrap.appendChild(row);
     });
+    list.appendChild(rowWrap);
   } else if(!arranged.length){
     list.innerHTML='<div style="text-align:center;padding:40px 20px;color:var(--ink-m);opacity:.5;font-size:12px">暂无待安排事项<br>在右侧添加吧 →</div>';
   }
@@ -6285,7 +6283,7 @@ function renderInbox(){
       };
       
       group.items.forEach(item=>{
-        const catColor=getInboxCatColor(item.cat);
+        const catColor=item.catColor||getInboxCatColor(item.cat);
         const catLabel=item.cat||'';
         const icard=document.createElement('div');
         icard.style.cssText='background:var(--paper-w);border:1px solid var(--paper-l);border-radius:3px;padding:7px 10px;opacity:.75';
@@ -6353,7 +6351,7 @@ function inboxSendToToday(id){
     data.otasks.push({text:item.title,done:false,actualSegs:[],noteChecklist:[],note:item.note||'',planStart,planEnd,execOpen:!!(item.note||planStart),movedToNext:'',deferredFrom:'',label:labelName,labelColor:labelColor});
     localStorage.setItem(gkey(currentDate),JSON.stringify(data));
     renderInbox();
-    const toast=document.getElementById('saved');if(toast){toast.textContent='已添加到今日今日待办';toast.classList.add('show');setTimeout(()=>{toast.textContent='已保存';toast.classList.remove('show');},1600);}
+    const toast=document.getElementById('saved');if(toast){toast.textContent='已添加到今日待办';toast.classList.add('show');setTimeout(()=>{toast.textContent='已保存';toast.classList.remove('show');},1600);}
   });
 }
 function inboxDelete(id){
