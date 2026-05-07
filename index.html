@@ -4544,7 +4544,6 @@ function tplRenderList() {
     const parts = [];
     if(tc) parts.push(`<span style="color:var(--ac)">${tc}项固定安排</span>`);
     if(oc) parts.push(`<span style="color:var(--bl)">${oc}项今日待办</span>`);
-    if(mc) parts.push(`<span style="color:var(--am)">${mc}项今日待办</span>`);
     const meta = parts.length ? parts.join('<span style="opacity:.4"> · </span>') : '<span style="opacity:.5">空模板</span>';
     el.innerHTML = `<div class="tpl-item-name">${tpl.name||'未命名'}</div><div class="tpl-item-meta">${meta}</div>`;
     el.onclick = () => tplSelect(tpl.id);
